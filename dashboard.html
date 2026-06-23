@@ -522,6 +522,7 @@ function renderBookings(){
         <div class="bk-when"><div class="bk-date">${dt.toLocaleDateString('en-AU',{weekday:'short',day:'numeric',month:'short'})}</div><div class="bk-time">${fmtTime12(b.time)}</div></div>
       </div>
       <div class="bk-contact"><span>${b.name}</span><a href="tel:${phoneClean}">${b.phone}</a><a href="sms:${phoneClean}">Text</a></div>
+${b.notes?`<div style="font-size:.83rem;color:var(--mercury);font-style:italic;margin-top:.5rem">"${b.notes}"</div>`:''}
       <div><span class="bk-status st-${b.status}">${b.status}</span>${b.discount_applied?` <span style="background:rgba(203,166,92,.15);color:var(--gold-light);border:1px solid rgba(203,166,92,.3);font-size:.66rem;letter-spacing:.08em;text-transform:uppercase;padding:.25rem .6rem;border-radius:100px;margin-left:.4rem">🎁 ${b.discount_applied}</span>`:''}</div>
       <div class="bk-actions">
         ${b.status==='pending'?`<button class="btn-sm-gold" onclick="confirmBk('${b.id}')">Confirm &amp; lock day</button><button class="btn-sm-danger" onclick="declineBk('${b.id}')">Decline</button>`:''}
