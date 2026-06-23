@@ -202,6 +202,7 @@ main{max-width:1100px;margin:0 auto;padding:2rem 1.5rem}
 .bk-car{font-family:'Bricolage Grotesque';font-weight:700;font-size:1.02rem}
 .bk-sub{font-size:.84rem;color:var(--mercury);margin-top:.25rem}
 .bk-sub b{color:var(--platinum);font-weight:600}
+.bk-notes{font-size:.84rem;color:var(--mercury);font-style:italic;margin-top:.5rem;padding:.6rem .8rem;background:rgba(255,255,255,.03);border-left:2px solid var(--smoke);border-radius:0 8px 8px 0}
 .bk-when{text-align:right;flex-shrink:0}
 .bk-date{font-family:'Bricolage Grotesque';font-weight:700;font-size:.95rem;color:var(--gold-light)}
 .bk-time{font-size:.78rem;color:var(--mercury-dim)}
@@ -455,6 +456,7 @@ function renderBookings(){
         <div class="bk-when"><div class="bk-date">${dt.toLocaleDateString('en-AU',{weekday:'short',day:'numeric',month:'short'})}</div><div class="bk-time">${fmtTime12(b.time)}</div></div>
       </div>
       <div class="bk-contact"><span>${b.name}</span><a href="tel:${phoneClean}">${b.phone}</a><a href="sms:${phoneClean}">Text</a></div>
+      ${b.notes?`<div class="bk-notes">💬 ${b.notes}</div>`:''}
       <div><span class="bk-status st-${b.status}">${b.status}</span>${b.discount_applied?` <span style="background:rgba(203,166,92,.15);color:var(--gold-light);border:1px solid rgba(203,166,92,.3);font-size:.66rem;letter-spacing:.08em;text-transform:uppercase;padding:.25rem .6rem;border-radius:100px;margin-left:.4rem">🎁 ${b.discount_applied}</span>`:''}</div>
       <div class="bk-actions">
         ${b.status==='pending'?`<button class="btn-sm-gold" onclick="confirmBk('${b.id}')">Confirm &amp; lock day</button><button class="btn-sm-danger" onclick="declineBk('${b.id}')">Decline</button>`:''}
