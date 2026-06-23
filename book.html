@@ -164,6 +164,7 @@ h1{font-family:'Bricolage Grotesque';font-weight:800;font-size:clamp(1.8rem,5vw,
     <div class="step hidden" id="timeStep">
       <div class="step-label"><span class="step-num">2b</span>Pick a start time</div>
       <div class="days" id="timeWrap"></div>
+      <div id="finishNote" style="display:none;margin-top:.9rem;font-size:.85rem;color:var(--mercury);background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:.7rem .9rem"></div>
     </div>
 
     <!-- STEP 3 -->
@@ -422,6 +423,20 @@ function pickTime(el){
   selTime=el.dataset.time;
   // update selDay with chosen time
   selDay={...selDay,time:selTime};
+  showFinishTime();
+}
+function showFinishTime(){
+  const note=document.getElementById('finishNote');
+  if(!selSvc||!selTime){note.style.display='none';return;}
+  // typical durations (hours): full ~5, interior ~3, exterior ~2.5
+  const hrs=selSvc==='Full Detail'?5:selSvc==='Interior Detail'?3:2.5;
+  const[h,m]=selTime.split(':').map(Number);
+  const startMins=h*60+m;
+  const endMins=startMins+hrs*60;
+  const eh=Math.floor(endMins/60), em=endMins%60;
+  const endStr=fmtTime(`${String(eh).padStart(2,'0')}:${String(em).padStart(2,'0')}`);
+  note.innerHTML=`Start ${fmtTime(selTime)} — expected finish around <b style="color:var(--chrome,#fff)">${endStr}</b>. I only take one car a day, so yours is never rushed.`;
+  note.style.display='block';
 }
 function fmtTime(t){if(!t)return'';const[h,m]=t.split(':');let hr=+h;const ap=hr>=12?'pm':'am';hr=hr%12||12;return hr+(m!=='00'?':'+m:'')+ap;}
 function localDate(s){const[y,m,d]=s.split('-').map(Number);return new Date(y,m-1,d);}
