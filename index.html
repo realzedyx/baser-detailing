@@ -226,8 +226,8 @@
   }
   .ba-layer{position:absolute;inset:0;background-size:cover;background-position:center;display:flex;align-items:flex-end;justify-content:flex-start}
   /* PHOTO SLOT — placeholders. Replace the gradient with: url('your-photo.jpg') */
-  .ba-after{background-image:url('IMG_2310.PNG')}
-  .ba-before{background-image:url('IMG_2315.PNG');clip-path:inset(0 50% 0 0)}
+  .ba-after{background-image:linear-gradient(135deg,#1d242c,#0d1014)}
+  .ba-before{background-image:linear-gradient(135deg,#2a2620,#15120d);clip-path:inset(0 50% 0 0)}
   .ba-tag{font-size:.72rem;letter-spacing:.16em;text-transform:uppercase;color:var(--mercury);background:rgba(11,13,16,.65);padding:.4rem .8rem;border-radius:100px;margin:1rem}
   .ba-note{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center;color:var(--mercury-dim);font-size:.85rem;line-height:1.6;pointer-events:none;width:80%}
   .ba-handle{position:absolute;top:0;bottom:0;left:50%;width:2px;background:linear-gradient(var(--chrome-1),var(--chrome-2));transform:translateX(-1px);z-index:5}
@@ -292,6 +292,35 @@
   /* fine print under pricing */
   .fineprint{margin-top:1.7rem;color:var(--mercury-dim);font-size:.85rem;line-height:1.75;max-width:780px}
   .fineprint b{color:var(--mercury);font-weight:600}
+
+  /* intro pricing banner */
+  .intro-banner{
+    background:linear-gradient(135deg,rgba(203,166,92,.13),rgba(203,166,92,.04));
+    border:1px solid rgba(203,166,92,.4);border-radius:20px;
+    padding:1.6rem 2rem;display:flex;align-items:center;gap:1.4rem;flex-wrap:wrap;
+    margin-bottom:3.6rem;
+  }
+  .intro-banner .ib-icon{font-size:1.5rem;flex-shrink:0}
+  .intro-banner .ib-text{flex:1}
+  .intro-banner .ib-text strong{font-family:'Bricolage Grotesque';font-weight:700;font-size:1.05rem;color:var(--chrome-3);display:block;margin-bottom:.3rem}
+  .intro-banner .ib-text span{color:var(--mercury);font-size:.9rem;line-height:1.55}
+  .intro-banner .ib-badge{background:linear-gradient(135deg,var(--chrome-1),var(--chrome-2));color:#0B0D10;font-size:.7rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;padding:.4rem .9rem;border-radius:100px;flex-shrink:0;white-space:nowrap}
+
+  /* why choose us */
+  .why-choose{display:grid;grid-template-columns:repeat(3,1fr);gap:1.2rem;margin-top:2.8rem}
+  @media(max-width:820px){.why-choose{grid-template-columns:1fr}}
+  .wc-card{
+    background:var(--carbon);border:1px solid var(--smoke);border-radius:18px;
+    padding:1.8rem 1.6rem;transition:transform .4s var(--ease),border-color .4s;
+    position:relative;overflow:hidden;
+  }
+  .wc-card:hover{transform:translateY(-4px);border-color:var(--mercury-dim)}
+  .wc-card::after{content:"";position:absolute;top:0;left:-60%;width:50%;height:100%;background:linear-gradient(100deg,transparent,rgba(228,200,131,.05),transparent);transition:left .7s var(--ease)}
+  .wc-card:hover::after{left:130%}
+  .wc-icon{width:40px;height:40px;border-radius:11px;background:linear-gradient(135deg,rgba(203,166,92,.18),rgba(203,166,92,.06));border:1px solid rgba(203,166,92,.25);display:flex;align-items:center;justify-content:center;margin-bottom:1.1rem;font-size:1.1rem}
+  .wc-card h3{font-size:1.05rem;margin-bottom:.5rem}
+  .wc-card p{color:var(--mercury);font-size:.9rem;line-height:1.6}
+  .wc-card .wc-vs{margin-top:.9rem;padding-top:.9rem;border-top:1px solid var(--smoke);font-size:.82rem;color:var(--mercury-dim);font-style:italic;line-height:1.5}
 
   /* service area */
   .area-grid{display:grid;grid-template-columns:1fr .85fr;gap:3rem;align-items:center}
@@ -388,6 +417,38 @@
   </div>
 </div>
 
+<!-- WHY CHOOSE US -->
+<section id="why-choose">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <p class="eyebrow">Why Baser Detailing</p>
+      <h2>Not the same as a car wash.</h2>
+      <p>A shopping centre car wash and a proper detail are apples and oranges. Five people spending 90 minutes on your car at volume is a rinse and vacuum — it's not the same job. Here's what's actually different.</p>
+    </div>
+
+    <div class="why-choose">
+      <div class="wc-card reveal">
+        <div class="wc-icon">👤</div>
+        <h3>One person, start to finish</h3>
+        <p>It's me on your car the entire time. No handoffs, no crew rotating through, no one rushing to clock off. You book me — I do the work.</p>
+        <div class="wc-vs">Car washes split your car across multiple staff in a production line. Nobody owns the result.</div>
+      </div>
+      <div class="wc-card reveal" style="transition-delay:.07s">
+        <div class="wc-icon">🔍</div>
+        <h3>Thorough, not fast</h3>
+        <p>A full detail takes 4–5 hours. That's not inefficiency — that's what it takes to do stain removal, get into every surface properly, and hand dry the paint without swirl marks.</p>
+        <div class="wc-vs">A 90-minute wash with five people is about throughput. They're onto the next car before yours is dry.</div>
+      </div>
+      <div class="wc-card reveal" style="transition-delay:.14s">
+        <div class="wc-icon">📍</div>
+        <h3>I come to you</h3>
+        <p>No driving somewhere, waiting around, then driving back. You go about your day at home and the car gets sorted in your driveway.</p>
+        <div class="wc-vs">A shopping centre wash means losing a chunk of your day. Mobile detailing means you don't have to go anywhere.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
 <!-- THE DETAIL / PACKAGE -->
 <section id="detail">
   <div class="wrap">
@@ -395,6 +456,16 @@
       <p class="eyebrow">The detail</p>
       <h2>Pick your level.</h2>
       <p>Interior, exterior, or the full job — all done by hand. Most people go the full detail, but if the car only needs one side of it, that's there too.</p>
+    </div>
+
+    <!-- INTRO PRICING BANNER -->
+    <div class="intro-banner reveal">
+      <div class="ib-icon">🎉</div>
+      <div class="ib-text">
+        <strong>Introductory pricing — friends &amp; family</strong>
+        <span>All current prices are discounted as an introductory offer for friends and family. Lock it in now — these rates won't last once the books fill up.</span>
+      </div>
+      <div class="ib-badge">Limited offer</div>
     </div>
 
     <div class="tiers">
@@ -491,7 +562,7 @@
         <div class="ba-layer ba-after"><span class="ba-tag">After</span></div>
         <!-- PHOTO SLOT (before / dirty) — set background-image in CSS class .ba-before -->
         <div class="ba-layer ba-before" id="baBefore"><span class="ba-tag">Before</span></div>
-        <div class="ba-note" id="baNote"></div>
+        <div class="ba-note" id="baNote">Your before / after photos drop in here — same shot, same angle. Until then, drag the handle to test it.</div>
         <div class="ba-handle" id="baHandle">
           <div class="ba-knob">⟺</div>
         </div>
