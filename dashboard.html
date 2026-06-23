@@ -202,7 +202,6 @@ main{max-width:1100px;margin:0 auto;padding:2rem 1.5rem}
 .bk-car{font-family:'Bricolage Grotesque';font-weight:700;font-size:1.02rem}
 .bk-sub{font-size:.84rem;color:var(--mercury);margin-top:.25rem}
 .bk-sub b{color:var(--platinum);font-weight:600}
-.bk-notes{font-size:.84rem;color:var(--mercury);font-style:italic;margin-top:.5rem;padding:.6rem .8rem;background:rgba(255,255,255,.03);border-left:2px solid var(--smoke);border-radius:0 8px 8px 0}
 .bk-when{text-align:right;flex-shrink:0}
 .bk-date{font-family:'Bricolage Grotesque';font-weight:700;font-size:.95rem;color:var(--gold-light)}
 .bk-time{font-size:.78rem;color:var(--mercury-dim)}
@@ -214,6 +213,50 @@ main{max-width:1100px;margin:0 auto;padding:2rem 1.5rem}
 .st-declined{background:rgba(232,112,112,.1);color:#e87070;border:1px solid rgba(232,112,112,.2)}
 .st-completed{background:rgba(100,100,100,.15);color:var(--mercury);border:1px solid var(--smoke)}
 .bk-actions{display:flex;gap:.6rem;margin-top:1rem;flex-wrap:wrap}
+
+/* ── CUSTOMERS TAB ── */
+.cust-tabs{display:flex;gap:.4rem;margin-bottom:1.4rem;border-bottom:1px solid var(--smoke);padding-bottom:0}
+.cust-tab{background:none;border:none;color:var(--mercury);font-size:.85rem;font-weight:500;padding:.6rem 1rem;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;transition:color .2s,border-color .2s}
+.cust-tab:hover{color:var(--platinum)}
+.cust-tab.active{color:var(--gold-light);border-bottom-color:var(--gold)}
+.cust-count{background:var(--smoke);color:var(--mercury);border-radius:100px;padding:.05rem .45rem;font-size:.7rem;font-weight:700;margin-left:.3rem}
+.cust-panel{display:none}
+.cust-panel.active{display:block}
+
+.member-card,.guest-card{background:var(--carbon);border:1px solid var(--smoke);border-radius:14px;padding:1.2rem 1.4rem;margin-bottom:.8rem;transition:border-color .2s}
+.member-card:hover,.guest-card:hover{border-color:var(--mercury-dim)}
+.mc-top{display:flex;justify-content:space-between;align-items:flex-start;gap:1rem;margin-bottom:.9rem}
+.mc-name{font-family:'Bricolage Grotesque';font-weight:700;font-size:1.05rem}
+.mc-sub{font-size:.82rem;color:var(--mercury);margin-top:.2rem}
+.mc-badge{font-size:.68rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;padding:.25rem .65rem;border-radius:100px;white-space:nowrap;flex-shrink:0}
+.badge-member{background:rgba(203,166,92,.15);color:var(--gold-light);border:1px solid rgba(203,166,92,.3)}
+.badge-regular{background:rgba(100,180,255,.12);color:#7bbfff;border:1px solid rgba(100,180,255,.25)}
+.badge-vip{background:rgba(203,166,92,.25);color:var(--gold-pale);border:1px solid rgba(203,166,92,.5)}
+.mc-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:.6rem;margin-bottom:.9rem}
+@media(max-width:600px){.mc-stats{grid-template-columns:repeat(2,1fr)}}
+.mc-stat{background:var(--void);border:1px solid var(--smoke);border-radius:10px;padding:.65rem .8rem}
+.mc-stat .sv{font-family:'Bricolage Grotesque';font-weight:700;font-size:1.1rem;color:var(--platinum)}
+.mc-stat .sk{font-size:.72rem;color:var(--mercury-dim);margin-top:.15rem;text-transform:uppercase;letter-spacing:.06em}
+.mc-car{font-size:.82rem;color:var(--mercury);margin-bottom:.7rem}
+.mc-car span{color:var(--platinum);font-weight:500}
+.mc-reward{font-size:.82rem;padding:.5rem .8rem;border-radius:8px;background:rgba(203,166,92,.08);border:1px solid rgba(203,166,92,.2);color:var(--gold-light);margin-bottom:.7rem}
+.mc-history{margin-top:.5rem}
+.mc-history-toggle{background:none;border:none;color:var(--mercury);font-size:.8rem;cursor:pointer;padding:0;text-decoration:underline}
+.mc-history-toggle:hover{color:var(--platinum)}
+.mc-bk-list{margin-top:.6rem;display:none}
+.mc-bk-list.open{display:block}
+.mc-bk-row{display:flex;justify-content:space-between;font-size:.82rem;padding:.4rem 0;border-top:1px solid var(--smoke);color:var(--mercury)}
+.mc-bk-row:first-child{border-top:none}
+.mc-bk-row span:first-child{color:var(--platinum)}
+
+.guest-card .gc-top{display:flex;justify-content:space-between;align-items:center;gap:1rem}
+.gc-name{font-family:'Bricolage Grotesque';font-weight:700;font-size:1rem}
+.gc-sub{font-size:.82rem;color:var(--mercury);margin-top:.2rem}
+.gc-actions{display:flex;gap:.5rem;flex-shrink:0}
+.gc-stats{display:flex;gap:1.2rem;margin-top:.8rem;flex-wrap:wrap}
+.gc-stat{font-size:.82rem;color:var(--mercury)}
+.gc-stat span{color:var(--platinum);font-weight:600}
+
 
 </style>
 </head>
@@ -252,6 +295,7 @@ main{max-width:1100px;margin:0 auto;padding:2rem 1.5rem}
     <button class="tab active" onclick="switchTab('jobs',this)">Jobs</button>
     <button class="tab" onclick="switchTab('bookings',this)">Bookings <span id="bkBadge" style="display:none;background:var(--gold);color:#0B0D10;border-radius:100px;padding:.05rem .45rem;font-size:.7rem;font-weight:700;margin-left:.2rem"></span></button>
     <button class="tab" onclick="switchTab('cal',this)">Availability</button>
+    <button class="tab" onclick="switchTab('customers',this)">Customers</button>
   </div>
 
   <!-- TAB: JOBS -->
@@ -383,7 +427,28 @@ main{max-width:1100px;margin:0 auto;padding:2rem 1.5rem}
         </div>
       </div>
     </div>
+
+
   </div><!-- end tab-cal -->
+
+  <!-- TAB: CUSTOMERS -->
+  <div class="tab-panel" id="tab-customers">
+    <div class="cust-tabs">
+      <button class="cust-tab active" onclick="switchCustTab('members',this)">Members <span id="membersCount" class="cust-count"></span></button>
+      <button class="cust-tab" onclick="switchCustTab('guests',this)">Guests <span id="guestsCount" class="cust-count"></span></button>
+    </div>
+
+    <!-- MEMBERS -->
+    <div class="cust-panel active" id="cpanel-members">
+      <div id="membersList"><div class="empty"><strong>Loading...</strong></div></div>
+    </div>
+
+    <!-- GUESTS -->
+    <div class="cust-panel" id="cpanel-guests">
+      <div id="guestsList"><div class="empty"><strong>Loading...</strong></div></div>
+    </div>
+  </div><!-- end tab-customers -->
+
 
 </main>
 
@@ -431,6 +496,7 @@ function switchTab(id, btn){
   btn.classList.add('active');
   if(id==='cal'){calYear=new Date().getFullYear();calMonth=new Date().getMonth();renderCal();}
   if(id==='bookings'){renderBookings();}
+  if(id==='customers'){loadCustomers();}
 }
 
 // ── BOOKINGS ──
@@ -456,7 +522,6 @@ function renderBookings(){
         <div class="bk-when"><div class="bk-date">${dt.toLocaleDateString('en-AU',{weekday:'short',day:'numeric',month:'short'})}</div><div class="bk-time">${fmtTime12(b.time)}</div></div>
       </div>
       <div class="bk-contact"><span>${b.name}</span><a href="tel:${phoneClean}">${b.phone}</a><a href="sms:${phoneClean}">Text</a></div>
-      ${b.notes?`<div class="bk-notes">💬 ${b.notes}</div>`:''}
       <div><span class="bk-status st-${b.status}">${b.status}</span>${b.discount_applied?` <span style="background:rgba(203,166,92,.15);color:var(--gold-light);border:1px solid rgba(203,166,92,.3);font-size:.66rem;letter-spacing:.08em;text-transform:uppercase;padding:.25rem .6rem;border-radius:100px;margin-left:.4rem">🎁 ${b.discount_applied}</span>`:''}</div>
       <div class="bk-actions">
         ${b.status==='pending'?`<button class="btn-sm-gold" onclick="confirmBk('${b.id}')">Confirm &amp; lock day</button><button class="btn-sm-danger" onclick="declineBk('${b.id}')">Decline</button>`:''}
@@ -886,6 +951,171 @@ async function deleteJob(id,e){
   try{await db.del('Jobs',{id});await loadAll();}
   catch(e){alert('Delete failed: '+e.message);}
 }
+// ── CUSTOMERS TAB ──
+const TIERS=[
+  {pts:0,   name:'Member'},
+  {pts:300,  name:'Regular',  reward:'20% off Exterior Detail'},
+  {pts:500,  name:'Regular+', reward:'20% off any service'},
+  {pts:1000, name:'VIP',      reward:'50% off Full Detail'},
+];
+
+function getTier(pts){
+  let t=TIERS[0];
+  for(let i=TIERS.length-1;i>=0;i--){if(pts>=TIERS[i].pts){t=TIERS[i];break;}}
+  return t;
+}
+
+function tierBadgeClass(name){
+  if(name==='VIP') return 'badge-vip';
+  if(name.startsWith('Regular')) return 'badge-regular';
+  return 'badge-member';
+}
+
+function calcPts(bookings, redemptions){
+  const earned=(bookings||[])
+    .filter(b=>b.status==='completed'&&!b.discount_applied)
+    .reduce((s,b)=>{const m=(b.price||'').match(/\d+/);return s+(m?parseInt(m[0]):0);},0);
+  const spent=(redemptions||[])
+    .filter(r=>r.status==='used')
+    .reduce((s,r)=>{const t=TIERS.find(t=>t.reward===r.reward);return s+(t?t.pts:0);},0);
+  return Math.max(0,earned-spent);
+}
+
+let _custData=null;
+
+async function loadCustomers(){
+  if(_custData) return renderCustomers(_custData);
+  try{
+    const [allBookings, redemptions, cars] = await Promise.all([
+      db.select('bookings',{order:'created_at.desc'}),
+      db.select('reward_redemptions'),
+      db.select('customer_cars')
+    ]);
+
+    // --- MEMBERS: bookings with user_id ---
+    const memberMap={};
+    allBookings.filter(b=>b.user_id).forEach(b=>{
+      if(!memberMap[b.user_id]) memberMap[b.user_id]={user_id:b.user_id,name:b.name,phone:b.phone,bookings:[]};
+      memberMap[b.user_id].bookings.push(b);
+    });
+    const members=Object.values(memberMap).map(m=>{
+      const redemps=redemptions.filter(r=>r.user_id===m.user_id);
+      const pts=calcPts(m.bookings,redemps);
+      const tier=getTier(pts);
+      const completed=m.bookings.filter(b=>b.status==='completed');
+      const totalSpent=completed.reduce((s,b)=>{const match=(b.price||'').match(/\d+/);return s+(match?parseInt(match[0]):0);},0);
+      const car=cars.find(c=>c.user_id===m.user_id);
+      const rewardsEarned=redemps.length;
+      const rewardsUsed=redemps.filter(r=>r.status==='used').length;
+      const lastBooking=m.bookings[0];
+      return {...m,pts,tier,completed:completed.length,totalSpent,car,rewardsEarned,rewardsUsed,lastBooking};
+    }).sort((a,b)=>b.totalSpent-a.totalSpent);
+
+    // --- GUESTS: bookings without user_id, group by phone ---
+    const guestMap={};
+    allBookings.filter(b=>!b.user_id).forEach(b=>{
+      const key=b.phone||b.name;
+      if(!guestMap[key]) guestMap[key]={name:b.name,phone:b.phone,bookings:[]};
+      guestMap[key].bookings.push(b);
+    });
+    const guests=Object.values(guestMap).map(g=>{
+      const completed=g.bookings.filter(b=>b.status==='completed');
+      const totalSpent=completed.reduce((s,b)=>{const match=(b.price||'').match(/\d+/);return s+(match?parseInt(match[0]):0);},0);
+      return {...g,completed:completed.length,totalSpent,lastBooking:g.bookings[0]};
+    }).sort((a,b)=>b.totalSpent-a.totalSpent);
+
+    _custData={members,guests};
+    renderCustomers(_custData);
+  }catch(e){
+    document.getElementById('membersList').innerHTML=`<div class="empty"><strong>Failed to load</strong>${e.message}</div>`;
+  }
+}
+
+function renderCustomers({members,guests}){
+  document.getElementById('membersCount').textContent=members.length;
+  document.getElementById('guestsCount').textContent=guests.length;
+
+  // members
+  const mel=document.getElementById('membersList');
+  if(!members.length){mel.innerHTML='<div class="empty"><strong>No members yet</strong>Customers who sign up will appear here.</div>';}
+  else{
+    mel.innerHTML=members.map((m,i)=>{
+      const lastDate=m.lastBooking?localDate(m.lastBooking.date).toLocaleDateString('en-AU',{day:'numeric',month:'short',year:'numeric'}):'—';
+      const carStr=m.car?`${m.car.make||''} ${m.car.model||''}${m.car.colour?' · '+m.car.colour:''}`.trim():'No car saved';
+      const activeReward=m.tier.reward&&m.pts>=m.tier.pts?m.tier.reward:null;
+      return `<div class="member-card">
+        <div class="mc-top">
+          <div>
+            <div class="mc-name">${m.name||'Unknown'}</div>
+            <div class="mc-sub">${m.phone||'No phone'}</div>
+          </div>
+          <span class="mc-badge ${tierBadgeClass(m.tier.name)}">${m.tier.name}</span>
+        </div>
+        <div class="mc-stats">
+          <div class="mc-stat"><div class="sv">${m.completed}</div><div class="sk">Details done</div></div>
+          <div class="mc-stat"><div class="sv">$${m.totalSpent.toLocaleString()}</div><div class="sk">Total spent</div></div>
+          <div class="mc-stat"><div class="sv">${m.pts.toLocaleString()}</div><div class="sk">Points</div></div>
+          <div class="mc-stat"><div class="sv">${m.rewardsUsed}/${m.rewardsEarned}</div><div class="sk">Rewards used</div></div>
+        </div>
+        ${activeReward?`<div class="mc-reward">🎁 Active reward: ${activeReward}</div>`:''}
+        <div class="mc-car">Car on file: <span>${carStr}</span></div>
+        <div class="mc-history">
+          <button class="mc-history-toggle" onclick="toggleHistory(this)">Show booking history (${m.bookings.length})</button>
+          <div class="mc-bk-list">
+            ${m.bookings.map(b=>`<div class="mc-bk-row">
+              <span>${b.service}</span>
+              <span>${b.price||'—'}</span>
+              <span class="bk-status st-${b.status}">${b.status}</span>
+              <span>${b.date?localDate(b.date).toLocaleDateString('en-AU',{day:'numeric',month:'short'}):''}</span>
+            </div>`).join('')}
+          </div>
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  // guests
+  const gel=document.getElementById('guestsList');
+  if(!guests.length){gel.innerHTML='<div class="empty"><strong>No guest bookings yet</strong>Bookings made without an account appear here.</div>';}
+  else{
+    gel.innerHTML=guests.map(g=>{
+      const phoneClean=(g.phone||'').replace(/\s/g,'');
+      const lastDate=g.lastBooking?localDate(g.lastBooking.date).toLocaleDateString('en-AU',{day:'numeric',month:'short',year:'numeric'}):'—';
+      return `<div class="guest-card">
+        <div class="gc-top">
+          <div>
+            <div class="gc-name">${g.name||'Unknown'}</div>
+            <div class="gc-sub">${g.phone||'No phone'}</div>
+          </div>
+          <div class="gc-actions">
+            ${phoneClean?`<a href="tel:${phoneClean}" class="btn-sm-ghost">Call</a><a href="sms:${phoneClean}" class="btn-sm-ghost">Text</a>`:''}
+          </div>
+        </div>
+        <div class="gc-stats">
+          <div class="gc-stat">Details: <span>${g.completed}</span></div>
+          <div class="gc-stat">Spent: <span>$${g.totalSpent.toLocaleString()}</span></div>
+          <div class="gc-stat">Last booking: <span>${lastDate}</span></div>
+          <div class="gc-stat">Total requests: <span>${g.bookings.length}</span></div>
+        </div>
+      </div>`;
+    }).join('');
+  }
+}
+
+function switchCustTab(id, btn){
+  document.querySelectorAll('.cust-panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.cust-tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('cpanel-'+id).classList.add('active');
+  btn.classList.add('active');
+}
+
+function toggleHistory(btn){
+  const list=btn.nextElementSibling;
+  const open=list.classList.toggle('open');
+  btn.textContent=btn.textContent.replace(open?'Show':'Hide',open?'Hide':'Show');
+}
+
+
 </script>
 </body>
 </html>
