@@ -58,8 +58,9 @@ h1{font-family:'Bricolage Grotesque';font-weight:800;font-size:clamp(1.8rem,5vw,
 
 .field{margin-bottom:.9rem}
 .field label{display:block;font-size:.74rem;letter-spacing:.08em;text-transform:uppercase;color:var(--mercury);margin-bottom:.4rem}
-.field input{width:100%;background:var(--carbon);border:1px solid var(--smoke);border-radius:10px;padding:.78rem 1rem;color:var(--platinum);font-size:.95rem}
-.field input:focus{outline:none;border-color:var(--gold)}
+.field input,.field textarea{width:100%;background:var(--carbon);border:1px solid var(--smoke);border-radius:10px;padding:.78rem 1rem;color:var(--platinum);font-size:.95rem;font-family:'Inter',sans-serif;line-height:1.5}
+.field textarea{resize:vertical;min-height:86px}
+.field input:focus,.field textarea:focus{outline:none;border-color:var(--gold)}
 .row2{display:grid;grid-template-columns:1fr 1fr;gap:.7rem}
 
 /* ── REWARDS SECTION ── */
@@ -175,6 +176,7 @@ h1{font-family:'Bricolage Grotesque';font-weight:800;font-size:clamp(1.8rem,5vw,
         <div class="field"><label>Car make</label><input type="text" id="iMake" placeholder="Toyota"></div>
         <div class="field"><label>Model</label><input type="text" id="iModel" placeholder="Camry"></div>
       </div>
+      <div class="field"><label>Anything I should know?</label><textarea id="iNotes" placeholder="Heavy pet hair, bad stains, tight access, anything else — the more detail the better."></textarea></div>
     </div>
 
     <!-- REWARDS SECTION — injected by JS -->
@@ -464,7 +466,7 @@ async function submitBooking(){
       make:document.getElementById('iMake').value.trim(),
       model:document.getElementById('iModel').value.trim(),
       suburb:document.getElementById('iSuburb').value.trim(),
-      name,phone,status:'pending',notes:null,
+      name,phone,status:'pending',notes:document.getElementById('iNotes').value.trim()||null,
       discount_applied:discountLabel
     };
     if(currentUser) payload.user_id=currentUser.id;
