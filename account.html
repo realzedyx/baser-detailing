@@ -613,7 +613,7 @@ async function saveCar(){
 
 // ── REFERRAL ──
 function buildReferral(name){
-  const msg=`Hey! I've been using Baser Detailing for mobile car detailing in Melbourne — Yusuf comes to you and does a proper job. Check them out at baserdetailing.com or text 0410 532 042. Tell them ${name} sent you! 🚗✨`;
+  const msg=`Hey! I've been using Baser Detailing for mobile car detailing in Melbourne — Yusuf comes to you and does a proper job. Check them out at baserdetailing.com.au or text 0410 532 042. Tell them ${name} sent you! 🚗✨`;
   document.getElementById('referralMsg').textContent=msg;
   const smsLink=`sms:?&body=${encodeURIComponent(msg)}`;
   document.getElementById('referralSms').href=smsLink;
