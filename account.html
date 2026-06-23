@@ -1,0 +1,635 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>My Account — Baser Detailing</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><circle cx='16' cy='16' r='9' fill='%23CBA65C'/></svg>">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root{
+  --void:#0B0D10;--carbon:#13161B;--carbon-2:#171B21;--smoke:#262C34;
+  --platinum:#EAEDF1;--mercury:#9AA3AE;--mercury-dim:#6B7280;
+  --gold:#CBA65C;--gold-light:#E4C883;--gold-pale:#FBF1D2;
+  --ease:cubic-bezier(.22,.61,.36,1);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--void);color:var(--platinum);font-family:'Inter',sans-serif;line-height:1.5;-webkit-font-smoothing:antialiased;min-height:100vh;overflow-x:hidden}
+input,button,select,textarea{font-family:'Inter',sans-serif}
+a{color:var(--gold);text-decoration:none}
+
+/* ambient glow */
+body::before{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;
+  background:radial-gradient(700px 500px at 80% -10%,rgba(203,166,92,.08),transparent 60%),
+             radial-gradient(600px 400px at 0% 100%,rgba(203,166,92,.05),transparent 55%)}
+
+header{background:rgba(11,13,16,.85);backdrop-filter:blur(12px);border-bottom:1px solid var(--smoke);padding:0 1.5rem;height:64px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:10}
+.brand{font-family:'Bricolage Grotesque';font-weight:800;font-size:1.05rem;display:flex;align-items:center;gap:.5rem;color:var(--platinum)}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--gold);box-shadow:0 0 10px rgba(203,166,92,.4)}
+.nav-right{display:flex;align-items:center;gap:1rem;font-size:.84rem;color:var(--mercury)}
+
+main{max-width:600px;margin:0 auto;padding:2.5rem 1.5rem 6rem;position:relative;z-index:1}
+
+/* ── AUTH ── */
+.auth-wrap{text-align:center;animation:fadeUp .5s var(--ease) both}
+.auth-eyebrow{font-size:.72rem;font-weight:600;letter-spacing:.2em;text-transform:uppercase;color:var(--mercury);margin-bottom:.8rem}
+.auth-wrap h1{font-family:'Bricolage Grotesque';font-weight:800;font-size:2.2rem;letter-spacing:-.02em;margin-bottom:.6rem}
+.auth-wrap>p{color:var(--mercury);font-size:.95rem;margin-bottom:2rem}
+.btn-google{width:100%;background:#fff;color:#1a1a1a;font-weight:600;font-size:.95rem;border:none;border-radius:100px;padding:.85rem;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:.7rem;transition:transform .2s,box-shadow .2s;margin-bottom:1rem;box-shadow:0 2px 12px rgba(0,0,0,.3)}
+.btn-google:hover{transform:translateY(-1px);box-shadow:0 6px 20px rgba(0,0,0,.4)}
+.btn-google img{width:18px;height:18px}
+.divider{display:flex;align-items:center;gap:.8rem;margin:1.2rem 0;color:var(--mercury-dim);font-size:.8rem}
+.divider::before,.divider::after{content:'';flex:1;height:1px;background:var(--smoke)}
+.field{margin-bottom:.85rem;text-align:left}
+.field label{display:block;font-size:.74rem;letter-spacing:.08em;text-transform:uppercase;color:var(--mercury);margin-bottom:.4rem}
+.field input,.field select,.field textarea{width:100%;background:var(--carbon);border:1px solid var(--smoke);border-radius:10px;padding:.78rem 1rem;color:var(--platinum);font-size:.95rem;transition:border-color .2s}
+.field input:focus,.field select:focus,.field textarea:focus{outline:none;border-color:var(--gold)}
+.field textarea{resize:vertical;min-height:64px}
+.field select option{background:var(--carbon)}
+.btn-gold{width:100%;background:linear-gradient(135deg,var(--gold-pale),var(--gold));color:#0B0D10;font-weight:700;font-size:1rem;border:none;border-radius:100px;padding:.9rem;cursor:pointer;transition:opacity .2s,transform .2s;margin-top:.3rem}
+.btn-gold:hover{opacity:.9;transform:translateY(-1px)}
+.btn-gold:disabled{opacity:.4;cursor:not-allowed;transform:none}
+.err{color:#e87070;font-size:.83rem;margin-top:.5rem;text-align:center;min-height:1.2rem}
+.toggle-mode{text-align:center;margin-top:1.2rem;font-size:.88rem;color:var(--mercury)}
+.toggle-mode a{color:var(--gold);cursor:pointer}
+.verify-note{background:linear-gradient(135deg,rgba(203,166,92,.1),transparent);border:1px solid rgba(203,166,92,.3);border-radius:12px;padding:1rem 1.2rem;margin-top:1.2rem;font-size:.88rem;color:var(--platinum);text-align:left;line-height:1.6}
+.verify-note strong{color:var(--gold-light)}
+
+/* ── ANIMATIONS ── */
+@keyframes fadeUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:none}}
+@keyframes countUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+@keyframes barFill{from{width:0}to{width:var(--target-w)}}
+@keyframes shimmer{0%,100%{background-position:200% 0}50%{background-position:-200% 0}}
+.anim-1{animation:fadeUp .45s var(--ease) .05s both}
+.anim-2{animation:fadeUp .45s var(--ease) .12s both}
+.anim-3{animation:fadeUp .45s var(--ease) .19s both}
+.anim-4{animation:fadeUp .45s var(--ease) .26s both}
+.anim-5{animation:fadeUp .45s var(--ease) .33s both}
+.anim-6{animation:fadeUp .45s var(--ease) .4s both}
+
+/* ── CARD BASE ── */
+.card{background:var(--carbon);border:1px solid var(--smoke);border-radius:18px;padding:1.5rem;margin-bottom:1.1rem;position:relative;overflow:hidden}
+.card-title{font-family:'Bricolage Grotesque';font-weight:700;font-size:1rem;margin-bottom:1.1rem;display:flex;align-items:center;justify-content:space-between}
+.card-title span{font-family:'Inter';font-size:.76rem;font-weight:400;color:var(--mercury-dim)}
+
+/* ── HERO GREETING ── */
+.hero-greet{margin-bottom:1.6rem}
+.hero-eyebrow{font-size:.72rem;font-weight:600;letter-spacing:.2em;text-transform:uppercase;color:var(--mercury);margin-bottom:.5rem}
+.hero-name{font-family:'Bricolage Grotesque';font-weight:800;font-size:2.1rem;letter-spacing:-.02em;line-height:1.1}
+.hero-sub{color:var(--mercury);font-size:.9rem;margin-top:.4rem}
+
+/* ── STATS ROW ── */
+.stats-row{display:grid;grid-template-columns:repeat(3,1fr);gap:.8rem;margin-bottom:1.1rem}
+.stat-card{background:var(--carbon);border:1px solid var(--smoke);border-radius:14px;padding:1.1rem;text-align:center}
+.stat-val{font-family:'Bricolage Grotesque';font-weight:800;font-size:1.6rem;background:linear-gradient(135deg,#fff,var(--gold));-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;line-height:1;animation:countUp .5s var(--ease) .3s both}
+.stat-lbl{font-size:.72rem;color:var(--mercury-dim);margin-top:.3rem;text-transform:uppercase;letter-spacing:.08em}
+
+/* ── REWARDS ── */
+.rewards-card{background:linear-gradient(135deg,rgba(203,166,92,.12),rgba(203,166,92,.04));border:1px solid rgba(203,166,92,.35)}
+.pts-hero{display:flex;align-items:baseline;gap:.4rem;margin-bottom:1.2rem}
+.pts-num{font-family:'Bricolage Grotesque';font-weight:800;font-size:2.8rem;line-height:1;background:linear-gradient(135deg,var(--gold-pale),var(--gold));-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+.pts-label{font-size:.9rem;color:var(--mercury)}
+.progress-wrap{margin-bottom:1.2rem}
+.progress-header{display:flex;justify-content:space-between;font-size:.8rem;color:var(--mercury);margin-bottom:.5rem}
+.progress-track{height:8px;background:var(--smoke);border-radius:100px;overflow:hidden}
+.progress-bar{height:100%;border-radius:100px;background:linear-gradient(90deg,var(--gold),var(--gold-light));width:0;transition:width 1.2s var(--ease)}
+.rewards-tiers{display:grid;grid-template-columns:1fr 1fr;gap:.7rem}
+.tier-chip{background:var(--carbon);border:1px solid var(--smoke);border-radius:12px;padding:.8rem;display:flex;align-items:center;gap:.7rem;transition:border-color .2s}
+.tier-chip.unlocked{border-color:var(--gold)}
+.tier-icon{font-size:1.4rem;flex-shrink:0}
+.tier-info{flex:1}
+.tier-name{font-size:.85rem;font-weight:600}
+.tier-pts{font-size:.75rem;color:var(--mercury-dim);margin-top:.1rem}
+.tier-chip.unlocked .tier-pts{color:var(--gold-light)}
+.tier-badge{font-size:.65rem;background:var(--gold);color:#0B0D10;padding:.2rem .5rem;border-radius:100px;font-weight:700;flex-shrink:0}
+
+/* ── BOOKING CARDS ── */
+.bk-card{background:var(--carbon-2);border:1px solid var(--smoke);border-radius:14px;padding:1.1rem 1.2rem;margin-bottom:.7rem;transition:border-color .25s,transform .25s}
+.bk-card:hover{border-color:var(--mercury-dim);transform:translateX(2px)}
+.bk-card-top{display:flex;justify-content:space-between;align-items:flex-start;gap:.8rem}
+.bk-svc{font-family:'Bricolage Grotesque';font-weight:700;font-size:1rem}
+.bk-meta{font-size:.82rem;color:var(--mercury);margin-top:.2rem}
+.bk-right{text-align:right;flex-shrink:0}
+.bk-price{font-family:'Bricolage Grotesque';font-weight:700;color:var(--gold-light);font-size:1rem}
+.bk-date-lbl{font-size:.78rem;color:var(--mercury-dim);margin-top:.15rem}
+.bk-footer{display:flex;align-items:center;justify-content:space-between;margin-top:.9rem;padding-top:.9rem;border-top:1px solid var(--smoke)}
+.bk-status{font-size:.65rem;letter-spacing:.1em;text-transform:uppercase;padding:.22rem .6rem;border-radius:100px}
+.st-pending{background:rgba(203,166,92,.15);color:var(--gold-light);border:1px solid rgba(203,166,92,.3)}
+.st-confirmed{background:rgba(126,207,142,.12);color:#7ecf8e;border:1px solid rgba(126,207,142,.25)}
+.st-completed{background:rgba(100,100,100,.15);color:var(--mercury);border:1px solid var(--smoke)}
+.st-declined{background:rgba(232,112,112,.1);color:#e87070;border:1px solid rgba(232,112,112,.2)}
+.btn-rebook{background:none;border:1px solid var(--smoke);color:var(--mercury);font-size:.78rem;padding:.35rem .85rem;border-radius:100px;cursor:pointer;transition:border-color .2s,color .2s}
+.btn-rebook:hover{border-color:var(--gold);color:var(--gold-light)}
+
+/* ── CAR PROFILE ── */
+.car-display{display:flex;align-items:center;gap:1rem}
+.car-icon{font-size:2.2rem;flex-shrink:0;line-height:1}
+.car-info{flex:1}
+.car-name{font-family:'Bricolage Grotesque';font-weight:700;font-size:1.05rem}
+.car-detail{font-size:.83rem;color:var(--mercury);margin-top:.2rem}
+.btn-edit-car{background:none;border:1px solid var(--smoke);color:var(--mercury);font-size:.78rem;padding:.35rem .85rem;border-radius:100px;cursor:pointer;transition:border-color .2s,color .2s;flex-shrink:0}
+.btn-edit-car:hover{border-color:var(--mercury);color:var(--platinum)}
+.car-form{display:none}
+.car-form.open{display:block;margin-top:1rem;padding-top:1rem;border-top:1px solid var(--smoke)}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:.7rem}
+.btn-save{background:linear-gradient(135deg,var(--gold-pale),var(--gold));color:#0B0D10;font-weight:700;font-size:.88rem;border:none;border-radius:100px;padding:.6rem 1.4rem;cursor:pointer}
+.btn-cancel-sm{background:none;border:1px solid var(--smoke);color:var(--mercury);font-size:.88rem;border-radius:100px;padding:.6rem 1.2rem;cursor:pointer}
+
+/* ── REFERRAL ── */
+.referral-card{}
+.referral-msg{background:var(--carbon-2);border:1px solid var(--smoke);border-radius:10px;padding:.85rem 1rem;font-size:.88rem;color:var(--mercury);line-height:1.6;margin-bottom:.8rem;font-style:italic}
+.copy-row{display:flex;gap:.6rem}
+.btn-copy{flex:1;background:linear-gradient(135deg,var(--gold-pale),var(--gold));color:#0B0D10;font-weight:700;font-size:.88rem;border:none;border-radius:100px;padding:.65rem;cursor:pointer;transition:opacity .2s}
+.btn-copy:hover{opacity:.9}
+.btn-sms{background:none;border:1px solid var(--smoke);color:var(--mercury);font-size:.88rem;border-radius:100px;padding:.65rem 1.2rem;cursor:pointer;transition:border-color .2s;white-space:nowrap}
+.btn-sms:hover{border-color:var(--mercury);color:var(--platinum)}
+
+/* ── ACCOUNT SETTINGS ── */
+.acct-row{display:flex;align-items:center;justify-content:space-between;padding:.65rem 0;border-top:1px solid var(--smoke)}
+.acct-row:first-child{border-top:none;padding-top:0}
+.acct-lbl{font-size:.88rem}
+.acct-val{font-size:.85rem;color:var(--mercury-dim)}
+.btn-ghost{background:none;border:1px solid var(--smoke);color:var(--mercury);font-size:.82rem;padding:.4rem .9rem;border-radius:100px;cursor:pointer;transition:border-color .2s,color .2s}
+.btn-ghost:hover{border-color:var(--mercury);color:var(--platinum)}
+.btn-danger{background:none;border:1px solid rgba(232,112,112,.3);color:#e87070;font-size:.82rem;padding:.4rem .9rem;border-radius:100px;cursor:pointer}
+
+/* ── BOOK CTA ── */
+.book-cta{text-align:center;margin-top:1.4rem}
+.book-cta a{display:inline-flex;align-items:center;gap:.5rem;background:linear-gradient(135deg,var(--gold-pale),var(--gold));color:#0B0D10;font-weight:700;font-size:.95rem;padding:.85rem 2.2rem;border-radius:100px;text-decoration:none;transition:transform .2s,box-shadow .2s;box-shadow:0 4px 16px rgba(203,166,92,.2)}
+.book-cta a:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(203,166,92,.3)}
+
+.empty-state{text-align:center;padding:2rem 0;color:var(--mercury-dim);font-size:.9rem}
+.empty-state strong{display:block;font-family:'Bricolage Grotesque';color:var(--mercury);font-size:1rem;margin-bottom:.4rem}
+.hidden{display:none}
+
+@media(max-width:480px){.stats-row{grid-template-columns:1fr 1fr}.stats-row .stat-card:last-child{grid-column:span 2}}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand"><span class="dot"></span>Baser Detailing</div>
+  <div class="nav-right">
+    <a href="index.html" style="color:var(--mercury)">← Site</a>
+    <span id="hdrUser" style="display:none;color:var(--platinum);font-weight:600"></span>
+    <button id="hdrSignOut" class="btn-ghost" style="display:none" onclick="signOut()">Sign out</button>
+  </div>
+</header>
+
+<main>
+
+  <!-- ── AUTH PANEL ── -->
+  <div id="authPanel">
+    <div class="auth-wrap">
+      <p class="auth-eyebrow">My account</p>
+      <h1 id="authTitle">Welcome back.</h1>
+      <p id="authSub">Sign in to see your bookings and rewards.</p>
+
+      <button class="btn-google" onclick="signInGoogle()">
+        <img src="https://www.google.com/favicon.ico" alt="">
+        Continue with Google
+      </button>
+
+      <div class="divider">or</div>
+
+      <div class="field"><label>Email</label><input type="email" id="authEmail" placeholder="you@email.com" autocomplete="email"></div>
+      <div class="field"><label>Password</label><input type="password" id="authPass" placeholder="••••••••" autocomplete="current-password"></div>
+      <div class="field hidden" id="confirmPassField"><label>Confirm password</label><input type="password" id="authPassConfirm" placeholder="••••••••" autocomplete="new-password"></div>
+
+      <div class="err" id="authErr"></div>
+      <button class="btn-gold" id="authBtn" onclick="handleAuth()">Sign in</button>
+
+      <div class="toggle-mode">
+        <span id="toggleText">Don't have an account?</span>
+        <a onclick="toggleMode()"><span id="toggleLink"> Create one</span></a>
+      </div>
+
+      <div class="verify-note hidden" id="verifyNote">
+        <strong>Check your inbox.</strong> We've sent a link to <span id="verifyEmail"></span> — click it to activate your account, then sign in.
+      </div>
+    </div>
+  </div>
+
+  <!-- ── ACCOUNT PANEL ── -->
+  <div id="acctPanel" class="hidden">
+
+    <!-- greeting -->
+    <div class="hero-greet anim-1">
+      <p class="hero-eyebrow">My account</p>
+      <h1 class="hero-name">Hey, <span id="acctName"></span>.</h1>
+      <p class="hero-sub" id="acctSub"></p>
+    </div>
+
+    <!-- stats -->
+    <div class="stats-row anim-2">
+      <div class="stat-card">
+        <div class="stat-val" id="statJobs">0</div>
+        <div class="stat-lbl">Details</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-val" id="statPts">0</div>
+        <div class="stat-lbl">Points</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-val" id="statMember">—</div>
+        <div class="stat-lbl">Member since</div>
+      </div>
+    </div>
+
+    <!-- rewards -->
+    <div class="card rewards-card anim-3">
+      <div class="card-title">Rewards <span>$1 spent = 1 point</span></div>
+      <div class="pts-hero">
+        <span class="pts-num" id="rewardsPts">0</span>
+        <span class="pts-label">points</span>
+      </div>
+      <div class="progress-wrap">
+        <div class="progress-header">
+          <span id="progressFrom"></span>
+          <span id="progressTo"></span>
+        </div>
+        <div class="progress-track"><div class="progress-bar" id="progressBar"></div></div>
+      </div>
+      <div class="rewards-tiers" id="rewardsTiers"></div>
+      <div id="activeReward" style="display:none"></div>
+    </div>
+
+    <!-- bookings -->
+    <div class="card anim-4">
+      <div class="card-title">Your bookings <span id="bkCountLabel"></span></div>
+      <div id="bkList"><div class="empty-state"><strong>No bookings yet</strong>Book your first detail and it'll show up here.</div></div>
+    </div>
+
+    <!-- car profile -->
+    <div class="card anim-5">
+      <div class="card-title">My car</div>
+      <div id="carDisplay">
+        <div class="empty-state" style="padding:1rem 0">
+          <strong>No car saved</strong>Save your car so we can pre-fill your next booking.
+          <div style="margin-top:.8rem"><button class="btn-rebook" onclick="openCarForm()">Add car</button></div>
+        </div>
+      </div>
+      <div class="car-form" id="carForm">
+        <div class="row2">
+          <div class="field"><label>Make</label><input type="text" id="carMake" placeholder="Toyota"></div>
+          <div class="field"><label>Model</label><input type="text" id="carModel" placeholder="Camry"></div>
+        </div>
+        <div class="row2">
+          <div class="field"><label>Year</label><input type="number" id="carYear" placeholder="2020" min="1990" max="2030"></div>
+          <div class="field"><label>Colour</label><input type="text" id="carColour" placeholder="White"></div>
+        </div>
+        <div style="display:flex;gap:.6rem;margin-top:.3rem">
+          <button class="btn-save" onclick="saveCar()">Save car</button>
+          <button class="btn-cancel-sm" onclick="closeCarForm()">Cancel</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- referral -->
+    <div class="card anim-6">
+      <div class="card-title">Refer a mate</div>
+      <p style="font-size:.88rem;color:var(--mercury);margin-bottom:.8rem">Know someone whose car needs a detail? Send them this and earn 50 bonus points if they book.</p>
+      <div class="referral-msg" id="referralMsg"></div>
+      <div class="copy-row">
+        <button class="btn-copy" onclick="copyReferral()">Copy message</button>
+        <a class="btn-sms" id="referralSms">Send as text</a>
+      </div>
+    </div>
+
+    <!-- account settings -->
+    <div class="card anim-6">
+      <div class="card-title">Account</div>
+      <div class="acct-row">
+        <div><div class="acct-lbl">Email</div><div class="acct-val" id="acctEmailVal"></div></div>
+      </div>
+      <div class="acct-row" style="padding-top:.8rem;border-top:1px solid var(--smoke)">
+        <span style="font-size:.88rem;color:var(--mercury)">Sign out of your account</span>
+        <button class="btn-ghost" onclick="signOut()">Sign out</button>
+      </div>
+    </div>
+
+    <div class="book-cta">
+      <a href="book.html">Book a detail →</a>
+    </div>
+
+  </div>
+</main>
+
+<script>
+const SUPA_URL='https://tsjkdrjgdcusfipeasso.supabase.co';
+const SUPA_KEY='sb_publishable_9HTtgBqpgnxpuZgjRQQmiA_jcBvoMD_';
+const {createClient}=supabase;
+const sb=createClient(SUPA_URL,SUPA_KEY);
+
+// Points config — $1 spent = 1 point
+const TIERS=[
+  {pts:0,    name:'Member',   icon:'✨', reward:null,                    desc:'Booking history & car profile'},
+  {pts:300,  name:'Regular',  icon:'⭐', reward:'20% off exterior detail', desc:'20% off your next exterior detail'},
+  {pts:500,  name:'Regular+', icon:'🌟', reward:'20% off any service',     desc:'20% off any service'},
+  {pts:1000, name:'VIP',      icon:'👑', reward:'50% off full detail',     desc:'50% off a full detail'},
+];
+
+let isSignUp=false, currentUser=null, userBookings=[], userCar=null;
+
+// ── INIT ──
+async function init(){
+  const {data:{session}}=await sb.auth.getSession();
+  if(session) await showAccount(session.user);
+  else showAuth();
+  sb.auth.onAuthStateChange(async(_,session)=>{
+    if(session) await showAccount(session.user);
+    else showAuth();
+  });
+}
+
+// ── AUTH UI ──
+function showAuth(){
+  document.getElementById('authPanel').classList.remove('hidden');
+  document.getElementById('acctPanel').classList.add('hidden');
+  document.getElementById('hdrUser').style.display='none';
+  document.getElementById('hdrSignOut').style.display='none';
+}
+
+async function showAccount(user){
+  currentUser=user;
+  document.getElementById('authPanel').classList.add('hidden');
+  document.getElementById('acctPanel').classList.remove('hidden');
+  const name=user.user_metadata?.full_name?.split(' ')[0]||user.email.split('@')[0];
+  document.getElementById('acctName').textContent=name;
+  document.getElementById('hdrUser').textContent=name;
+  document.getElementById('hdrUser').style.display='inline';
+  document.getElementById('hdrSignOut').style.display='inline-block';
+  document.getElementById('acctEmailVal').textContent=user.email;
+  const memberSince=new Date(user.created_at).toLocaleDateString('en-AU',{month:'short',year:'numeric'});
+  document.getElementById('statMember').textContent=memberSince;
+  await Promise.all([loadBookings(user.id), loadCar(user.id)]);
+  buildReferral(name);
+}
+
+function toggleMode(){
+  isSignUp=!isSignUp;
+  document.getElementById('authTitle').textContent=isSignUp?'Create an account.':'Welcome back.';
+  document.getElementById('authSub').textContent=isSignUp?'Track bookings, earn rewards.':'Sign in to see your bookings and rewards.';
+  document.getElementById('authBtn').textContent=isSignUp?'Create account':'Sign in';
+  document.getElementById('toggleText').textContent=isSignUp?'Already have an account?':"Don't have an account?";
+  document.getElementById('toggleLink').textContent=isSignUp?' Sign in':' Create one';
+  document.getElementById('confirmPassField').classList.toggle('hidden',!isSignUp);
+  document.getElementById('authErr').textContent='';
+  document.getElementById('verifyNote').classList.add('hidden');
+}
+
+async function handleAuth(){
+  const email=document.getElementById('authEmail').value.trim();
+  const pass=document.getElementById('authPass').value;
+  const err=document.getElementById('authErr');
+  const btn=document.getElementById('authBtn');
+  err.textContent='';
+  if(!email||!pass){err.textContent='Enter your email and password.';return}
+  btn.disabled=true;
+  if(isSignUp){
+    const c=document.getElementById('authPassConfirm').value;
+    if(pass!==c){err.textContent="Passwords don't match.";btn.textContent='Create account';btn.disabled=false;return}
+    if(pass.length<6){err.textContent='Minimum 6 characters.';btn.textContent='Create account';btn.disabled=false;return}
+    btn.textContent='Creating...';
+    const {error}=await sb.auth.signUp({email,password:pass,options:{emailRedirectTo:'https://baserdetailing.com/account.html'}});
+    if(error){err.textContent=error.message;btn.textContent='Create account';btn.disabled=false;return}
+    document.getElementById('verifyEmail').textContent=email;
+    document.getElementById('verifyNote').classList.remove('hidden');
+    btn.textContent='Email sent!';
+  } else {
+    btn.textContent='Signing in...';
+    const {error}=await sb.auth.signInWithPassword({email,password:pass});
+    if(error){err.textContent=error.message==='Invalid login credentials'?'Wrong email or password.':error.message;btn.textContent='Sign in';btn.disabled=false;return}
+  }
+  btn.disabled=false;
+}
+
+async function signInGoogle(){
+  await sb.auth.signInWithOAuth({provider:'google',options:{redirectTo:'https://baserdetailing.com/account.html'}});
+}
+async function signOut(){await sb.auth.signOut();}
+
+// ── BOOKINGS ──
+let userRedemptions=[];
+async function loadBookings(userId){
+  try{
+    const [{data:bkData,error},{data:rdData}]=await Promise.all([
+      sb.from('bookings').select('*').eq('user_id',userId).order('created_at',{ascending:false}),
+      sb.from('reward_redemptions').select('*').eq('user_id',userId)
+    ]);
+    if(error) throw error;
+    userBookings=bkData||[];
+    userRedemptions=rdData||[];
+  }catch(e){userBookings=[];userRedemptions=[];}
+  renderBookings();
+  renderStats();
+  renderRewards();
+}
+
+function renderBookings(){
+  const el=document.getElementById('bkList');
+  document.getElementById('bkCountLabel').textContent=userBookings.length?`${userBookings.length} booking${userBookings.length!==1?'s':''}`:''
+  if(!userBookings.length){
+    el.innerHTML='<div class="empty-state"><strong>No bookings yet</strong>Book your first detail and it\'ll show up here.</div>';
+    return;
+  }
+  el.innerHTML=userBookings.map(b=>{
+    const dt=localDate(b.date);
+    const dateStr=dt.toLocaleDateString('en-AU',{weekday:'short',day:'numeric',month:'short',year:'numeric'});
+    const svcIcon=b.service==='Interior Detail'?'🪑':b.service==='Exterior Detail'?'✨':'⭐';
+    return `<div class="bk-card">
+      <div class="bk-card-top">
+        <div>
+          <div class="bk-svc">${svcIcon} ${b.service}</div>
+          <div class="bk-meta">${dateStr}${b.suburb?' · '+b.suburb:''}</div>
+          ${b.make||b.model?`<div class="bk-meta">${[b.make,b.model].filter(Boolean).join(' ')}</div>`:''}
+        </div>
+        <div class="bk-right">
+          <div class="bk-price">${b.price||''}</div>
+        </div>
+      </div>
+      <div class="bk-footer">
+        <span class="bk-status st-${b.status}">${b.status}</span>
+        ${b.status==='completed'?`<button class="btn-rebook" onclick="rebook('${b.id}')">Rebook →</button>`:''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function rebook(id){
+  const b=userBookings.find(x=>x.id===id);if(!b)return;
+  sessionStorage.setItem('bd_rebook',JSON.stringify({
+    service:b.service,
+    make:b.make||userCar?.make||'',
+    model:b.model||userCar?.model||'',
+    suburb:b.suburb||'',
+    year:b.year||userCar?.year||'',
+    colour:b.colour||userCar?.colour||''
+  }));
+  window.location.href='book.html';
+}
+
+// ── STATS ──
+function renderStats(){
+  const completed=userBookings.filter(b=>b.status==='completed');
+  document.getElementById('statJobs').textContent=completed.length;
+  // points = sum of price numbers from completed bookings
+  const pts=calcPoints(completed);
+  document.getElementById('statPts').textContent=pts;
+  // greeting sub
+  const hour=new Date().getHours();
+  const tod=hour<12?'morning':hour<17?'afternoon':'evening';
+  document.getElementById('acctSub').textContent=`Good ${tod} — here's where things are at.`;
+}
+
+function calcPoints(completed){
+  const earned=completed
+    .filter(b=>!b.discount_applied)
+    .reduce((sum,b)=>{
+      const match=(b.price||'').match(/\d+/);
+      return sum+(match?parseInt(match[0]):0);
+    },0);
+  const spent=userRedemptions
+    .filter(r=>r.status==='used')
+    .reduce((sum,r)=>{
+      if(r.pts_cost) return sum+r.pts_cost;
+      const tier=TIERS.find(t=>t.reward?.toLowerCase()===r.reward?.toLowerCase());
+      return sum+(tier?tier.pts:0);
+    },0);
+  return Math.max(0,earned-spent);
+}
+// ── REWARDS ──
+function renderRewards(){
+  const completed=userBookings.filter(b=>b.status==='completed');
+  const pts=calcPoints(completed);
+  document.getElementById('rewardsPts').textContent=pts.toLocaleString();
+
+  // find current and next tier
+  let curIdx=0;
+  for(let i=TIERS.length-1;i>=0;i--){if(pts>=TIERS[i].pts){curIdx=i;break;}}
+  const curTier=TIERS[curIdx];
+  const nextTier=TIERS[curIdx+1]||null;
+
+  // progress bar
+  if(nextTier){
+    const pct=Math.min(100,((pts-curTier.pts)/(nextTier.pts-curTier.pts))*100);
+    const ptsNeeded=nextTier.pts-pts;
+    document.getElementById('progressFrom').textContent=curTier.name;
+    document.getElementById('progressTo').textContent=`${ptsNeeded.toLocaleString()} pts to ${nextTier.name}`;
+    setTimeout(()=>{document.getElementById('progressBar').style.width=pct+'%'},300);
+  } else {
+    document.getElementById('progressFrom').textContent='👑 VIP — top tier reached';
+    document.getElementById('progressTo').textContent='';
+    setTimeout(()=>{document.getElementById('progressBar').style.width='100%'},300);
+  }
+
+  // tier chips — show reward when unlocked, progress when not
+  document.getElementById('rewardsTiers').innerHTML=TIERS.slice(1).map(t=>{
+    const unlocked=pts>=t.pts;
+    const ptsNeeded=Math.max(0,t.pts-pts);
+    return `<div class="tier-chip ${unlocked?'unlocked':''}">
+      <div class="tier-icon">${t.icon}</div>
+      <div class="tier-info">
+        <div class="tier-name">${t.name}</div>
+        <div class="tier-pts">${unlocked
+          ? `<span style="color:var(--gold-light)">${t.reward}</span>`
+          : `${ptsNeeded.toLocaleString()} pts away · ${t.desc}`
+        }</div>
+      </div>
+      ${unlocked?'<div class="tier-badge">✓</div>':''}
+    </div>`;
+  }).join('');
+
+  // show active reward banner if on a tier with a reward
+  const activeRewardEl = document.getElementById('activeReward');
+  if(curTier.reward && activeRewardEl){
+    activeRewardEl.innerHTML=`<div style="background:linear-gradient(135deg,rgba(203,166,92,.15),transparent);border:1px solid rgba(203,166,92,.4);border-radius:12px;padding:.9rem 1.1rem;margin-top:1rem;display:flex;align-items:center;gap:.8rem">
+      <span style="font-size:1.3rem">🎁</span>
+      <div>
+        <div style="font-weight:600;font-size:.9rem;color:var(--gold-light)">You've unlocked: ${curTier.reward}</div>
+        <div style="font-size:.8rem;color:var(--mercury);margin-top:.15rem">Mention this at your next booking — Yusuf will apply it.</div>
+      </div>
+    </div>`;
+    activeRewardEl.style.display='block';
+  } else if(activeRewardEl){
+    activeRewardEl.style.display='none';
+  }
+}
+
+// ── CAR PROFILE ──
+async function loadCar(userId){
+  try{
+    const {data}=await sb.from('customer_cars').select('*').eq('user_id',userId).maybeSingle();
+    userCar=data;
+  }catch(e){userCar=null;}
+  renderCar();
+}
+
+function renderCar(){
+  const el=document.getElementById('carDisplay');
+  if(!userCar){
+    el.innerHTML=`<div class="empty-state" style="padding:1rem 0"><strong>No car saved</strong>Save your car so we can pre-fill your next booking.<div style="margin-top:.8rem"><button class="btn-rebook" onclick="openCarForm()">Add car</button></div></div>`;
+    return;
+  }
+  el.innerHTML=`<div class="car-display">
+    <div class="car-icon">🚗</div>
+    <div class="car-info">
+      <div class="car-name">${userCar.make} ${userCar.model}</div>
+      <div class="car-detail">${[userCar.year,userCar.colour].filter(Boolean).join(' · ')}</div>
+    </div>
+    <button class="btn-edit-car" onclick="openCarForm()">Edit</button>
+  </div>`;
+  if(userCar){
+    document.getElementById('carMake').value=userCar.make||'';
+    document.getElementById('carModel').value=userCar.model||'';
+    document.getElementById('carYear').value=userCar.year||'';
+    document.getElementById('carColour').value=userCar.colour||'';
+  }
+}
+
+function openCarForm(){document.getElementById('carForm').classList.add('open');}
+function closeCarForm(){document.getElementById('carForm').classList.remove('open');}
+
+async function saveCar(){
+  const car={
+    user_id:currentUser.id,
+    make:document.getElementById('carMake').value.trim(),
+    model:document.getElementById('carModel').value.trim(),
+    year:document.getElementById('carYear').value||null,
+    colour:document.getElementById('carColour').value.trim()||null
+  };
+  try{
+    if(userCar){
+      await sb.from('customer_cars').update(car).eq('user_id',currentUser.id);
+    } else {
+      await sb.from('customer_cars').insert(car);
+    }
+    userCar=car;
+    renderCar();
+    closeCarForm();
+  }catch(e){alert('Save failed: '+e.message);}
+}
+
+// ── REFERRAL ──
+function buildReferral(name){
+  const msg=`Hey! I've been using Baser Detailing for mobile car detailing in Melbourne — Yusuf comes to you and does a proper job. Check them out at baserdetailing.com or text 0410 532 042. Tell them ${name} sent you! 🚗✨`;
+  document.getElementById('referralMsg').textContent=msg;
+  const smsLink=`sms:?&body=${encodeURIComponent(msg)}`;
+  document.getElementById('referralSms').href=smsLink;
+}
+
+async function copyReferral(){
+  const msg=document.getElementById('referralMsg').textContent;
+  await navigator.clipboard.writeText(msg);
+  const btn=document.querySelector('.btn-copy');
+  btn.textContent='Copied!';
+  setTimeout(()=>btn.textContent='Copy message',2000);
+}
+
+function localDate(s){const[y,m,d]=s.split('-').map(Number);return new Date(y,m-1,d);}
+
+init();
+</script>
+</body>
+</html>
