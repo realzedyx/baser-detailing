@@ -236,6 +236,7 @@ function TestimonialStack() {
                 filter: blurPx,
                 pointerEvents: isActive && !isExiting ? "auto" : "none",
                 cursor: isActive ? (isDragging ? "grabbing" : "grab") : "default",
+                userSelect: "none",
                 // Dark semi-transparent card
                 background:
                   "linear-gradient(150deg, rgba(30,26,18,0.97) 0%, rgba(12,10,7,0.98) 100%)",
@@ -251,7 +252,7 @@ function TestimonialStack() {
               onMouseDown={(e) => handleDragStart(e, index)}
               onTouchStart={(e) => handleDragStart(e, index)}
             >
-              <div className="p-6 sm:p-7">
+              <div className="p-6 sm:p-7 select-none" style={{ userSelect: "none" }}>
                 {/* Header row */}
                 <div className="flex items-center justify-between mb-5">
                   <div className="flex items-center gap-3">
