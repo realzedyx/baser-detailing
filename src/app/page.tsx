@@ -6,6 +6,10 @@ import { CinematicHero } from "@/components/ui/cinematic-hero";
 import { WhyBaserSection } from "@/components/ui/why-baser";
 import { BookingSection } from "@/components/ui/booking-section";
 import { HowItWorksSection } from "@/components/ui/how-it-works";
+import { PricingSection } from "@/components/ui/pricing-section";
+import { BeforeAfterSection } from "@/components/ui/before-after-slider";
+import { GoodToKnowSection } from "@/components/ui/good-to-know";
+import { TestimonialsSection } from "@/components/ui/testimonials-section";
 import { SectionNav } from "@/components/ui/section-nav";
 
 const navItems = [
@@ -35,9 +39,11 @@ export default function Home() {
       <div style={{ marginTop: "-100vh" }}>
         <WhyBaserSection />
       </div>
-      <div style={{ marginTop: "-100vh" }}>
-        <HowItWorksSection />
-      </div>
+      <HowItWorksSection />
+      <PricingSection />
+      <BeforeAfterSection />
+      <GoodToKnowSection />
+      <TestimonialsSection />
       <BookingSection />
     </main>
   );

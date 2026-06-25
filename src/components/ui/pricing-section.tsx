@@ -1,0 +1,476 @@
+"use client";
+
+import { motion, AnimatePresence, useInView } from "framer-motion";
+import { useState, useRef } from "react";
+import { Check } from "lucide-react";
+
+// ─────────────────────────────────────────────
+// Data
+// ─────────────────────────────────────────────
+
+const PACKAGES = [
+  {
+    id: "interior",
+    title: "Interior",
+    tagline: "Deep-clean from front to boot.",
+    price: "$149",
+    featured: false,
+    inclusions: [
+      "Deep extraction — seats, carpets, mats & boot",
+      "Stain removal treatment",
+      "Dash, console & trims wiped and treated",
+      "Cupholders & door pockets cleaned out",
+      "Interior glass streak-free",
+    ],
+  },
+  {
+    id: "exterior",
+    title: "Exterior",
+    tagline: "Showroom shine, head to toe.",
+    price: "$129",
+    featured: false,
+    inclusions: [
+      "Pre-wash foam & bug/grime removal",
+      "Full wheel clean — faces, barrels & tyres dressed",
+      "Hand wash, two-bucket method",
+      "Hand dried — zero water spots",
+      "Exterior glass streak-free",
+      "Protective sealant up to 3 months",
+    ],
+  },
+  {
+    id: "full",
+    title: "The Full Detail",
+    tagline: "Inside out, front to back — done right.",
+    price: "$219",
+    featured: true,
+    badge: "Most Booked",
+    inclusions: [
+      "Everything in the Interior package",
+      "Everything in the Exterior package",
+    ],
+  },
+] as const;
+
+// ─────────────────────────────────────────────
+// Section
+// ─────────────────────────────────────────────
+
+export function PricingSection() {
+  const [open, setOpen] = useState<string | null>(null);
+  const sectionRef = useRef<HTMLElement>(null);
+  const inView = useInView(sectionRef, { once: true, margin: "-80px" });
+
+  const toggle = (id: string) => setOpen((prev) => (prev === id ? null : id));
+
+  return (
+    <section
+      id="packages"
+      ref={sectionRef}
+      className="relative w-full overflow-hidden"
+      style={{
+        backgroundColor: "#0a0a0a",
+        paddingTop: "7rem",
+        paddingBottom: "8rem",
+        position: "relative",
+        zIndex: 5,
+      }}
+    >
+      {/* Top divider */}
+      <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-[#CBA65C]/30 to-transparent" />
+
+      {/* Ambient glow — center top */}
+      <div
+        className="absolute inset-0 pointer-events-none"
+        style={{
+          background:
+            "radial-gradient(ellipse 60% 45% at 50% 0%, rgba(203,166,92,0.06) 0%, transparent 70%)",
+        }}
+      />
+
+      {/* Fine grid texture */}
+      <div
+        className="absolute inset-0 pointer-events-none opacity-[0.025]"
+        style={{
+          backgroundSize: "60px 60px",
+          backgroundImage:
+            "linear-gradient(to right, #CBA65C 1px, transparent 1px), linear-gradient(to bottom, #CBA65C 1px, transparent 1px)",
+          maskImage: "radial-gradient(ellipse at 50% 0%, black 0%, transparent 60%)",
+          WebkitMaskImage: "radial-gradient(ellipse at 50% 0%, black 0%, transparent 60%)",
+        }}
+      />
+
+      <div className="relative z-10 container mx-auto px-4 md:px-6">
+
+        {/* Header */}
+        <div className="text-center mb-14 md:mb-18">
+          <motion.p
+            initial={{ opacity: 0, y: 16 }}
+            animate={inView ? { opacity: 1, y: 0 } : {}}
+            transition={{ duration: 0.5, ease: "easeOut" }}
+            className="text-[#CBA65C] text-[10px] sm:text-xs uppercase tracking-[0.28em] font-semibold mb-4"
+          >
+            Baser Detailing · Melbourne
+          </motion.p>
+
+          <motion.h2
+            initial={{ opacity: 0, y: 48, filter: "blur(12px)" }}
+            animate={inView ? { opacity: 1, y: 0, filter: "blur(0px)" } : {}}
+            transition={{ duration: 0.75, delay: 0.1, ease: [0.22, 1, 0.36, 1] }}
+            className="text-5xl sm:text-6xl md:text-7xl font-black tracking-tighter text-white leading-[1.04]"
+          >
+            Pick your level.
+          </motion.h2>
+
+          <motion.div
+            initial={{ scaleX: 0, opacity: 0 }}
+            animate={inView ? { scaleX: 1, opacity: 1 } : {}}
+            transition={{ duration: 0.65, delay: 0.35, ease: [0.22, 1, 0.36, 1] }}
+            className="mx-auto mt-5 w-16 h-[2px] rounded-full origin-center"
+            style={{ background: "linear-gradient(90deg, #CBA65C, #E4C883)" }}
+          />
+
+          <motion.p
+            initial={{ opacity: 0, y: 20 }}
+            animate={inView ? { opacity: 1, y: 0 } : {}}
+            transition={{ duration: 0.6, delay: 0.3, ease: "easeOut" }}
+            className="mt-6 text-[#E8E8E8]/50 text-sm sm:text-base max-w-xs mx-auto leading-relaxed"
+          >
+            Tap a card to see exactly what&apos;s included.
+          </motion.p>
+        </div>
+
+        {/* Introductory pricing banner */}
+        <motion.div
+          initial={{ opacity: 0, y: 24 }}
+          animate={inView ? { opacity: 1, y: 0 } : {}}
+          transition={{ duration: 0.6, delay: 0.4, ease: [0.22, 1, 0.36, 1] }}
+          className="relative max-w-2xl mx-auto mb-8 rounded-xl px-5 py-4 flex items-start gap-4 overflow-hidden"
+          style={{
+            background: "linear-gradient(135deg, rgba(203,166,92,0.07) 0%, rgba(10,10,10,0.6) 100%)",
+            border: "1px solid rgba(203,166,92,0.28)",
+            boxShadow: "0 0 32px rgba(203,166,92,0.06), inset 0 1px 0 rgba(203,166,92,0.12)",
+          }}
+        >
+          {/* Left accent bar */}
+          <div
+            className="shrink-0 w-[3px] self-stretch rounded-full"
+            style={{ background: "linear-gradient(180deg, #E4C883, #CBA65C 60%, transparent)" }}
+          />
+
+          {/* Text */}
+          <div className="flex-1 min-w-0">
+            <p className="text-[#E4C883] text-sm font-bold tracking-tight leading-snug mb-1">
+              Introductory pricing — friends &amp; family
+            </p>
+            <p className="text-[#E8E8E8]/50 text-xs sm:text-[13px] leading-relaxed">
+              All current prices are discounted as an introductory offer for friends and family.
+              Lock it in now — these rates won&apos;t last once the books fill up.
+            </p>
+          </div>
+
+          {/* Limited offer pill */}
+          <div className="shrink-0 self-start">
+            <span
+              className="inline-block text-[#0a0a0a] text-[9px] font-black uppercase tracking-[0.18em] px-2.5 py-1 rounded-full whitespace-nowrap"
+              style={{
+                background: "linear-gradient(135deg, #E4C883 0%, #CBA65C 100%)",
+              }}
+            >
+              Limited offer
+            </span>
+          </div>
+
+          {/* Subtle shimmer overlay */}
+          <div
+            className="absolute inset-0 pointer-events-none rounded-xl"
+            style={{
+              background: "linear-gradient(105deg, transparent 40%, rgba(228,200,131,0.04) 50%, transparent 60%)",
+            }}
+          />
+        </motion.div>
+
+        {/* Cards */}
+        <div className="flex flex-col gap-4 max-w-2xl mx-auto">
+          {PACKAGES.map((pkg, i) => {
+            const isOpen = open === pkg.id;
+
+            return (
+              <motion.div
+                key={pkg.id}
+                initial={{ opacity: 0, y: 40 }}
+                animate={inView ? { opacity: 1, y: 0 } : {}}
+                transition={{
+                  duration: 0.6,
+                  delay: 0.45 + i * 0.1,
+                  ease: [0.22, 1, 0.36, 1],
+                }}
+              >
+                <div
+                  className="relative rounded-2xl overflow-hidden cursor-pointer select-none"
+                  onClick={() => toggle(pkg.id)}
+                  style={{
+                    background:
+                      pkg.featured
+                        ? "linear-gradient(160deg, #1a1608 0%, #0d0d0d 60%)"
+                        : "linear-gradient(160deg, #161616 0%, #0d0d0d 60%)",
+                    border: pkg.featured
+                      ? "1.5px solid rgba(203,166,92,0.6)"
+                      : isOpen
+                      ? "1px solid rgba(203,166,92,0.22)"
+                      : "1px solid rgba(255,255,255,0.07)",
+                    boxShadow: pkg.featured
+                      ? "0 0 48px rgba(203,166,92,0.10), 0 2px 16px rgba(0,0,0,0.5)"
+                      : "0 2px 16px rgba(0,0,0,0.4)",
+                    transition: "border-color 0.3s ease, box-shadow 0.3s ease",
+                  }}
+                >
+                  {/* Featured card glow overlay */}
+                  {pkg.featured && (
+                    <div
+                      className="absolute inset-0 pointer-events-none rounded-2xl"
+                      style={{
+                        background:
+                          "radial-gradient(ellipse at 50% 0%, rgba(203,166,92,0.10) 0%, transparent 65%)",
+                      }}
+                    />
+                  )}
+
+                  {/* Badge */}
+                  {pkg.featured && (
+                    <div className="absolute -top-px left-1/2 -translate-x-1/2 z-10">
+                      <div
+                        className="text-[#0a0a0a] text-[10px] font-bold uppercase tracking-[0.18em] px-4 py-1 rounded-b-lg whitespace-nowrap"
+                        style={{
+                          background: "linear-gradient(135deg, #E4C883 0%, #CBA65C 100%)",
+                        }}
+                      >
+                        {pkg.badge}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Collapsed header — always visible */}
+                  <div
+                    className="relative z-10 flex items-center justify-between px-6 py-5 sm:px-8 sm:py-6"
+                    style={{ paddingTop: pkg.featured ? "1.75rem" : undefined }}
+                  >
+                    {/* Left: title + prompt */}
+                    <div>
+                      <div className="flex items-baseline gap-3">
+                        <h3
+                          className="font-bold tracking-tight text-lg sm:text-xl leading-none"
+                          style={{ color: pkg.featured ? "#E4C883" : "#ffffff" }}
+                        >
+                          {pkg.title}
+                        </h3>
+                        <span className="text-[#E8E8E8]/35 text-xs hidden sm:inline">
+                          {pkg.tagline}
+                        </span>
+                      </div>
+                      {/* Mobile tagline */}
+                      <p className="sm:hidden text-[#E8E8E8]/35 text-xs mt-1">{pkg.tagline}</p>
+
+                      {/* Prompt */}
+                      <AnimatePresence initial={false}>
+                        {!isOpen && (
+                          <motion.p
+                            key="prompt"
+                            initial={{ opacity: 0, height: 0 }}
+                            animate={{ opacity: 1, height: "auto" }}
+                            exit={{ opacity: 0, height: 0 }}
+                            transition={{ duration: 0.25 }}
+                            className="text-[#CBA65C] text-xs mt-2 font-medium"
+                            style={{ overflow: "hidden" }}
+                          >
+                            See what&apos;s included ↓
+                          </motion.p>
+                        )}
+                      </AnimatePresence>
+                    </div>
+
+                    {/* Right: price + chevron */}
+                    <div className="flex items-center gap-4 ml-4 shrink-0">
+                      <div className="text-right">
+                        <span className="text-[#E8E8E8]/40 text-[10px] uppercase tracking-widest block">
+                          from
+                        </span>
+                        <span
+                          className="text-2xl sm:text-3xl font-black tracking-tight leading-none"
+                          style={{ color: pkg.featured ? "#E4C883" : "#ffffff" }}
+                        >
+                          {pkg.price}
+                        </span>
+                      </div>
+
+                      {/* Chevron */}
+                      <motion.div
+                        animate={{ rotate: isOpen ? 180 : 0 }}
+                        transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+                        className="w-8 h-8 rounded-full flex items-center justify-center shrink-0"
+                        style={{
+                          background: pkg.featured
+                            ? "rgba(203,166,92,0.12)"
+                            : "rgba(255,255,255,0.05)",
+                          border: pkg.featured
+                            ? "1px solid rgba(203,166,92,0.3)"
+                            : "1px solid rgba(255,255,255,0.08)",
+                        }}
+                      >
+                        <svg
+                          width="14"
+                          height="14"
+                          viewBox="0 0 14 14"
+                          fill="none"
+                          style={{ color: pkg.featured ? "#CBA65C" : "rgba(255,255,255,0.5)" }}
+                        >
+                          <path
+                            d="M2.5 5L7 9.5L11.5 5"
+                            stroke="currentColor"
+                            strokeWidth="1.8"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          />
+                        </svg>
+                      </motion.div>
+                    </div>
+                  </div>
+
+                  {/* Expanded content */}
+                  <AnimatePresence initial={false}>
+                    {isOpen && (
+                      <motion.div
+                        key="content"
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: "auto", opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        transition={{ duration: 0.38, ease: [0.22, 1, 0.36, 1] }}
+                        style={{ overflow: "hidden" }}
+                      >
+                        {/* Divider */}
+                        <div
+                          className="mx-6 sm:mx-8 h-px"
+                          style={{
+                            background: pkg.featured
+                              ? "linear-gradient(90deg, transparent, rgba(203,166,92,0.3), transparent)"
+                              : "linear-gradient(90deg, transparent, rgba(255,255,255,0.07), transparent)",
+                          }}
+                        />
+
+                        <div className="relative z-10 px-6 sm:px-8 pt-5 pb-7">
+                          {/* Inclusions list */}
+                          <ul className="space-y-3 mb-7">
+                            {pkg.inclusions.map((item, j) => (
+                              <motion.li
+                                key={item}
+                                initial={{ opacity: 0, x: -12 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                transition={{
+                                  duration: 0.3,
+                                  delay: j * 0.06,
+                                  ease: [0.22, 1, 0.36, 1],
+                                }}
+                                className="flex items-start gap-3"
+                              >
+                                <span
+                                  className="mt-0.5 shrink-0 w-[18px] h-[18px] rounded-full flex items-center justify-center"
+                                  style={{
+                                    background: pkg.featured
+                                      ? "rgba(203,166,92,0.15)"
+                                      : "rgba(255,255,255,0.06)",
+                                    border: pkg.featured
+                                      ? "1px solid rgba(203,166,92,0.4)"
+                                      : "1px solid rgba(255,255,255,0.12)",
+                                  }}
+                                >
+                                  <Check
+                                    size={10}
+                                    strokeWidth={2.5}
+                                    style={{ color: pkg.featured ? "#CBA65C" : "#E8E8E8" }}
+                                  />
+                                </span>
+                                <span className="text-sm leading-snug" style={{ color: "rgba(232,232,232,0.72)" }}>
+                                  {item}
+                                </span>
+                              </motion.li>
+                            ))}
+                          </ul>
+
+                          {/* Book button */}
+                          <motion.a
+                            href="#contact"
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.3, delay: pkg.inclusions.length * 0.06 + 0.05 }}
+                            onClick={(e) => e.stopPropagation()}
+                            className="group relative inline-flex w-full items-center justify-center gap-2.5 rounded-xl py-3.5 font-semibold text-sm overflow-hidden transition-transform duration-300 hover:-translate-y-0.5 active:translate-y-0"
+                            style={
+                              pkg.featured
+                                ? {
+                                    background:
+                                      "linear-gradient(135deg, #E4C883 0%, #CBA65C 55%, #A8862E 100%)",
+                                    color: "#0a0a0a",
+                                    boxShadow:
+                                      "0 0 0 1px rgba(203,166,92,0.4), 0 6px 20px -4px rgba(203,166,92,0.4)",
+                                  }
+                                : {
+                                    background: "rgba(203,166,92,0.08)",
+                                    color: "#CBA65C",
+                                    border: "1px solid rgba(203,166,92,0.3)",
+                                    boxShadow: "0 2px 12px rgba(0,0,0,0.3)",
+                                  }
+                            }
+                          >
+                            {/* Shimmer for featured */}
+                            {pkg.featured && (
+                              <span
+                                className="absolute inset-0 translate-x-[-110%] group-hover:translate-x-[110%] transition-transform duration-700 ease-in-out pointer-events-none"
+                                style={{
+                                  background:
+                                    "linear-gradient(110deg, transparent 30%, rgba(255,255,255,0.22) 50%, transparent 70%)",
+                                }}
+                              />
+                            )}
+                            Book the {pkg.title}
+                            <svg
+                              width="15"
+                              height="15"
+                              viewBox="0 0 15 15"
+                              fill="none"
+                              style={{ opacity: 0.8 }}
+                            >
+                              <path
+                                d="M3 7.5H12M12 7.5L8.5 4M12 7.5L8.5 11"
+                                stroke="currentColor"
+                                strokeWidth="1.6"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                              />
+                            </svg>
+                          </motion.a>
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+              </motion.div>
+            );
+          })}
+        </div>
+
+        {/* Footer note */}
+        <motion.p
+          initial={{ opacity: 0 }}
+          animate={inView ? { opacity: 1 } : {}}
+          transition={{ duration: 0.6, delay: 0.8 }}
+          className="text-center mt-10 text-[#E8E8E8]/25 text-xs tracking-wide"
+        >
+          Pricing varies by vehicle size & condition · Free quote available
+        </motion.p>
+      </div>
+
+      {/* Bottom divider */}
+      <div className="absolute bottom-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-white/8 to-transparent" />
+    </section>
+  );
+}

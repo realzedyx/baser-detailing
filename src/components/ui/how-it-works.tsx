@@ -332,7 +332,7 @@ export function HowItWorksSection() {
       id="process"
       ref={sectionRef}
       className="relative w-full bg-[#0a0a0a] overflow-hidden"
-      style={{ paddingTop: "7rem", paddingBottom: "8rem" }}
+      style={{ paddingTop: "7rem", paddingBottom: "8rem", backgroundColor: "#0a0a0a", zIndex: 5, position: "relative" }}
     >
       {/* Top divider */}
       <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-[#CBA65C]/30 to-transparent" />

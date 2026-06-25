@@ -10,7 +10,7 @@ if (typeof window !== "undefined") {
   gsap.registerPlugin(ScrollTrigger);
 }
 
-const TOTAL = 4; // hero, why-baser, how-it-works, booking
+const TOTAL = 8; // hero, why-baser, how-it-works, pricing, before-after, good-to-know, testimonials, booking
 
 export function SectionNav() {
   const [current, setCurrent] = useState(0);
@@ -22,11 +22,14 @@ export function SectionNav() {
     const resolve = () => {
       const pinned = ScrollTrigger.getAll().filter((t) => t.vars.pin);
       // pinned[0] = hero, pinned[1] = why-baser
-      const heroEnd   = pinned[0]?.end ?? 2200;
-      const whyEnd    = pinned[1]?.end ?? heroEnd + 1600;
-      // how-it-works is not pinned — approximate its scroll start
-      const howEnd    = whyEnd + 900;
-      setStarts([0, heroEnd, whyEnd, howEnd]);
+      const heroEnd       = pinned[0]?.end ?? 2200;
+      const whyEnd        = pinned[1]?.end ?? heroEnd + 1600;
+      const howEnd        = whyEnd + 900;
+      const pricingEnd    = howEnd + 900;
+      const beforeAfterEnd  = pricingEnd + 900;
+      const goodToKnowEnd   = beforeAfterEnd + 900;
+      const testimonialsEnd = goodToKnowEnd + 900;
+      setStarts([0, heroEnd, whyEnd, howEnd, pricingEnd, beforeAfterEnd, goodToKnowEnd, testimonialsEnd]);
     };
 
     // Give GSAP time to register all triggers on mount
