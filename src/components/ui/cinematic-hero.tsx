@@ -21,12 +21,7 @@ const INJECTED_STYLES = `
   }
 
   .bg-grid-theme {
-      background-size: 60px 60px;
-      background-image:
-          linear-gradient(to right, color-mix(in srgb, var(--color-foreground) 5%, transparent) 1px, transparent 1px),
-          linear-gradient(to bottom, color-mix(in srgb, var(--color-foreground) 5%, transparent) 1px, transparent 1px);
-      mask-image: radial-gradient(ellipse at center, black 0%, transparent 70%);
-      -webkit-mask-image: radial-gradient(ellipse at center, black 0%, transparent 70%);
+      background: radial-gradient(ellipse at center, #0d0d0d 0%, #0a0a0a 100%);
   }
 
   /* -------------------------------------------------------------------
@@ -76,12 +71,6 @@ const INJECTED_STYLES = `
       position: relative;
   }
 
-  /* Full-hero background spotlight — sits behind everything, z-index 1 */
-  .hero-cursor-glow {
-      position: absolute; inset: 0; pointer-events: none; z-index: 1;
-      background: radial-gradient(350px circle at var(--cursor-x, 50%) var(--cursor-y, 50%), rgba(203, 166, 92, 0.14) 0%, transparent 60%);
-  }
-
   /* Scroll indicator */
   @keyframes scrollBounce {
       0%, 100% { transform: translateY(0) rotate(45deg); opacity: 0.7; }
@@ -96,8 +85,6 @@ const INJECTED_STYLES = `
 
   .card-sheen {
       position: absolute; inset: 0; border-radius: inherit; pointer-events: none; z-index: 50;
-      background: radial-gradient(800px circle at var(--mouse-x, 50%) var(--mouse-y, 50%), rgba(203, 166, 92, 0.08) 0%, transparent 40%);
-      mix-blend-mode: screen; transition: opacity 0.3s ease;
   }
 
   /* Realistic iPhone Mockup Hardware */
@@ -225,51 +212,25 @@ export function CinematicHero({
   const containerRef = useRef<HTMLDivElement>(null);
   const mainCardRef = useRef<HTMLDivElement>(null);
   const mockupRef = useRef<HTMLDivElement>(null);
-  const requestRef = useRef<number>(0);
-
-  // 1. High-Performance Mouse Interaction Logic (Using requestAnimationFrame)
+  // 1. Mockup 3D tilt — reads from root CursorTracker via custom event
   useEffect(() => {
-    const handleMouseMove = (e: MouseEvent) => {
-      // No scrollY guard — the GSAP pin accumulates virtual scroll pixels quickly,
-      // which caused the old `scrollY > innerHeight * 2` check to fire almost
-      // immediately and freeze tracking for the rest of the animation.
-      cancelAnimationFrame(requestRef.current);
-
-      requestRef.current = requestAnimationFrame(() => {
-        // Background spotlight — viewport coords map directly to the pinned container
-        if (containerRef.current) {
-          containerRef.current.style.setProperty("--cursor-x", `${e.clientX}px`);
-          containerRef.current.style.setProperty("--cursor-y", `${e.clientY}px`);
-        }
-
-        // Card sheen + mockup 3D tilt — card-relative coords
-        if (mainCardRef.current && mockupRef.current) {
-          const rect = mainCardRef.current.getBoundingClientRect();
-          const mouseX = e.clientX - rect.left;
-          const mouseY = e.clientY - rect.top;
-
-          mainCardRef.current.style.setProperty("--mouse-x", `${mouseX}px`);
-          mainCardRef.current.style.setProperty("--mouse-y", `${mouseY}px`);
-
-          const xVal = (e.clientX / window.innerWidth - 0.5) * 2;
-          const yVal = (e.clientY / window.innerHeight - 0.5) * 2;
-
-          gsap.to(mockupRef.current, {
-            rotationY: xVal * 12,
-            rotationX: -yVal * 12,
-            ease: "power3.out",
-            duration: 1.2,
-          });
-        }
-      });
+    const onCursor = (e: Event) => {
+      const { x, y } = (e as CustomEvent<{ x: number; y: number }>).detail;
+      if (mockupRef.current) {
+        const xVal = (x / window.innerWidth - 0.5) * 2;
+        const yVal = (y / window.innerHeight - 0.5) * 2;
+        gsap.to(mockupRef.current, {
+          rotationY: xVal * 12,
+          rotationX: -yVal * 12,
+          ease: "power3.out",
+          duration: 1.2,
+        });
+      }
     };
 
-    window.addEventListener("mousemove", handleMouseMove);
-    return () => {
-      window.removeEventListener("mousemove", handleMouseMove);
-      cancelAnimationFrame(requestRef.current);
-    };
-  },[]);
+    document.addEventListener("cursormove", onCursor);
+    return () => document.removeEventListener("cursormove", onCursor);
+  }, []);
 
   // 2. Complex Cinematic Scroll Timeline
   useEffect(() => {
@@ -325,7 +286,8 @@ export function CinematicHero({
           ease: "expo.inOut",
           duration: 1.0
         }, "pullback")
-        .to(".main-card", { y: -window.innerHeight - 300, ease: "power3.in", duration: 1.0 });
+        .to(".main-card", { y: -window.innerHeight - 300, ease: "power3.in", duration: 1.0 })
+        .to(containerRef.current, { autoAlpha: 0, duration: 0.6 }, "-=0.3");
 
     }, containerRef);
 
@@ -340,8 +302,7 @@ export function CinematicHero({
       {...props}
     >
       <style dangerouslySetInnerHTML={{ __html: INJECTED_STYLES }} />
-      {/* z-index 1: cursor-tracking gold spotlight — pointer-events:none in CSS, listener on window */}
-      <div className="hero-cursor-glow" aria-hidden="true" />
+
       <div className="film-grain" aria-hidden="true" />
       <div className="bg-grid-theme absolute inset-0 z-0 pointer-events-none opacity-50" aria-hidden="true" />
 
