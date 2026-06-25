@@ -1,6 +1,6 @@
 "use client";
 
-import { motion, useInView } from "framer-motion";
+import { motion, useScroll, useTransform, useSpring as useSpringFM, useMotionValueEvent, MotionValue } from "framer-motion";
 import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import React, { useRef, useEffect, useState } from "react";
@@ -153,13 +153,13 @@ const STEPS = [
     num: "01",
     eyebrow: "~60 min",
     title: "Interior first",
-    body: "The full cabin gets done while everything's dry — vacuum, surfaces, glass and mats — so no overspray or runoff lands on fresh work.",
+    body: "The full cabin gets done while everything's dry: vacuum, surfaces, glass and mats. That way no overspray or runoff lands on fresh work.",
   },
   {
     num: "02",
     eyebrow: "~45 min",
     title: "Then the wheels",
-    body: "The dirtiest part of the car gets isolated — wheels, barrels, arches and tyres — before any panel washing starts.",
+    body: "The dirtiest part of the car gets dealt with first: wheels, barrels, arches and tyres, all before any panel washing starts.",
   },
   {
     num: "03",
@@ -173,131 +173,150 @@ const STEPS = [
 // Step row
 // ─────────────────────────────────────────────
 
-function StepRow({ step, index, isLast }: { step: (typeof STEPS)[0]; index: number; isLast: boolean }) {
-  const ref = useRef<HTMLDivElement>(null);
-  const inView = useInView(ref, { once: true, margin: "-80px" });
+const NUM_COL = 88;
+const TL_COL  = 28;
+
+// Fraction of stepsScrollY at which the line tip visually reaches each dot.
+// Equal-spaced steps → dot 0 early, dot 2 late.
+const DOT_THRESHOLDS = [0.08, 0.43, 0.78];
+
+function StepRow({
+  step, index, stepsScrollY,
+}: {
+  step: (typeof STEPS)[0];
+  index: number;
+  stepsScrollY: MotionValue<number>;
+}) {
+  const ref     = useRef<HTMLDivElement>(null);
+  const numRef  = useRef<HTMLDivElement>(null);
+  const dotRef  = useRef<HTMLDivElement>(null);
+  const bodyRef = useRef<HTMLDivElement>(null);
+  const iconRef = useRef<HTMLDivElement>(null);
+  const [glyphActive, setGlyphActive] = useState(false);
+  const [lit, setLit] = useState(false);          // true when the line has reached this dot
   const Glyph = GLYPHS[index];
 
-  return (
-    <div ref={ref} className="relative flex items-start gap-0">
+  // Watch scroll progress — light up dot+number when line tip passes this dot
+  useMotionValueEvent(stepsScrollY, "change", (val) => {
+    setLit(val >= DOT_THRESHOLDS[index]);
+  });
 
-      {/* Left: ghost number + timeline column */}
-      <div className="flex-shrink-0 flex flex-col items-center" style={{ width: "80px" }}>
-        {/* Ghost number */}
-        <motion.div
-          initial={{ opacity: 0, x: -16 }}
-          animate={inView ? { opacity: 1, x: 0 } : {}}
-          transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
-          className="font-black leading-none select-none text-right w-full pr-2"
+  useEffect(() => {
+    if (!ref.current) return;
+
+    gsap.set([numRef.current, bodyRef.current, iconRef.current], { autoAlpha: 0, y: 52 });
+    gsap.set(dotRef.current, { scale: 0, autoAlpha: 0 });
+
+    const ctx = gsap.context(() => {
+      ScrollTrigger.create({
+        trigger: ref.current,
+        start: "top 82%",
+        // No once:true — reverses when scrolling back up
+        onEnter: () => {
+          gsap.to(numRef.current,  { autoAlpha: 1, y: 0, duration: 0.7, ease: "power3.out" });
+          gsap.to(dotRef.current,  { scale: 1, autoAlpha: 1, duration: 0.45, delay: 0.18, ease: "back.out(2)" });
+          gsap.to(bodyRef.current, { autoAlpha: 1, y: 0, duration: 0.7, delay: 0.12, ease: "power3.out" });
+          gsap.to(iconRef.current, {
+            autoAlpha: 1, y: 0, duration: 0.65, delay: 0.38, ease: "power3.out",
+            onStart: () => setGlyphActive(true),
+          });
+        },
+        onLeaveBack: () => {
+          // Step disappears again when user scrolls back above it
+          gsap.to(numRef.current,  { autoAlpha: 0, y: 52, duration: 0.45, ease: "power3.in" });
+          gsap.to(dotRef.current,  { scale: 0, autoAlpha: 0, duration: 0.3, ease: "power3.in" });
+          gsap.to(bodyRef.current, { autoAlpha: 0, y: 52, duration: 0.45, ease: "power3.in" });
+          gsap.to(iconRef.current, {
+            autoAlpha: 0, y: 52, duration: 0.35, ease: "power3.in",
+            onComplete: () => setGlyphActive(false),
+          });
+        },
+      });
+    }, ref);
+
+    return () => ctx.revert();
+  }, []);
+
+  return (
+    <div ref={ref} className="relative flex items-start">
+
+      {/* Numbers: clipped column, stroke brightens when line hits */}
+      <div className="flex-shrink-0 overflow-hidden" style={{ width: NUM_COL, zIndex: 1 }}>
+        <div
+          ref={numRef}
+          className="font-black leading-none select-none text-right w-full"
           style={{
-            fontSize: "clamp(52px, 7vw, 80px)",
+            fontSize: "clamp(48px, 6.5vw, 72px)",
             color: "transparent",
-            WebkitTextStroke: "1px rgba(203,166,92,0.18)",
+            WebkitTextStroke: lit ? "1px rgba(203,166,92,0.85)" : "1px rgba(203,166,92,0.22)",
             fontVariantNumeric: "tabular-nums",
+            maskImage: "linear-gradient(to right, black 50%, transparent 100%)",
+            WebkitMaskImage: "linear-gradient(to right, black 50%, transparent 100%)",
+            filter: lit ? "drop-shadow(0 0 10px rgba(203,166,92,0.55))" : "none",
+            transition: "filter 0.5s ease, -webkit-text-stroke-color 0.5s ease",
           }}
         >
           {step.num}
-        </motion.div>
-
-        {/* Timeline dot */}
-        <motion.div
-          initial={{ scale: 0, opacity: 0 }}
-          animate={inView ? { scale: 1, opacity: 1 } : {}}
-          transition={{ duration: 0.4, delay: 0.2, type: "spring", stiffness: 400 }}
-          className="relative flex-shrink-0 mt-3"
-          style={{ zIndex: 2 }}
-        >
-          {/* Outer pulse ring */}
-          <motion.div
-            animate={inView ? { scale: [1, 1.8, 1], opacity: [0.5, 0, 0.5] } : {}}
-            transition={{ duration: 2.4, repeat: Infinity, ease: "easeInOut", delay: 0.5 }}
-            className="absolute inset-0 rounded-full bg-[#CBA65C]/30"
-            style={{ width: 14, height: 14, top: 1, left: 1 }}
-          />
-          <div
-            className="w-4 h-4 rounded-full border-2 border-[#CBA65C] bg-[#0a0a0a]"
-            style={{ boxShadow: "0 0 12px rgba(203,166,92,0.4)" }}
-          />
-        </motion.div>
-
-        {/* Connector line to next step */}
-        {!isLast && (
-          <motion.div
-            initial={{ scaleY: 0 }}
-            animate={inView ? { scaleY: 1 } : {}}
-            transition={{ duration: 0.9, delay: 0.4, ease: "easeOut" }}
-            className="w-px bg-gradient-to-b from-[#CBA65C]/50 to-[#CBA65C]/10 origin-top"
-            style={{ height: "120px", marginTop: "4px" }}
-          />
-        )}
+        </div>
       </div>
 
-      {/* Right: content + glyph */}
-      <div className="flex-1 pl-8 pb-20">
-        <div className="flex items-start justify-between gap-6">
+      {/* Timeline column: dot glows when line reaches it */}
+      <div className="flex-shrink-0 flex flex-col items-center" style={{ width: TL_COL, zIndex: 2, position: "relative" }}>
+        <div style={{ height: "clamp(12px, 1.8vw, 20px)" }} />
+        <div ref={dotRef} className="relative flex-shrink-0">
+          {/* Pulse ring — only shows when lit */}
+          {lit && (
+            <div
+              className="absolute rounded-full bg-[#CBA65C]/40"
+              style={{ width: 14, height: 14, top: 1, left: 1, animation: "dotPulse 2.0s ease-in-out infinite" }}
+            />
+          )}
+          <div
+            className="w-4 h-4 rounded-full border-2 border-[#CBA65C]"
+            style={{
+              background: lit ? "rgba(203,166,92,0.28)" : "#0a0a0a",
+              boxShadow: lit
+                ? "0 0 0 3px rgba(203,166,92,0.18), 0 0 18px rgba(203,166,92,0.7), 0 0 36px rgba(203,166,92,0.35)"
+                : "0 0 12px rgba(203,166,92,0.3)",
+              transition: "box-shadow 0.5s ease, background 0.5s ease",
+            }}
+          />
+        </div>
+      </div>
 
-          {/* Text content */}
+      {/* Content + icon */}
+      <div ref={bodyRef} className="flex-1 pl-6 pb-20">
+        <div className="flex items-start justify-between gap-6">
           <div className="flex-1">
-            {/* Eyebrow */}
-            <motion.div
-              initial={{ opacity: 0, x: -12 }}
-              animate={inView ? { opacity: 1, x: 0 } : {}}
-              transition={{ duration: 0.5, delay: 0.15 }}
-              className="flex items-center gap-2 mb-4"
-            >
+            <div className="flex items-center gap-2 mb-4">
               <div className="w-5 h-px bg-[#CBA65C]/60" />
               <span className="text-[#CBA65C] text-[10px] uppercase tracking-[0.24em] font-semibold">
                 {step.eyebrow}
               </span>
-            </motion.div>
-
-            {/* Title */}
-            <motion.h3
-              initial={{ opacity: 0, y: 20, filter: "blur(6px)" }}
-              animate={inView ? { opacity: 1, y: 0, filter: "blur(0px)" } : {}}
-              transition={{ duration: 0.65, delay: 0.2, ease: [0.22, 1, 0.36, 1] }}
-              className="text-3xl sm:text-4xl font-black tracking-tighter text-white leading-[1.1] mb-4"
-            >
+            </div>
+            <h3 className="text-3xl sm:text-4xl font-black tracking-tighter text-white leading-[1.1] mb-4">
               {step.title}
-            </motion.h3>
-
-            {/* Underline rule */}
-            <motion.div
-              initial={{ scaleX: 0, opacity: 0 }}
-              animate={inView ? { scaleX: 1, opacity: 1 } : {}}
-              transition={{ duration: 0.6, delay: 0.35 }}
-              className="w-10 h-[1.5px] rounded-full origin-left mb-4"
-              style={{ background: "linear-gradient(90deg, #CBA65C, #E4C883)" }}
-            />
-
-            {/* Body */}
-            <motion.p
-              initial={{ opacity: 0, y: 16 }}
-              animate={inView ? { opacity: 1, y: 0 } : {}}
-              transition={{ duration: 0.6, delay: 0.3 }}
-              className="text-[#E8E8E8]/55 text-base leading-relaxed max-w-sm"
-            >
+            </h3>
+            <div className="w-10 h-[1.5px] rounded-full mb-4"
+              style={{ background: "linear-gradient(90deg, #CBA65C, #E4C883)" }} />
+            <p className="text-[#E8E8E8]/55 text-base leading-relaxed max-w-sm">
               {step.body}
-            </motion.p>
+            </p>
           </div>
 
-          {/* SVG glyph */}
-          <motion.div
-            initial={{ opacity: 0, scale: 0.7, rotate: -8 }}
-            animate={inView ? { opacity: 1, scale: 1, rotate: 0 } : {}}
-            transition={{ duration: 0.8, delay: 0.4, ease: [0.22, 1, 0.36, 1] }}
+          <div
+            ref={iconRef}
             className="flex-shrink-0 hidden sm:block"
             style={{
-              width: 72,
-              height: 72,
+              width: 72, height: 72,
               background: "rgba(203,166,92,0.05)",
               border: "1px solid rgba(203,166,92,0.15)",
               borderRadius: "18px",
               padding: "10px",
             }}
           >
-            <Glyph active={inView} />
-          </motion.div>
+            <Glyph active={glyphActive} />
+          </div>
         </div>
       </div>
     </div>
@@ -309,14 +328,45 @@ function StepRow({ step, index, isLast }: { step: (typeof STEPS)[0]; index: numb
 // ─────────────────────────────────────────────
 
 export function HowItWorksSection() {
-  const sectionRef = useRef<HTMLElement>(null);
-  const headingRef = useRef<HTMLDivElement>(null);
-  const headingInView = useInView(headingRef, { once: true, margin: "-80px" });
+  const sectionRef  = useRef<HTMLElement>(null);
+  const stepsRef    = useRef<HTMLDivElement>(null);
+  const eyebrowRef  = useRef<HTMLParagraphElement>(null);
+  const h2Ref       = useRef<HTMLHeadingElement>(null);
+  const ruleRef     = useRef<HTMLDivElement>(null);
+  const subtitleRef = useRef<HTMLParagraphElement>(null);
+  const progressBarRef = useRef<HTMLDivElement>(null);
 
   const [scrollProgress, setScrollProgress] = useState(0);
 
+  // Scroll-driven timeline line
+  const { scrollYProgress: stepsScrollY } = useScroll({
+    target: stepsRef,
+    offset: ["start 85%", "end 30%"],
+  });
+  const rawLineScale = useTransform(stepsScrollY, [0, 1], [0, 1]);
+  const lineScaleY = useSpringFM(rawLineScale, { stiffness: 80, damping: 20, mass: 0.4 });
+
   useEffect(() => {
     const ctx = gsap.context(() => {
+      // Hide heading elements initially
+      gsap.set([eyebrowRef.current, h2Ref.current, ruleRef.current, subtitleRef.current, progressBarRef.current],
+        { autoAlpha: 0, y: 28 });
+
+      // Animate heading when section enters
+      ScrollTrigger.create({
+        trigger: sectionRef.current,
+        start: "top 75%",
+        once: true,
+        onEnter: () => {
+          gsap.to(eyebrowRef.current,  { autoAlpha: 1, y: 0, duration: 0.55, ease: "power3.out" });
+          gsap.to(h2Ref.current,       { autoAlpha: 1, y: 0, duration: 0.8, delay: 0.1, ease: "power3.out" });
+          gsap.to(ruleRef.current,     { autoAlpha: 1, y: 0, scaleX: 1, duration: 0.6, delay: 0.28, ease: "power3.out" });
+          gsap.to(subtitleRef.current, { autoAlpha: 1, y: 0, duration: 0.6, delay: 0.22, ease: "power3.out" });
+          gsap.to(progressBarRef.current, { autoAlpha: 1, y: 0, duration: 0.5, delay: 0.38, ease: "power3.out" });
+        },
+      });
+
+      // Progress bar
       ScrollTrigger.create({
         trigger: sectionRef.current,
         start: "top 80%",
@@ -337,21 +387,17 @@ export function HowItWorksSection() {
       {/* Top divider */}
       <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-[#CBA65C]/30 to-transparent" />
 
-      {/* Ambient glow — right-side warm light */}
+      {/* Ambient glow */}
       <div
         className="absolute inset-0 pointer-events-none"
-        style={{
-          background:
-            "radial-gradient(ellipse 55% 70% at 85% 30%, rgba(203,166,92,0.05) 0%, transparent 65%)",
-        }}
+        style={{ background: "radial-gradient(ellipse 55% 70% at 85% 30%, rgba(203,166,92,0.05) 0%, transparent 65%)" }}
       />
 
-      {/* Noise grain overlay */}
+      {/* Noise grain */}
       <div
         className="absolute inset-0 pointer-events-none opacity-[0.025]"
         style={{
-          backgroundImage:
-            "url(\"data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E\")",
+          backgroundImage: "url(\"data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E\")",
           backgroundRepeat: "repeat",
           backgroundSize: "128px 128px",
         }}
@@ -360,20 +406,13 @@ export function HowItWorksSection() {
       <div className="relative z-10 mx-auto px-6 sm:px-10" style={{ maxWidth: "720px" }}>
 
         {/* ── Heading block ── */}
-        <div ref={headingRef} className="mb-16 md:mb-20">
-          <motion.p
-            initial={{ opacity: 0, y: 14 }}
-            animate={headingInView ? { opacity: 1, y: 0 } : {}}
-            transition={{ duration: 0.5 }}
-            className="text-[#CBA65C] text-[10px] uppercase tracking-[0.28em] font-semibold mb-5"
-          >
+        <div className="mb-16 md:mb-20">
+          <p ref={eyebrowRef} className="text-[#CBA65C] text-[10px] uppercase tracking-[0.28em] font-semibold mb-5">
             Baser Detailing · Process
-          </motion.p>
+          </p>
 
-          <motion.h2
-            initial={{ opacity: 0, y: 44, filter: "blur(12px)" }}
-            animate={headingInView ? { opacity: 1, y: 0, filter: "blur(0px)" } : {}}
-            transition={{ duration: 0.8, delay: 0.1, ease: [0.22, 1, 0.36, 1] }}
+          <h2
+            ref={h2Ref}
             className="font-black tracking-tighter text-white leading-[1.04] mb-5"
             style={{ fontSize: "clamp(2.6rem, 6vw, 4.5rem)" }}
           >
@@ -381,29 +420,25 @@ export function HowItWorksSection() {
             <span style={{ color: "transparent", WebkitTextStroke: "1.5px rgba(228,200,131,0.6)" }}>
               in that order.
             </span>
-          </motion.h2>
+          </h2>
 
-          <motion.div
-            initial={{ scaleX: 0, opacity: 0 }}
-            animate={headingInView ? { scaleX: 1, opacity: 1 } : {}}
-            transition={{ duration: 0.65, delay: 0.35 }}
+          <div
+            ref={ruleRef}
             className="w-14 h-[2px] rounded-full origin-left mb-6"
-            style={{ background: "linear-gradient(90deg, #CBA65C, #E4C883)" }}
+            style={{ background: "linear-gradient(90deg, #CBA65C, #E4C883)", scaleX: 0 } as React.CSSProperties}
           />
 
-          <motion.p
-            initial={{ opacity: 0, y: 18 }}
-            animate={headingInView ? { opacity: 1, y: 0 } : {}}
-            transition={{ duration: 0.6, delay: 0.28 }}
+          <p
+            ref={subtitleRef}
             className="text-[#E8E8E8]/50 text-base sm:text-lg leading-relaxed"
             style={{ maxWidth: "480px" }}
           >
-            Interior first while the car's dry, wheels next as the dirtiest job, then the full exterior wash and dry. The order keeps the finish clean — nothing gets re-dirtied.
-          </motion.p>
+            Interior first while the car&apos;s dry, wheels next as the dirtiest job, then the full exterior wash and dry. The order matters. Nothing gets re-dirtied.
+          </p>
 
           {/* Scroll progress bar */}
-          <div className="mt-10 w-full h-px bg-white/[0.06] rounded-full overflow-hidden">
-            <motion.div
+          <div ref={progressBarRef} className="mt-10 w-full h-px bg-white/[0.06] rounded-full overflow-hidden">
+            <div
               className="h-full rounded-full"
               style={{
                 background: "linear-gradient(90deg, #CBA65C, #E4C883)",
@@ -416,9 +451,33 @@ export function HowItWorksSection() {
         </div>
 
         {/* ── Steps ── */}
-        <div>
+        <div ref={stepsRef} className="relative">
+          {/* Single continuous timeline line — centered in the timeline column, never touches numbers */}
+          <div
+            className="absolute top-0 bottom-0 pointer-events-none"
+            style={{ left: `${NUM_COL + TL_COL / 2}px`, width: 0, zIndex: 0 }}
+          >
+            {/* Dim background track */}
+            <div
+              className="absolute w-px"
+              style={{ left: "-0.5px", top: "52px", bottom: "80px", background: "rgba(203,166,92,0.08)" }}
+            />
+            {/* Scroll-driven fill */}
+            <motion.div
+              className="absolute w-px origin-top"
+              style={{
+                left: "-0.5px",
+                top: "52px",
+                bottom: "80px",
+                scaleY: lineScaleY,
+                background: "linear-gradient(to bottom, #CBA65C 0%, rgba(203,166,92,0.2) 100%)",
+                boxShadow: "0 0 6px rgba(203,166,92,0.3)",
+              }}
+            />
+          </div>
+
           {STEPS.map((step, i) => (
-            <StepRow key={step.num} step={step} index={i} isLast={i === STEPS.length - 1} />
+            <StepRow key={step.num} step={step} index={i} stepsScrollY={stepsScrollY} />
           ))}
         </div>
 
@@ -430,7 +489,7 @@ export function HowItWorksSection() {
           transition={{ duration: 0.6, delay: 0.2 }}
           className="text-[#E8E8E8]/25 text-xs tracking-wide mt-2"
         >
-          Total: 3–4 hours · One detailer, start to finish
+          Total: 4–6 hours for a full detail · One detailer, start to finish
         </motion.p>
       </div>
 

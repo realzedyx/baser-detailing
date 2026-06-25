@@ -1,18 +1,11 @@
 "use client";
 
-import { motion, useInView } from "framer-motion";
+import { motion, useInView, useMotionValue, useSpring } from "framer-motion";
 import React, { useRef } from "react";
+import { TextReveal } from "@/components/ui/text-reveal";
 
 const GOLD = "#CBA65C";
 const CHROME = "#E4C883";
-
-function fade(delay = 0) {
-  return {
-    initial: { opacity: 0, y: 28 },
-    animate: { opacity: 1, y: 0 },
-    transition: { duration: 0.65, delay, ease: [0.22, 1, 0.36, 1] as const },
-  };
-}
 
 export function BookingSection() {
   const ref = useRef<HTMLDivElement>(null);
@@ -31,15 +24,29 @@ export function BookingSection() {
       style={{ backgroundColor: "#0a0a0a" }}
       className="relative w-full overflow-hidden py-24 sm:py-32"
     >
-      {/* Top divider */}
-      <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-[#CBA65C]/25 to-transparent" />
 
-      {/* Ambient glow */}
+      {/* Dramatic gold diagonal wash */}
       <div
         className="absolute inset-0 pointer-events-none"
         style={{
           background:
-            "radial-gradient(ellipse 80% 60% at 20% 60%, rgba(203,166,92,0.055) 0%, transparent 65%)",
+            "linear-gradient(135deg, rgba(203,166,92,0.07) 0%, transparent 45%, rgba(228,200,131,0.04) 100%)",
+        }}
+      />
+      {/* Left radial anchor */}
+      <div
+        className="absolute inset-0 pointer-events-none"
+        style={{
+          background:
+            "radial-gradient(ellipse 70% 65% at 10% 55%, rgba(203,166,92,0.08) 0%, transparent 65%)",
+        }}
+      />
+      {/* Right ambient */}
+      <div
+        className="absolute inset-0 pointer-events-none"
+        style={{
+          background:
+            "radial-gradient(ellipse 55% 50% at 90% 40%, rgba(228,200,131,0.05) 0%, transparent 60%)",
         }}
       />
 
@@ -64,19 +71,19 @@ export function BookingSection() {
             </motion.p>
 
             {/* Heading */}
-            <motion.h2
-              initial={{ opacity: 0, y: 40, filter: "blur(8px)" }}
-              animate={inView ? { opacity: 1, y: 0, filter: "blur(0px)" } : {}}
-              transition={{ duration: 0.75, delay: 0.08, ease: [0.22, 1, 0.36, 1] }}
-              className="text-4xl sm:text-5xl font-black tracking-tight text-white leading-[1.08] mb-5"
-            >
-              Let&apos;s get your<br />car sorted.
-            </motion.h2>
+            <h2 className="text-4xl sm:text-5xl font-black tracking-tight text-white leading-[1.08] mb-5">
+              <span style={{ display: "block" }}>
+                <TextReveal inView={inView} delay={0.08}>Let&apos;s get your</TextReveal>
+              </span>
+              <span style={{ display: "block" }}>
+                <TextReveal inView={inView} delay={0.3}>car sorted.</TextReveal>
+              </span>
+            </h2>
 
             {/* Subheading */}
             <motion.p {...anim(0.18)} className="text-[#E8E8E8]/55 text-sm sm:text-base leading-relaxed max-w-sm mb-10">
               Call or text for the quickest reply, or send your details and I&apos;ll come back
-              with a time. A 20% deposit secures your spot — the balance is paid on the day
+              with a time. A 20% deposit locks in your spot, with the balance paid on the day
               by PayID or cash.
             </motion.p>
 
@@ -161,34 +168,68 @@ export function BookingSection() {
                 <h3 className="text-white text-2xl font-bold tracking-tight mb-2">
                   Book online
                 </h3>
-                <p className="text-[#E8E8E8]/45 text-sm leading-relaxed mb-10">
+                <p className="text-[#E8E8E8]/45 text-sm leading-relaxed mb-6">
                   Pick a service, choose an available day and lock it in.
                 </p>
 
-                {/* CTA button */}
-                <a
-                  href="/book"
-                  className="group relative w-full inline-flex items-center justify-center gap-3 px-7 py-4 rounded-xl font-bold text-[#0a0a0a] text-base overflow-hidden mb-10 transition-transform duration-300 hover:-translate-y-0.5 active:translate-y-0.5"
-                  style={{
-                    background: `linear-gradient(135deg, ${CHROME} 0%, ${GOLD} 55%, #A8862E 100%)`,
-                    boxShadow: `0 0 0 1px rgba(203,166,92,0.4), 0 10px 28px -4px rgba(203,166,92,0.38)`,
-                  }}
-                >
-                  {/* Shimmer */}
-                  <span
-                    className="absolute inset-0 translate-x-[-110%] group-hover:translate-x-[110%] transition-transform duration-700 ease-in-out pointer-events-none"
-                    style={{
-                      background:
-                        "linear-gradient(110deg, transparent 30%, rgba(255,255,255,0.22) 50%, transparent 70%)",
+                {/* Availability indicator */}
+                <div className="flex items-center gap-2.5 mb-7">
+                  <div className="relative flex-shrink-0">
+                    <div
+                      className="w-2 h-2 rounded-full"
+                      style={{ background: "#4ade80" }}
+                    />
+                    <motion.div
+                      className="absolute inset-0 rounded-full"
+                      animate={{ scale: [1, 2.2, 1], opacity: [0.7, 0, 0.7] }}
+                      transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+                      style={{ background: "#4ade80" }}
+                    />
+                  </div>
+                  <p className="text-[12px] font-semibold" style={{ color: "rgba(232,232,232,0.55)" }}>
+                    <span style={{ color: "#E4C883" }}>3 spots</span> left this week
+                  </p>
+                </div>
+
+                {/* CTA button with pulse glow + magnetic */}
+                <div className="relative mb-10">
+                  <motion.div
+                    className="absolute inset-0 rounded-xl pointer-events-none"
+                    animate={{
+                      boxShadow: [
+                        "0 0 0px 0px rgba(203,166,92,0)",
+                        "0 0 28px 6px rgba(203,166,92,0.35)",
+                        "0 0 0px 0px rgba(203,166,92,0)",
+                      ],
                     }}
-                    aria-hidden
+                    transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}
                   />
-                  <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-                    <rect x="3" y="4" width="18" height="18" rx="2" />
-                    <path d="M16 2v4M8 2v4M3 10h18" />
-                  </svg>
-                  Book a detail
-                </a>
+                  <MagneticButton>
+                    <a
+                      href="/book"
+                      className="group relative w-full inline-flex items-center justify-center gap-3 px-7 py-4 rounded-xl font-bold text-[#0a0a0a] text-base overflow-hidden transition-transform duration-300 hover:-translate-y-0.5 active:translate-y-0.5"
+                      style={{
+                        background: `linear-gradient(135deg, ${CHROME} 0%, ${GOLD} 55%, #A8862E 100%)`,
+                        boxShadow: `0 0 0 1px rgba(203,166,92,0.4), 0 10px 28px -4px rgba(203,166,92,0.38)`,
+                      }}
+                    >
+                      {/* Shimmer */}
+                      <span
+                        className="absolute inset-0 translate-x-[-110%] group-hover:translate-x-[110%] transition-transform duration-700 ease-in-out pointer-events-none"
+                        style={{
+                          background:
+                            "linear-gradient(110deg, transparent 30%, rgba(255,255,255,0.22) 50%, transparent 70%)",
+                        }}
+                        aria-hidden
+                      />
+                      <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                        <rect x="3" y="4" width="18" height="18" rx="2" />
+                        <path d="M16 2v4M8 2v4M3 10h18" />
+                      </svg>
+                      Book a detail
+                    </a>
+                  </MagneticButton>
+                </div>
 
                 {/* Divider */}
                 <div className="h-px bg-gradient-to-r from-transparent via-[#CBA65C]/15 to-transparent mb-7" />
@@ -209,6 +250,49 @@ export function BookingSection() {
       {/* Bottom footer strip */}
       <div className="absolute bottom-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-white/6 to-transparent" />
     </section>
+  );
+}
+
+function MagneticButton({ children }: { children: React.ReactNode }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const x = useMotionValue(0);
+  const y = useMotionValue(0);
+  const sx = useSpring(x, { stiffness: 280, damping: 22, mass: 0.5 });
+  const sy = useSpring(y, { stiffness: 280, damping: 22, mass: 0.5 });
+
+  const onMouseMove = (e: React.MouseEvent) => {
+    const el = ref.current;
+    if (!el) return;
+    const rect = el.getBoundingClientRect();
+    const cx = rect.left + rect.width / 2;
+    const cy = rect.top + rect.height / 2;
+    const dx = e.clientX - cx;
+    const dy = e.clientY - cy;
+    const dist = Math.sqrt(dx * dx + dy * dy);
+    const radius = 90;
+    if (dist < radius) {
+      const factor = (1 - dist / radius) * 0.48;
+      x.set(dx * factor);
+      y.set(dy * factor);
+    }
+  };
+
+  const onMouseLeave = () => {
+    x.set(0);
+    y.set(0);
+  };
+
+  return (
+    <div
+      ref={ref}
+      onMouseMove={onMouseMove}
+      onMouseLeave={onMouseLeave}
+      style={{ width: "100%" }}
+    >
+      <motion.div style={{ x: sx, y: sy }}>
+        {children}
+      </motion.div>
+    </div>
   );
 }
 

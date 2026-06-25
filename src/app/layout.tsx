@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import localFont from "next/font/local";
 import "./globals.css";
 import { CursorTracker } from "@/components/cursor-tracker";
+import { SmoothScroll } from "@/components/smooth-scroll";
 
 const geistSans = localFont({
   src: "./fonts/GeistVF.woff",
@@ -17,7 +18,7 @@ const geistMono = localFont({
 export const metadata: Metadata = {
   title: "Baser Detailing | Mobile Car Detailing in Melbourne",
   description:
-    "Premium mobile car detailing in Melbourne. We come to you — showroom-quality results at your home or workplace.",
+    "Premium mobile car detailing in Melbourne. We come to you. Showroom-quality results at your home or workplace.",
 };
 
 export default function RootLayout({
@@ -30,7 +31,8 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <CursorTracker />
+        <SmoothScroll />
+<CursorTracker />
         {children}
       </body>
     </html>

@@ -241,10 +241,19 @@ export function CinematicHero({
       gsap.set(".text-days", { autoAlpha: 1, clipPath: "inset(-10px 100% -10px 0)" });
       gsap.set(".main-card", { y: window.innerHeight + 200, autoAlpha: 1 });
       gsap.set([".card-left-text", ".card-right-text", ".mockup-scroll-wrapper", ".floating-badge", ".phone-widget"], { autoAlpha: 0 });
+      gsap.set(".brand-intro-letter", { autoAlpha: 0, y: 18, filter: "blur(6px)" });
 
-      const introTl = gsap.timeline({ delay: 0.3 });
+      const introTl = gsap.timeline({ delay: 0.15 });
       introTl
-        .to(".text-track", { duration: 1.8, autoAlpha: 1, y: 0, scale: 1, filter: "blur(0px)", rotationX: 0, ease: "expo.out" })
+        // Brand name letters stagger in
+        .to(".brand-intro-letter", {
+          autoAlpha: 1, y: 0, filter: "blur(0px)",
+          duration: 0.45, stagger: 0.038, ease: "power3.out",
+        })
+        // Hold briefly, then dissolve
+        .to(".brand-intro", { autoAlpha: 0, duration: 0.4, ease: "power2.in" }, "+=0.35")
+        // Taglines roll in
+        .to(".text-track", { duration: 1.8, autoAlpha: 1, y: 0, scale: 1, filter: "blur(0px)", rotationX: 0, ease: "expo.out" }, "-=0.05")
         .to(".text-days", { duration: 1.4, clipPath: "inset(-10px 0% -10px 0)", ease: "power4.inOut" }, "-=1.0");
 
       const scrollTl = gsap.timeline({
@@ -305,6 +314,27 @@ export function CinematicHero({
 
       <div className="film-grain" aria-hidden="true" />
       <div className="bg-grid-theme absolute inset-0 z-0 pointer-events-none opacity-50" aria-hidden="true" />
+
+      {/* Brand name cinematic entrance — letter by letter, dissolves before taglines */}
+      <div
+        className="brand-intro absolute z-20 flex items-center justify-center pointer-events-none"
+        style={{ inset: 0 }}
+      >
+        <p
+          className="text-[11px] uppercase font-bold"
+          style={{ letterSpacing: "0.45em", color: "#CBA65C" }}
+        >
+          {brandName.split("").map((char, i) => (
+            <span
+              key={i}
+              className="brand-intro-letter inline-block"
+              style={{ visibility: "hidden" }}
+            >
+              {char === " " ? " " : char}
+            </span>
+          ))}
+        </p>
+      </div>
 
       {/* BACKGROUND LAYER: Hero Texts */}
       <div className="hero-text-wrapper absolute z-10 flex flex-col items-center justify-center text-center w-screen px-4 will-change-transform transform-style-3d">
@@ -437,7 +467,7 @@ export function CinematicHero({
                   </div>
                   <div>
                     <p className="text-white text-xs lg:text-sm font-bold tracking-tight">VIP Unlocked</p>
-                    <p className="text-[#E4C883]/60 text-[10px] lg:text-xs font-medium">1,000 points reached</p>
+                    <p className="text-[#E4C883]/60 text-[10px] lg:text-xs font-medium">20% Off Next Detail!</p>
                   </div>
                 </div>
 
@@ -453,6 +483,24 @@ export function CinematicHero({
               <p className="hidden md:block text-[#E8E8E8]/70 text-sm md:text-base lg:text-lg font-normal leading-relaxed mx-auto lg:mx-0 max-w-sm lg:max-w-none">
                 {cardDescription}
               </p>
+              <a
+                href="#account"
+                className="hidden md:inline-flex self-center lg:self-start items-center gap-2.5 mt-6 rounded-xl px-6 py-3 text-sm font-semibold tracking-tight transition-transform duration-200 hover:-translate-y-0.5 active:translate-y-0 group relative overflow-hidden"
+                style={{
+                  background: "linear-gradient(135deg, #E4C883 0%, #CBA65C 55%, #A8862E 100%)",
+                  color: "#0a0a0a",
+                  boxShadow: "0 0 0 1px rgba(203,166,92,0.4), 0 6px 20px -4px rgba(203,166,92,0.4)",
+                }}
+              >
+                <span
+                  className="absolute inset-0 translate-x-[-110%] group-hover:translate-x-[110%] transition-transform duration-700 ease-in-out pointer-events-none"
+                  style={{ background: "linear-gradient(110deg, transparent 30%, rgba(255,255,255,0.22) 50%, transparent 70%)" }}
+                />
+                Create Account
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="none" style={{ opacity: 0.8 }}>
+                  <path d="M2.5 7H11.5M11.5 7L8 3.5M11.5 7L8 10.5" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </a>
             </div>
 
           </div>

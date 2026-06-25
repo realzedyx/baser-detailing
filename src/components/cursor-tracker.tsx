@@ -3,89 +3,109 @@
 import { useState, useEffect, useRef } from "react";
 
 export function CursorTracker() {
-  const mousePosition = useRef({ x: 0, y: 0 });
-  const dotPosition = useRef({ x: 0, y: 0 });
-  const borderPosition = useRef({ x: 0, y: 0 });
-  const [renderPos, setRenderPos] = useState({ dot: { x: 0, y: 0 }, border: { x: 0, y: 0 } });
-  const [isHovering, setIsHovering] = useState(false);
-  const [mounted, setMounted] = useState(false);
-
-  const DOT_SMOOTHNESS = 0.2;
-  const BORDER_SMOOTHNESS = 0.1;
+  const mousePos  = useRef({ x: 0, y: 0 });
+  const dotPos    = useRef({ x: 0, y: 0 });
+  const glowPos   = useRef({ x: 0, y: 0 });
+  const [pos, setPos]         = useState({ dot: { x: 0, y: 0 }, glow: { x: 0, y: 0 } });
+  const [isHovering, setHovering]   = useState(false);
+  const [isDragZone, setDragZone]   = useState(false);
+  const [mounted, setMounted]       = useState(false);
 
   useEffect(() => {
     const onMove = (e: MouseEvent) => {
-      mousePosition.current = { x: e.clientX, y: e.clientY };
-      const root = document.documentElement;
-      root.style.setProperty("--mx", `${e.clientX}px`);
-      root.style.setProperty("--my", `${e.clientY}px`);
-      document.dispatchEvent(
-        new CustomEvent("cursormove", { detail: { x: e.clientX, y: e.clientY } })
-      );
-    };
+      mousePos.current = { x: e.clientX, y: e.clientY };
+      document.documentElement.style.setProperty("--mx", `${e.clientX}px`);
+      document.documentElement.style.setProperty("--my", `${e.clientY}px`);
+      document.dispatchEvent(new CustomEvent("cursormove", { detail: { x: e.clientX, y: e.clientY } }));
 
-    const onEnter = () => setIsHovering(true);
-    const onLeave = () => setIsHovering(false);
+      const el = document.elementFromPoint(e.clientX, e.clientY);
+      if (el) {
+        setDragZone(!!el.closest("[data-drag-zone]"));
+        setHovering(!!el.closest("a, button, [role='button'], input, select, textarea, label, [data-hover]"));
+      }
+    };
 
     document.addEventListener("mousemove", onMove, { passive: true });
 
-    const interactive = document.querySelectorAll("a, button, img, input, textarea, select");
-    interactive.forEach((el) => {
-      el.addEventListener("mouseenter", onEnter);
-      el.addEventListener("mouseleave", onLeave);
-    });
-
-    const animate = () => {
-      const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
-      dotPosition.current.x = lerp(dotPosition.current.x, mousePosition.current.x, DOT_SMOOTHNESS);
-      dotPosition.current.y = lerp(dotPosition.current.y, mousePosition.current.y, DOT_SMOOTHNESS);
-      borderPosition.current.x = lerp(borderPosition.current.x, mousePosition.current.x, BORDER_SMOOTHNESS);
-      borderPosition.current.y = lerp(borderPosition.current.y, mousePosition.current.y, BORDER_SMOOTHNESS);
-      setRenderPos({
-        dot: { x: dotPosition.current.x, y: dotPosition.current.y },
-        border: { x: borderPosition.current.x, y: borderPosition.current.y },
-      });
-      rafId = requestAnimationFrame(animate);
+    const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
+    let raf: number;
+    const tick = () => {
+      dotPos.current.x  = lerp(dotPos.current.x,  mousePos.current.x, 0.28);
+      dotPos.current.y  = lerp(dotPos.current.y,  mousePos.current.y, 0.28);
+      glowPos.current.x = lerp(glowPos.current.x, mousePos.current.x, 0.1);
+      glowPos.current.y = lerp(glowPos.current.y, mousePos.current.y, 0.1);
+      setPos({ dot: { ...dotPos.current }, glow: { ...glowPos.current } });
+      raf = requestAnimationFrame(tick);
     };
 
     setMounted(true);
-    let rafId = requestAnimationFrame(animate);
-
+    raf = requestAnimationFrame(tick);
     return () => {
       document.removeEventListener("mousemove", onMove);
-      interactive.forEach((el) => {
-        el.removeEventListener("mouseenter", onEnter);
-        el.removeEventListener("mouseleave", onLeave);
-      });
-      cancelAnimationFrame(rafId);
+      cancelAnimationFrame(raf);
     };
   }, []);
 
   if (!mounted) return null;
 
+  const dotSize  = isDragZone ? 36 : isHovering ? 18 : 7;
+  const glowSize = isDragZone ? 88 : isHovering ? 52 : 32;
+
   return (
-    <div className="pointer-events-none fixed inset-0 z-[9999]">
+    <div className="pointer-events-none fixed inset-0 z-[9999]" aria-hidden>
+      {/* Outer glow halo */}
       <div
-        className="absolute rounded-full bg-white"
         style={{
-          width: 8,
-          height: 8,
-          transform: "translate(-50%, -50%)",
-          left: renderPos.dot.x,
-          top: renderPos.dot.y,
+          position: "absolute",
+          width: glowSize,
+          height: glowSize,
+          borderRadius: "50%",
+          background: "radial-gradient(circle, rgba(203,166,92,0.22) 0%, transparent 70%)",
+          transform: "translate(-50%,-50%)",
+          left: pos.glow.x,
+          top: pos.glow.y,
+          filter: "blur(10px)",
+          transition: "width 0.4s cubic-bezier(0.22,1,0.36,1), height 0.4s cubic-bezier(0.22,1,0.36,1)",
         }}
       />
+
+      {/* Core dot */}
       <div
-        className="absolute rounded-full border border-white/70"
         style={{
-          width: isHovering ? 44 : 28,
-          height: isHovering ? 44 : 28,
-          transform: "translate(-50%, -50%)",
-          left: renderPos.border.x,
-          top: renderPos.border.y,
-          transition: "width 0.3s, height 0.3s",
+          position: "absolute",
+          width: dotSize,
+          height: dotSize,
+          borderRadius: "50%",
+          background: isDragZone
+            ? "rgba(10,10,10,0.9)"
+            : "radial-gradient(circle at 35% 35%, #E4C883, #CBA65C)",
+          border: isDragZone ? "1.5px solid rgba(203,166,92,0.75)" : "none",
+          boxShadow: isDragZone
+            ? "0 0 18px rgba(203,166,92,0.45), 0 0 6px rgba(203,166,92,0.25)"
+            : "0 0 10px rgba(203,166,92,0.55)",
+          transform: "translate(-50%,-50%)",
+          left: pos.dot.x,
+          top: pos.dot.y,
+          transition: "width 0.3s cubic-bezier(0.22,1,0.36,1), height 0.3s cubic-bezier(0.22,1,0.36,1)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
         }}
-      />
+      >
+        {isDragZone && (
+          <span style={{
+            fontSize: 8,
+            fontWeight: 800,
+            letterSpacing: "0.18em",
+            color: "#CBA65C",
+            textTransform: "uppercase",
+            whiteSpace: "nowrap",
+            userSelect: "none",
+          }}>
+            DRAG
+          </span>
+        )}
+      </div>
     </div>
   );
 }

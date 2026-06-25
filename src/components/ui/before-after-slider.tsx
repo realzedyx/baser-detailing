@@ -1,7 +1,7 @@
 "use client";
 
 import { motion, useInView } from "framer-motion";
-import { useRef, useState, useCallback, useEffect } from "react";
+import { useRef, useState, useCallback } from "react";
 
 // ─────────────────────────────────────────────
 // Placeholder image layers
@@ -182,6 +182,7 @@ function Slider() {
     <div
       ref={containerRef}
       className="relative w-full overflow-hidden select-none"
+      data-drag-zone="true"
       style={{
         height: "clamp(320px, 62vw, 680px)",
         cursor: isDragging ? "col-resize" : "ew-resize",
@@ -320,7 +321,7 @@ function Slider() {
 
 export function BeforeAfterSection() {
   const sectionRef = useRef<HTMLElement>(null);
-  const inView = useInView(sectionRef, { once: true, margin: "-60px" });
+  const inView = useInView(sectionRef, { once: false, margin: "-38%" });
 
   return (
     <section
@@ -338,25 +339,25 @@ export function BeforeAfterSection() {
       {/* Section header */}
       <div className="relative z-10 text-center pt-16 pb-10 px-4">
         <motion.p
-          initial={{ opacity: 0, y: 12 }}
-          animate={inView ? { opacity: 1, y: 0 } : {}}
-          transition={{ duration: 0.5 }}
+          initial={{ opacity: 0, y: 28, letterSpacing: "0.1em" }}
+          animate={inView ? { opacity: 1, y: 0, letterSpacing: "0.28em" } : { opacity: 0, y: 28, letterSpacing: "0.1em" }}
+          transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
           className="text-[#CBA65C] text-[10px] uppercase tracking-[0.28em] font-semibold mb-4"
         >
           Real results
         </motion.p>
         <motion.h2
-          initial={{ opacity: 0, y: 36, filter: "blur(10px)" }}
-          animate={inView ? { opacity: 1, y: 0, filter: "blur(0px)" } : {}}
-          transition={{ duration: 0.7, delay: 0.1, ease: [0.22, 1, 0.36, 1] }}
+          initial={{ opacity: 0, y: 72, filter: "blur(22px)", scale: 0.94 }}
+          animate={inView ? { opacity: 1, y: 0, filter: "blur(0px)", scale: 1 } : { opacity: 0, y: 72, filter: "blur(22px)", scale: 0.94 }}
+          transition={{ duration: 0.95, delay: 0.12, ease: [0.16, 1, 0.3, 1] }}
           className="text-4xl sm:text-5xl md:text-6xl font-black tracking-tighter text-white leading-[1.04]"
         >
           See the difference.
         </motion.h2>
         <motion.div
           initial={{ scaleX: 0, opacity: 0 }}
-          animate={inView ? { scaleX: 1, opacity: 1 } : {}}
-          transition={{ duration: 0.6, delay: 0.3, ease: [0.22, 1, 0.36, 1] }}
+          animate={inView ? { scaleX: 1, opacity: 1 } : { scaleX: 0, opacity: 0 }}
+          transition={{ duration: 0.75, delay: 0.42, ease: [0.16, 1, 0.3, 1] }}
           className="mx-auto mt-5 w-12 h-[2px] rounded-full origin-center"
           style={{ background: "linear-gradient(90deg, #CBA65C, #E4C883)" }}
         />
@@ -364,9 +365,9 @@ export function BeforeAfterSection() {
 
       {/* Slider — full width, no padding */}
       <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={inView ? { opacity: 1, y: 0 } : {}}
-        transition={{ duration: 0.65, delay: 0.35, ease: [0.22, 1, 0.36, 1] }}
+        initial={{ opacity: 0, y: 64, scale: 0.88, filter: "blur(12px)" }}
+        animate={inView ? { opacity: 1, y: 0, scale: 1, filter: "blur(0px)" } : { opacity: 0, y: 64, scale: 0.88, filter: "blur(12px)" }}
+        transition={{ duration: 1.05, delay: 0.55, ease: [0.16, 1, 0.3, 1] }}
         className="w-full"
       >
         <Slider />
@@ -374,12 +375,12 @@ export function BeforeAfterSection() {
 
       {/* Footer caption */}
       <motion.p
-        initial={{ opacity: 0 }}
-        animate={inView ? { opacity: 1 } : {}}
-        transition={{ duration: 0.6, delay: 0.55 }}
+        initial={{ opacity: 0, y: 12 }}
+        animate={inView ? { opacity: 1, y: 0 } : { opacity: 0, y: 12 }}
+        transition={{ duration: 0.7, delay: 0.85 }}
         className="text-center py-8 text-[#E8E8E8]/25 text-xs tracking-wide"
       >
-        Results vary by vehicle condition — placeholder images shown above
+        Results vary by vehicle condition. Placeholder images shown above
       </motion.p>
 
       {/* Bottom divider */}

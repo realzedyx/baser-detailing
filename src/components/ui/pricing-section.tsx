@@ -1,8 +1,14 @@
 "use client";
 
-import { motion, AnimatePresence, useInView } from "framer-motion";
-import { useState, useRef } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { Check } from "lucide-react";
+import { gsap } from "gsap";
+import { ScrollTrigger } from "gsap/ScrollTrigger";
+
+if (typeof window !== "undefined") {
+  gsap.registerPlugin(ScrollTrigger);
+}
 
 // ─────────────────────────────────────────────
 // Data
@@ -16,7 +22,7 @@ const PACKAGES = [
     price: "$149",
     featured: false,
     inclusions: [
-      "Deep extraction — seats, carpets, mats & boot",
+      "Deep extraction: seats, carpets, mats & boot",
       "Stain removal treatment",
       "Dash, console & trims wiped and treated",
       "Cupholders & door pockets cleaned out",
@@ -31,9 +37,9 @@ const PACKAGES = [
     featured: false,
     inclusions: [
       "Pre-wash foam & bug/grime removal",
-      "Full wheel clean — faces, barrels & tyres dressed",
+      "Full wheel clean: faces, barrels & tyres dressed",
       "Hand wash, two-bucket method",
-      "Hand dried — zero water spots",
+      "Hand dried with zero water spots",
       "Exterior glass streak-free",
       "Protective sealant up to 3 months",
     ],
@@ -41,7 +47,7 @@ const PACKAGES = [
   {
     id: "full",
     title: "The Full Detail",
-    tagline: "Inside out, front to back — done right.",
+    tagline: "Inside out, front to back. Done right.",
     price: "$219",
     featured: true,
     badge: "Most Booked",
@@ -56,12 +62,103 @@ const PACKAGES = [
 // Section
 // ─────────────────────────────────────────────
 
+function useScrollVelocityTilt(maxTilt = 3.5) {
+  const [tilt, setTilt] = useState(0);
+
+  useEffect(() => {
+    let lastY = typeof window !== "undefined" ? window.scrollY : 0;
+    let lastTime = Date.now();
+    let velocity = 0;
+    let rafId: number;
+
+    const onScroll = () => {
+      const now = Date.now();
+      const dt = Math.max(now - lastTime, 1);
+      velocity = ((window.scrollY - lastY) / dt) * 14;
+      lastY = window.scrollY;
+      lastTime = now;
+    };
+
+    const tick = () => {
+      velocity *= 0.84;
+      const target = Math.max(-maxTilt, Math.min(maxTilt, velocity));
+      setTilt((prev) => {
+        const next = prev + (target - prev) * 0.14;
+        return Math.abs(next) < 0.005 ? 0 : next;
+      });
+      rafId = requestAnimationFrame(tick);
+    };
+
+    window.addEventListener("scroll", onScroll, { passive: true });
+    rafId = requestAnimationFrame(tick);
+
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      cancelAnimationFrame(rafId);
+    };
+  }, [maxTilt]);
+
+  return tilt;
+}
+
 export function PricingSection() {
   const [open, setOpen] = useState<string | null>(null);
+  const [hoveredCard, setHoveredCard] = useState<string | null>(null);
+  const [cardSpots, setCardSpots] = useState<Record<string, { x: number; y: number } | null>>({});
   const sectionRef = useRef<HTMLElement>(null);
-  const inView = useInView(sectionRef, { once: true, margin: "-80px" });
+  const headerRef = useRef<HTMLDivElement>(null);
+  const bannerRef = useRef<HTMLDivElement>(null);
+  const cardRefs = useRef<(HTMLDivElement | null)[]>([]);
+  const footerRef = useRef<HTMLParagraphElement>(null);
+  const scrollTilt = useScrollVelocityTilt(3.5);
 
   const toggle = (id: string) => setOpen((prev) => (prev === id ? null : id));
+
+  const handleCardMouseMove = useCallback((pkgId: string, e: React.MouseEvent<HTMLDivElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    setCardSpots((prev) => ({
+      ...prev,
+      [pkgId]: {
+        x: ((e.clientX - rect.left) / rect.width) * 100,
+        y: ((e.clientY - rect.top) / rect.height) * 100,
+      },
+    }));
+  }, []);
+
+  const handleCardMouseLeave = useCallback((pkgId: string) => {
+    setHoveredCard(null);
+    setCardSpots((prev) => ({ ...prev, [pkgId]: null }));
+  }, []);
+
+  useEffect(() => {
+    const els = [
+      headerRef.current,
+      bannerRef.current,
+      ...cardRefs.current,
+      footerRef.current,
+    ].filter(Boolean) as HTMLElement[];
+
+    gsap.set(els, { autoAlpha: 0, y: 80, filter: "blur(16px)" });
+
+    const triggers: ScrollTrigger[] = [];
+
+    const reveal = (el: HTMLElement, delay = 0) => {
+      const st = ScrollTrigger.create({
+        trigger: el,
+        start: "top 68%",
+        onEnter: () => gsap.to(el, { autoAlpha: 1, y: 0, filter: "blur(0px)", duration: 0.85, delay, ease: "power3.out" }),
+        onLeaveBack: () => gsap.to(el, { autoAlpha: 0, y: 80, filter: "blur(16px)", duration: 0.5, ease: "power3.in" }),
+      });
+      triggers.push(st);
+    };
+
+    if (headerRef.current) reveal(headerRef.current);
+    if (bannerRef.current) reveal(bannerRef.current, 0.08);
+    cardRefs.current.forEach((el, i) => { if (el) reveal(el, i * 0.12); });
+    if (footerRef.current) reveal(footerRef.current);
+
+    return () => triggers.forEach((t) => t.kill());
+  }, []);
 
   return (
     <section
@@ -103,48 +200,28 @@ export function PricingSection() {
       <div className="relative z-10 container mx-auto px-4 md:px-6">
 
         {/* Header */}
-        <div className="text-center mb-14 md:mb-18">
-          <motion.p
-            initial={{ opacity: 0, y: 16 }}
-            animate={inView ? { opacity: 1, y: 0 } : {}}
-            transition={{ duration: 0.5, ease: "easeOut" }}
-            className="text-[#CBA65C] text-[10px] sm:text-xs uppercase tracking-[0.28em] font-semibold mb-4"
-          >
+        <div ref={headerRef} className="text-center mb-14 md:mb-18">
+          <p className="text-[#CBA65C] text-[10px] sm:text-xs uppercase tracking-[0.28em] font-semibold mb-4">
             Baser Detailing · Melbourne
-          </motion.p>
+          </p>
 
-          <motion.h2
-            initial={{ opacity: 0, y: 48, filter: "blur(12px)" }}
-            animate={inView ? { opacity: 1, y: 0, filter: "blur(0px)" } : {}}
-            transition={{ duration: 0.75, delay: 0.1, ease: [0.22, 1, 0.36, 1] }}
-            className="text-5xl sm:text-6xl md:text-7xl font-black tracking-tighter text-white leading-[1.04]"
-          >
+          <h2 className="text-5xl sm:text-6xl md:text-7xl font-black tracking-tighter text-white leading-[1.04]">
             Pick your level.
-          </motion.h2>
+          </h2>
 
-          <motion.div
-            initial={{ scaleX: 0, opacity: 0 }}
-            animate={inView ? { scaleX: 1, opacity: 1 } : {}}
-            transition={{ duration: 0.65, delay: 0.35, ease: [0.22, 1, 0.36, 1] }}
-            className="mx-auto mt-5 w-16 h-[2px] rounded-full origin-center"
+          <div
+            className="mx-auto mt-5 w-16 h-[2px] rounded-full"
             style={{ background: "linear-gradient(90deg, #CBA65C, #E4C883)" }}
           />
 
-          <motion.p
-            initial={{ opacity: 0, y: 20 }}
-            animate={inView ? { opacity: 1, y: 0 } : {}}
-            transition={{ duration: 0.6, delay: 0.3, ease: "easeOut" }}
-            className="mt-6 text-[#E8E8E8]/50 text-sm sm:text-base max-w-xs mx-auto leading-relaxed"
-          >
+          <p className="mt-6 text-[#E8E8E8]/50 text-sm sm:text-base max-w-xs mx-auto leading-relaxed">
             Tap a card to see exactly what&apos;s included.
-          </motion.p>
+          </p>
         </div>
 
         {/* Introductory pricing banner */}
-        <motion.div
-          initial={{ opacity: 0, y: 24 }}
-          animate={inView ? { opacity: 1, y: 0 } : {}}
-          transition={{ duration: 0.6, delay: 0.4, ease: [0.22, 1, 0.36, 1] }}
+        <div
+          ref={bannerRef}
           className="relative max-w-2xl mx-auto mb-8 rounded-xl px-5 py-4 flex items-start gap-4 overflow-hidden"
           style={{
             background: "linear-gradient(135deg, rgba(203,166,92,0.07) 0%, rgba(10,10,10,0.6) 100%)",
@@ -152,6 +229,7 @@ export function PricingSection() {
             boxShadow: "0 0 32px rgba(203,166,92,0.06), inset 0 1px 0 rgba(203,166,92,0.12)",
           }}
         >
+
           {/* Left accent bar */}
           <div
             className="shrink-0 w-[3px] self-stretch rounded-full"
@@ -161,11 +239,11 @@ export function PricingSection() {
           {/* Text */}
           <div className="flex-1 min-w-0">
             <p className="text-[#E4C883] text-sm font-bold tracking-tight leading-snug mb-1">
-              Introductory pricing — friends &amp; family
+              Introductory pricing for friends &amp; family
             </p>
             <p className="text-[#E8E8E8]/50 text-xs sm:text-[13px] leading-relaxed">
               All current prices are discounted as an introductory offer for friends and family.
-              Lock it in now — these rates won&apos;t last once the books fill up.
+              Lock it in now. These rates won&apos;t last once the books fill up.
             </p>
           </div>
 
@@ -188,41 +266,55 @@ export function PricingSection() {
               background: "linear-gradient(105deg, transparent 40%, rgba(228,200,131,0.04) 50%, transparent 60%)",
             }}
           />
-        </motion.div>
+        </div>
 
-        {/* Cards */}
-        <div className="flex flex-col gap-4 max-w-2xl mx-auto">
+        {/* Cards — perspective wrapper for scroll tilt */}
+        <div style={{ perspective: "1100px", perspectiveOrigin: "50% 40%" }}>
+          <div
+            className="flex flex-col gap-4 max-w-2xl mx-auto"
+            style={{
+              transform: `rotateX(${scrollTilt * -0.45}deg)`,
+              transformStyle: "preserve-3d",
+              willChange: "transform",
+            }}
+          >
           {PACKAGES.map((pkg, i) => {
             const isOpen = open === pkg.id;
+            const spot = cardSpots[pkg.id] ?? null;
 
             return (
-              <motion.div
+              <div
                 key={pkg.id}
-                initial={{ opacity: 0, y: 40 }}
-                animate={inView ? { opacity: 1, y: 0 } : {}}
-                transition={{
-                  duration: 0.6,
-                  delay: 0.45 + i * 0.1,
-                  ease: [0.22, 1, 0.36, 1],
-                }}
+                ref={(el) => { cardRefs.current[i] = el; }}
               >
                 <div
                   className="relative rounded-2xl overflow-hidden cursor-pointer select-none"
                   onClick={() => toggle(pkg.id)}
+                  onMouseEnter={() => setHoveredCard(pkg.id)}
+                  onMouseMove={(e) => handleCardMouseMove(pkg.id, e)}
+                  onMouseLeave={() => handleCardMouseLeave(pkg.id)}
                   style={{
                     background:
                       pkg.featured
                         ? "linear-gradient(160deg, #1a1608 0%, #0d0d0d 60%)"
                         : "linear-gradient(160deg, #161616 0%, #0d0d0d 60%)",
-                    border: pkg.featured
+                    border: hoveredCard === pkg.id
+                      ? pkg.featured
+                        ? "1.5px solid rgba(203,166,92,0.95)"
+                        : "1px solid rgba(203,166,92,0.55)"
+                      : pkg.featured
                       ? "1.5px solid rgba(203,166,92,0.6)"
                       : isOpen
                       ? "1px solid rgba(203,166,92,0.22)"
                       : "1px solid rgba(255,255,255,0.07)",
-                    boxShadow: pkg.featured
+                    boxShadow: hoveredCard === pkg.id
+                      ? pkg.featured
+                        ? "0 0 72px rgba(203,166,92,0.22), 0 4px 24px rgba(0,0,0,0.6)"
+                        : "0 0 40px rgba(203,166,92,0.10), 0 4px 24px rgba(0,0,0,0.5)"
+                      : pkg.featured
                       ? "0 0 48px rgba(203,166,92,0.10), 0 2px 16px rgba(0,0,0,0.5)"
                       : "0 2px 16px rgba(0,0,0,0.4)",
-                    transition: "border-color 0.3s ease, box-shadow 0.3s ease",
+                    transition: "border-color 0.3s ease, box-shadow 0.35s ease",
                   }}
                 >
                   {/* Featured card glow overlay */}
@@ -235,6 +327,18 @@ export function PricingSection() {
                       }}
                     />
                   )}
+
+                  {/* Cursor spotlight */}
+                  <div
+                    className="absolute inset-0 pointer-events-none rounded-2xl"
+                    style={{
+                      opacity: hoveredCard === pkg.id && spot ? 1 : 0,
+                      transition: "opacity 0.3s ease",
+                      background: spot
+                        ? `radial-gradient(circle 210px at ${spot.x}% ${spot.y}%, rgba(203,166,92,0.17) 0%, transparent 72%)`
+                        : "none",
+                    }}
+                  />
 
                   {/* Badge */}
                   {pkg.featured && (
@@ -295,12 +399,14 @@ export function PricingSection() {
                         <span className="text-[#E8E8E8]/40 text-[10px] uppercase tracking-widest block">
                           from
                         </span>
-                        <span
-                          className="text-2xl sm:text-3xl font-black tracking-tight leading-none"
+                        <motion.span
+                          className="text-2xl sm:text-3xl font-black tracking-tight leading-none inline-block"
+                          animate={{ scale: hoveredCard === pkg.id ? 1.1 : 1 }}
+                          transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
                           style={{ color: pkg.featured ? "#E4C883" : "#ffffff" }}
                         >
                           {pkg.price}
-                        </span>
+                        </motion.span>
                       </div>
 
                       {/* Chevron */}
@@ -453,20 +559,19 @@ export function PricingSection() {
                     )}
                   </AnimatePresence>
                 </div>
-              </motion.div>
+              </div>
             );
           })}
-        </div>
+          </div>{/* end flex col */}
+        </div>{/* end perspective */}
 
         {/* Footer note */}
-        <motion.p
-          initial={{ opacity: 0 }}
-          animate={inView ? { opacity: 1 } : {}}
-          transition={{ duration: 0.6, delay: 0.8 }}
+        <p
+          ref={footerRef}
           className="text-center mt-10 text-[#E8E8E8]/25 text-xs tracking-wide"
         >
           Pricing varies by vehicle size & condition · Free quote available
-        </motion.p>
+        </p>
       </div>
 
       {/* Bottom divider */}

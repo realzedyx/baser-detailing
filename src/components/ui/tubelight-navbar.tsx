@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from "react"
 import { motion } from "framer-motion"
 import Link from "next/link"
-import { LucideIcon } from "lucide-react"
+import { LucideIcon, User } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 interface NavItem {
@@ -34,11 +34,11 @@ export function NavBar({ items, className }: NavBarProps) {
   return (
     <div
       className={cn(
-        "fixed bottom-0 sm:top-0 left-1/2 -translate-x-1/2 z-50 mb-6 sm:pt-6",
+        "fixed bottom-0 sm:top-0 left-1/2 -translate-x-1/2 z-50 mb-6 sm:pt-6 pointer-events-none",
         className,
       )}
     >
-      <div className="flex items-center gap-3 bg-background/5 border border-border backdrop-blur-lg py-1 px-1 rounded-full shadow-lg">
+      <div className="pointer-events-auto flex items-center gap-1 bg-background/5 border border-border backdrop-blur-lg py-1 px-1 rounded-full shadow-lg">
         {items.map((item) => {
           const Icon = item.icon
           const isActive = activeTab === item.name
@@ -79,6 +79,19 @@ export function NavBar({ items, className }: NavBarProps) {
             </Link>
           )
         })}
+
+        {/* Divider */}
+        <div className="w-px h-5 mx-1 rounded-full bg-border/60" />
+
+        {/* Account */}
+        <Link
+          href="#account"
+          aria-label="My account"
+          className="relative cursor-pointer flex items-center justify-center w-9 h-9 rounded-full transition-colors text-foreground/60 hover:text-[#CBA65C]"
+          style={{ background: "rgba(203,166,92,0.07)", border: "1px solid rgba(203,166,92,0.18)" }}
+        >
+          <User size={16} strokeWidth={2} />
+        </Link>
       </div>
     </div>
   )

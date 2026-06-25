@@ -15,7 +15,7 @@ const bullets = [
   },
   {
     heading: "Proper process, every time",
-    body: "Thorough wash, stain removal and a hand dry — the steps that actually protect the finish and make it last.",
+    body: "Thorough wash, stain removal and a hand dry. The steps that actually protect the finish and make it last.",
   },
   {
     heading: "I come to you",
@@ -30,7 +30,7 @@ const faqs = [
   },
   {
     q: "Do you come to me?",
-    a: "Always. Pick a time, I'll bring everything to your place — you don't need to go anywhere.*",
+    a: "Always. Pick a time and I'll bring everything to your place. You don't need to go anywhere.*",
   },
   {
     q: "What do you need from me?",
@@ -38,7 +38,7 @@ const faqs = [
   },
   {
     q: "What if it rains?",
-    a: "I'll message you the night before and we'll move it to the next clear day — no charge.",
+    a: "I'll message you the night before and we'll move it to the next clear day. No charge.",
   },
   {
     q: "How do I pay?",
@@ -65,9 +65,9 @@ function FaqItem({
 }) {
   return (
     <motion.div
-      initial={{ opacity: 0, x: 24 }}
-      animate={inView ? { opacity: 1, x: 0 } : {}}
-      transition={{ duration: 0.55, delay, ease: [0.22, 1, 0.36, 1] }}
+      initial={{ opacity: 0, x: 48, filter: "blur(8px)" }}
+      animate={inView ? { opacity: 1, x: 0, filter: "blur(0px)" } : { opacity: 0, x: 48, filter: "blur(8px)" }}
+      transition={{ duration: 0.7, delay, ease: [0.16, 1, 0.3, 1] }}
       className="border-b last:border-b-0"
       style={{ borderColor: open ? "rgba(203,166,92,0.22)" : "rgba(255,255,255,0.07)" }}
     >
@@ -131,7 +131,7 @@ function FaqItem({
 
 export function GoodToKnowSection() {
   const sectionRef = useRef<HTMLElement>(null);
-  const inView = useInView(sectionRef, { once: true, margin: "-60px" });
+  const inView = useInView(sectionRef, { once: false, margin: "-38%" });
   const [openIdx, setOpenIdx] = useState<number | null>(null);
 
   const toggle = (i: number) => setOpenIdx((prev) => (prev === i ? null : i));
@@ -145,6 +145,18 @@ export function GoodToKnowSection() {
       {/* Top divider */}
       <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-[#CBA65C]/15 to-transparent" />
 
+      {/* Background gradients — single inset-0 div, no clipping */}
+      <div
+        className="absolute inset-0 pointer-events-none"
+        style={{
+          background: `
+            radial-gradient(ellipse 60% 55% at 15% 40%, rgba(203,166,92,0.07) 0%, transparent 65%),
+            radial-gradient(ellipse 50% 50% at 85% 70%, rgba(228,200,131,0.045) 0%, transparent 60%),
+            linear-gradient(125deg, transparent 30%, rgba(203,166,92,0.02) 50%, transparent 70%)
+          `,
+        }}
+      />
+
       <div className="max-w-6xl mx-auto px-5 sm:px-8 py-20 lg:py-28">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-14 lg:gap-20">
 
@@ -152,9 +164,9 @@ export function GoodToKnowSection() {
           <div>
             {/* Eyebrow */}
             <motion.p
-              initial={{ opacity: 0, y: 10 }}
-              animate={inView ? { opacity: 1, y: 0 } : {}}
-              transition={{ duration: 0.45 }}
+              initial={{ opacity: 0, y: 24, letterSpacing: "0.08em" }}
+              animate={inView ? { opacity: 1, y: 0, letterSpacing: "0.28em" } : { opacity: 0, y: 24, letterSpacing: "0.08em" }}
+              transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
               className="text-[#CBA65C] text-[10px] uppercase tracking-[0.28em] font-semibold mb-5"
             >
               Before you book
@@ -162,9 +174,9 @@ export function GoodToKnowSection() {
 
             {/* Heading */}
             <motion.h2
-              initial={{ opacity: 0, y: 32, filter: "blur(8px)" }}
-              animate={inView ? { opacity: 1, y: 0, filter: "blur(0px)" } : {}}
-              transition={{ duration: 0.65, delay: 0.08, ease: [0.22, 1, 0.36, 1] }}
+              initial={{ opacity: 0, y: 68, filter: "blur(20px)", scale: 0.94 }}
+              animate={inView ? { opacity: 1, y: 0, filter: "blur(0px)", scale: 1 } : { opacity: 0, y: 68, filter: "blur(20px)", scale: 0.94 }}
+              transition={{ duration: 0.95, delay: 0.12, ease: [0.16, 1, 0.3, 1] }}
               className="text-4xl sm:text-5xl font-black tracking-tighter text-white leading-[1.04] mb-10"
             >
               Good to know.
@@ -175,9 +187,9 @@ export function GoodToKnowSection() {
               {bullets.map((b, i) => (
                 <motion.div
                   key={i}
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={inView ? { opacity: 1, x: 0 } : {}}
-                  transition={{ duration: 0.55, delay: 0.18 + i * 0.1, ease: [0.22, 1, 0.36, 1] }}
+                  initial={{ opacity: 0, x: -52, filter: "blur(8px)" }}
+                  animate={inView ? { opacity: 1, x: 0, filter: "blur(0px)" } : { opacity: 0, x: -52, filter: "blur(8px)" }}
+                  transition={{ duration: 0.75, delay: 0.28 + i * 0.15, ease: [0.16, 1, 0.3, 1] }}
                   className="flex gap-4"
                 >
                   {/* Gold dot + line */}
@@ -210,17 +222,17 @@ export function GoodToKnowSection() {
             {/* FAQ header */}
             <div>
               <motion.p
-                initial={{ opacity: 0, y: 10 }}
-                animate={inView ? { opacity: 1, y: 0 } : {}}
-                transition={{ duration: 0.45, delay: 0.05 }}
+                initial={{ opacity: 0, y: 24, letterSpacing: "0.08em" }}
+                animate={inView ? { opacity: 1, y: 0, letterSpacing: "0.28em" } : { opacity: 0, y: 24, letterSpacing: "0.08em" }}
+                transition={{ duration: 0.7, delay: 0.08, ease: [0.16, 1, 0.3, 1] }}
                 className="text-[#CBA65C] text-[10px] uppercase tracking-[0.28em] font-semibold mb-5"
               >
                 FAQ
               </motion.p>
               <motion.h3
-                initial={{ opacity: 0, y: 24, filter: "blur(6px)" }}
-                animate={inView ? { opacity: 1, y: 0, filter: "blur(0px)" } : {}}
-                transition={{ duration: 0.6, delay: 0.12, ease: [0.22, 1, 0.36, 1] }}
+                initial={{ opacity: 0, y: 52, filter: "blur(16px)", scale: 0.94 }}
+                animate={inView ? { opacity: 1, y: 0, filter: "blur(0px)", scale: 1 } : { opacity: 0, y: 52, filter: "blur(16px)", scale: 0.94 }}
+                transition={{ duration: 0.85, delay: 0.2, ease: [0.16, 1, 0.3, 1] }}
                 className="text-2xl sm:text-3xl font-black tracking-tight text-white leading-tight"
               >
                 Questions?
@@ -242,7 +254,7 @@ export function GoodToKnowSection() {
                     item={item}
                     open={openIdx === i}
                     onToggle={() => toggle(i)}
-                    delay={0.2 + i * 0.07}
+                    delay={0.38 + i * 0.09}
                     inView={inView}
                   />
                 ))}
@@ -251,9 +263,9 @@ export function GoodToKnowSection() {
 
             {/* Promise box */}
             <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={inView ? { opacity: 1, y: 0 } : {}}
-              transition={{ duration: 0.6, delay: 0.65, ease: [0.22, 1, 0.36, 1] }}
+              initial={{ opacity: 0, y: 48, scale: 0.94, filter: "blur(10px)" }}
+              animate={inView ? { opacity: 1, y: 0, scale: 1, filter: "blur(0px)" } : { opacity: 0, y: 48, scale: 0.94, filter: "blur(10px)" }}
+              transition={{ duration: 0.85, delay: 0.82, ease: [0.16, 1, 0.3, 1] }}
               className="relative rounded-xl px-6 py-5 overflow-hidden"
               style={{
                 background: "linear-gradient(135deg, rgba(203,166,92,0.07) 0%, rgba(10,10,10,0.6) 100%)",
@@ -307,8 +319,6 @@ export function GoodToKnowSection() {
         </div>
       </div>
 
-      {/* Bottom divider */}
-      <div className="absolute bottom-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-white/[0.06] to-transparent" />
     </section>
   );
 }

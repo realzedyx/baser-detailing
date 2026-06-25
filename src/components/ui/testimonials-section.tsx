@@ -2,6 +2,7 @@
 
 import { motion, useInView } from "framer-motion";
 import { useRef, useState, useCallback, useEffect } from "react";
+import { TextReveal } from "@/components/ui/text-reveal";
 
 // ─────────────────────────────────────────────
 // Data
@@ -252,6 +253,14 @@ function TestimonialStack() {
               onMouseDown={(e) => handleDragStart(e, index)}
               onTouchStart={(e) => handleDragStart(e, index)}
             >
+              <motion.div
+                animate={isActive && !isExiting && !isDragging ? { y: [0, -5, 0] } : { y: 0 }}
+                transition={
+                  isActive && !isExiting && !isDragging
+                    ? { duration: 3.2, repeat: Infinity, ease: "easeInOut" }
+                    : { duration: 0.25 }
+                }
+              >
               <div className="p-6 sm:p-7 select-none" style={{ userSelect: "none" }}>
                 {/* Header row */}
                 <div className="flex items-center justify-between mb-5">
@@ -302,6 +311,7 @@ function TestimonialStack() {
                   </span>
                 </div>
               </div>
+              </motion.div>
             </motion.div>
           );
         })}
@@ -338,7 +348,7 @@ function TestimonialStack() {
           onClick={() => navigate(1)}
           className="flex items-center gap-1.5 text-[13px] font-semibold tracking-wide"
           style={{ color: "rgba(203,166,92,0.72)" }}
-          whileHover={{ color: "#E4C883" } as object}
+          whileHover={{ color: "#E4C883" }}
           transition={{ duration: 0.15 }}
         >
           Next
@@ -361,25 +371,21 @@ function TestimonialStack() {
 
 export function TestimonialsSection() {
   const sectionRef = useRef<HTMLElement>(null);
-  const inView = useInView(sectionRef, { once: true, margin: "-60px" });
+  const inView = useInView(sectionRef, { once: false, margin: "-38%" });
 
   return (
     <section
       ref={sectionRef}
-      className="relative w-full overflow-hidden"
+      className="relative w-full"
       style={{ backgroundColor: "#0a0a0a", zIndex: 5 }}
     >
-      {/* Top divider */}
-      <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-[#CBA65C]/15 to-transparent" />
 
       {/* Ambient glow behind the stack */}
       <div
-        className="absolute inset-x-0 pointer-events-none"
+        className="absolute inset-0 pointer-events-none"
         style={{
-          top: "35%",
-          height: "40%",
           background:
-            "radial-gradient(ellipse 55% 100% at 50% 50%, rgba(203,166,92,0.055) 0%, transparent 70%)",
+            "radial-gradient(ellipse 60% 50% at 50% 55%, rgba(203,166,92,0.055) 0%, transparent 70%)",
         }}
       />
 
@@ -387,35 +393,30 @@ export function TestimonialsSection() {
         {/* Header */}
         <div className="text-center mb-14">
           <motion.p
-            initial={{ opacity: 0, y: 10 }}
-            animate={inView ? { opacity: 1, y: 0 } : {}}
-            transition={{ duration: 0.45 }}
+            initial={{ opacity: 0, y: 28, letterSpacing: "0.08em" }}
+            animate={inView ? { opacity: 1, y: 0, letterSpacing: "0.28em" } : { opacity: 0, y: 28, letterSpacing: "0.08em" }}
+            transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
             className="text-[#CBA65C] text-[10px] uppercase tracking-[0.28em] font-semibold mb-5"
           >
             What clients say
           </motion.p>
-          <motion.h2
-            initial={{ opacity: 0, y: 32, filter: "blur(8px)" }}
-            animate={inView ? { opacity: 1, y: 0, filter: "blur(0px)" } : {}}
-            transition={{ duration: 0.65, delay: 0.08, ease: [0.22, 1, 0.36, 1] }}
-            className="text-4xl sm:text-5xl font-black tracking-tighter text-white leading-[1.04]"
-          >
-            Don&rsquo;t just take our word for it.
-          </motion.h2>
+          <h2 className="text-4xl sm:text-5xl font-black tracking-tighter text-white leading-[1.04]">
+            <TextReveal inView={inView} delay={0.14}>
+              Don&rsquo;t just take our word for it.
+            </TextReveal>
+          </h2>
         </div>
 
         {/* Stack */}
         <motion.div
-          initial={{ opacity: 0, y: 28 }}
-          animate={inView ? { opacity: 1, y: 0 } : {}}
-          transition={{ duration: 0.65, delay: 0.22, ease: [0.22, 1, 0.36, 1] }}
+          initial={{ opacity: 0, y: 60, scale: 0.9, filter: "blur(14px)" }}
+          animate={inView ? { opacity: 1, y: 0, scale: 1, filter: "blur(0px)" } : { opacity: 0, y: 60, scale: 0.9, filter: "blur(14px)" }}
+          transition={{ duration: 1.0, delay: 0.35, ease: [0.16, 1, 0.3, 1] }}
         >
           <TestimonialStack />
         </motion.div>
       </div>
 
-      {/* Bottom divider */}
-      <div className="absolute bottom-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-white/[0.06] to-transparent" />
     </section>
   );
 }
