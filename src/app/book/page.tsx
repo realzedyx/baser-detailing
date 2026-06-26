@@ -821,9 +821,9 @@ function RewardsBar({
               </p>
               <div className="flex items-baseline gap-3">
                 <span className="text-xl" style={{ textDecoration: "line-through", color: "rgba(255,255,255,0.25)" }}>
-                  ${originalPrice}
+                  from ${originalPrice}
                 </span>
-                <span className="text-3xl font-black" style={{ color: GOLD }}>${discountedPrice}</span>
+                <span className="text-3xl font-black" style={{ color: GOLD }}>from ${discountedPrice}</span>
                 <span className="text-[11px]" style={{ color: "rgba(255,255,255,0.3)" }}>with {applied.label} reward</span>
               </div>
             </motion.div>
