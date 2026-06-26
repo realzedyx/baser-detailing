@@ -32,6 +32,20 @@ function formatMemberSince(dateStr: string) {
   return new Date(dateStr).toLocaleDateString('en-AU', { month: 'short', year: 'numeric' });
 }
 
+// Mobile devices choke on stacked backdrop-blur + many infinite animations
+// (janky scroll, blank/late repaints). Detect mobile so we can drop those.
+function useIsMobile() {
+  const [isMobile, setIsMobile] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 768px)');
+    const update = () => setIsMobile(mq.matches);
+    update();
+    mq.addEventListener('change', update);
+    return () => mq.removeEventListener('change', update);
+  }, []);
+  return isMobile;
+}
+
 function LightBeam({ delay = 0 }: { delay?: number }) {
   return (
     <div className="absolute -inset-[1px] rounded-2xl overflow-hidden pointer-events-none">
@@ -44,13 +58,15 @@ function LightBeam({ delay = 0 }: { delay?: number }) {
 }
 
 function GlassCard({ children, className = '', glow = false, beamDelay = 0 }: { children: React.ReactNode; className?: string; glow?: boolean; beamDelay?: number }) {
+  const isMobile = useIsMobile();
   return (
     <div className={`relative group ${className}`}>
-      {glow && (
+      {glow && !isMobile && (
         <motion.div className="absolute -inset-px rounded-2xl" animate={{ opacity: [0.12, 0.28, 0.12] }} transition={{ duration: 5, repeat: Infinity }} style={{ background: 'radial-gradient(ellipse at 50% 0%, rgba(203,166,92,0.2), transparent 70%)', filter: 'blur(10px)' }} />
       )}
-      <LightBeam delay={beamDelay} />
-      <div className="relative bg-black/40 backdrop-blur-xl rounded-2xl border border-white/[0.06] overflow-hidden shadow-2xl">
+      {!isMobile && <LightBeam delay={beamDelay} />}
+      {/* On mobile use a solid bg (no backdrop-blur) — stacked backdrop filters are the main scroll-jank culprit. */}
+      <div className={`relative rounded-2xl border border-white/[0.06] overflow-hidden shadow-2xl ${isMobile ? 'bg-[#101010]' : 'bg-black/40 backdrop-blur-xl'}`}>
         <div className="absolute inset-0 opacity-[0.025] pointer-events-none" style={{ backgroundImage: `linear-gradient(135deg, white 0.5px, transparent 0.5px), linear-gradient(45deg, white 0.5px, transparent 0.5px)`, backgroundSize: '24px 24px' }} />
         <div className="relative z-10">{children}</div>
       </div>

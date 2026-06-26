@@ -119,6 +119,24 @@ export function WhyBaserSection() {
     const isMobile = window.innerWidth < 768;
 
     const ctx = gsap.context(() => {
+      // ── Mobile: no pin ─────────────────────────
+      // The 3 cards stack vertically and the content is taller than one
+      // viewport, so a pinned + centered h-screen layout clips the heading
+      // (top) and the last card (bottom). Instead let the section flow at its
+      // natural height and reveal each block as it scrolls into view.
+      if (isMobile) {
+        const reveal = (sel: string, y = 36) =>
+          gsap.from(sel, {
+            autoAlpha: 0, y, duration: 0.7, ease: "power3.out",
+            scrollTrigger: { trigger: sel, start: "top 88%" },
+          });
+        reveal(".why-eyebrow", 16);
+        reveal(".why-heading", 28);
+        reveal(".why-rule", 10);
+        [".why-card-1", ".why-card-2", ".why-card-3"].forEach((c) => reveal(c, 44));
+        return;
+      }
+
       // ── Initial hidden states ──────────────────
       gsap.set(".why-eyebrow",  { autoAlpha: 0, y: 28 });
       gsap.set(".why-heading",  { autoAlpha: 0, y: 56, filter: "blur(14px)" });
@@ -182,7 +200,7 @@ export function WhyBaserSection() {
       ref={containerRef}
       onMouseMove={(e) => setMouse({ x: e.clientX, y: e.clientY })}
       onMouseLeave={() => setMouse({ x: null, y: null })}
-      className="relative w-screen h-screen overflow-hidden flex flex-col items-center justify-center bg-[#0a0a0a]"
+      className="relative w-screen min-h-screen md:h-screen overflow-visible md:overflow-hidden flex flex-col items-center justify-center bg-[#0a0a0a] py-24 md:py-0"
       style={{ perspective: "1400px", zIndex: 10 }}
     >
       {/* Top divider */}
