@@ -344,6 +344,7 @@ export default function AccountPage() {
                         transition={{ delay: 1.5 }}
                         onMouseEnter={() => setPendingHover(true)}
                         onMouseLeave={() => setPendingHover(false)}
+                        onTouchStart={(e) => { e.preventDefault(); setPendingHover(v => !v); }}
                         className="relative"
                         style={{
                           marginTop: 12, padding: '6px 14px', borderRadius: 20,
