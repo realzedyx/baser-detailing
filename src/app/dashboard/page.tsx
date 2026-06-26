@@ -10,7 +10,10 @@ import { supabase } from '@/lib/supabase';
 import { REWARDS } from '@/lib/rewards';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
-const ADMIN_PIN = '1234';
+// The PIN is a convenience lock only — the real protection for customer data is
+// Supabase Row-Level Security (see supabase/security.sql). Set NEXT_PUBLIC_ADMIN_PIN
+// to override the default.
+const ADMIN_PIN = process.env.NEXT_PUBLIC_ADMIN_PIN || '1234';
 const GOLD = '#CBA65C';
 const BG = '#0a0a0a';
 const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -35,6 +38,18 @@ interface Profile {
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
+
+// Adjust a member's points atomically via a Postgres function (points = points + delta)
+// so concurrent admin actions can't clobber each other. Falls back to a non-atomic
+// read-modify-write if the RPC isn't installed yet (see supabase/security.sql).
+async function awardPoints(userId: string, delta: number) {
+  const { error } = await supabase.rpc('increment_points', { uid: userId, delta });
+  if (error) {
+    const { data: prof } = await supabase.from('profiles').select('points').eq('id', userId).single();
+    await supabase.from('profiles').update({ points: Math.max(0, (prof?.points ?? 0) + delta) }).eq('id', userId);
+  }
+}
+
 const a = (i: number) => ({
   initial: { opacity: 0, y: 16, filter: 'blur(3px)' },
   animate: { opacity: 1, y: 0, filter: 'blur(0px)' },
@@ -61,20 +76,32 @@ function PinGate({ onUnlock }: { onUnlock: () => void }) {
   const [shake, setShake] = useState(false);
   const [error, setError] = useState(false);
 
-  const press = (d: string) => {
-    if (digits.length >= 4) return;
-    const next = digits + d;
-    setDigits(next);
-    if (next.length === 4) {
-      if (next === ADMIN_PIN) {
-        setTimeout(onUnlock, 300);
-      } else {
-        setShake(true); setError(true);
-        setTimeout(() => { setDigits(''); setShake(false); setError(false); }, 700);
+  const press = useCallback((d: string) => {
+    setDigits(prev => {
+      if (prev.length >= 4) return prev;
+      const next = prev + d;
+      if (next.length === 4) {
+        if (next === ADMIN_PIN) {
+          setTimeout(onUnlock, 300);
+        } else {
+          setShake(true); setError(true);
+          setTimeout(() => { setDigits(''); setShake(false); setError(false); }, 700);
+        }
       }
-    }
-  };
+      return next;
+    });
+  }, [onUnlock]);
   const del = () => setDigits(d => d.slice(0, -1));
+
+  // Allow typing the PIN on a physical keyboard, not just the on-screen keypad.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key >= '0' && e.key <= '9') press(e.key);
+      else if (e.key === 'Backspace') del();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [press]);
 
   return (
     <div className="min-h-screen w-screen flex items-center justify-center" style={{ backgroundColor: BG }}>
@@ -96,6 +123,7 @@ function PinGate({ onUnlock }: { onUnlock: () => void }) {
           {['1', '2', '3', '4', '5', '6', '7', '8', '9', '', '0', '⌫'].map((k, i) => (
             k === '' ? <div key={i} /> :
               <motion.button key={i} whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.93 }}
+                aria-label={k === '⌫' ? 'Delete' : `Digit ${k}`}
                 onClick={() => k === '⌫' ? del() : press(k)}
                 style={{ padding: '18px 0', fontSize: k === '⌫' ? 18 : 22, fontWeight: 200, color: k === '⌫' ? 'rgba(255,255,255,0.35)' : '#E8E8E8', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 12, cursor: 'pointer', letterSpacing: '-0.02em' }}>
                 {k}
@@ -188,7 +216,12 @@ function JobsTab({ jobs, onRefresh, prefill }: { jobs: Job[]; onRefresh: () => v
     const { error } = await supabase.from('jobs').delete().eq('id', id);
     setDeleting(null);
     setConfirmDelete(null);
-    if (!error) onRefresh();
+    if (error) {
+      setSaveResult({ ok: false, msg: `Could not delete: ${error.message}` });
+      setTimeout(() => setSaveResult(null), 4000);
+    } else {
+      onRefresh();
+    }
   };
 
   const set = (k: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) =>
@@ -196,8 +229,13 @@ function JobsTab({ jobs, onRefresh, prefill }: { jobs: Job[]; onRefresh: () => v
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
+    const amountNum = parseFloat(form.amount);
+    if (!Number.isFinite(amountNum) || amountNum < 0) {
+      setSaveResult({ ok: false, msg: 'Enter a valid amount.' });
+      setTimeout(() => setSaveResult(null), 4000);
+      return;
+    }
     setSaving(true);
-    const amountNum = parseFloat(form.amount) || 0;
     const { error } = await supabase.from('jobs').insert({
       date: form.date, make: form.make, model: form.model, year: form.year,
       colour: form.colour, suburb: form.suburb, service: form.service,
@@ -210,8 +248,7 @@ function JobsTab({ jobs, onRefresh, prefill }: { jobs: Job[]; onRefresh: () => v
       // Award points = actual amount paid, but only when this job was logged from a member's booking
       let pointsMsg = '';
       if (linkedUserId && amountNum > 0) {
-        const { data: prof } = await supabase.from('profiles').select('points').eq('id', linkedUserId).single();
-        await supabase.from('profiles').update({ points: (prof?.points ?? 0) + Math.round(amountNum) }).eq('id', linkedUserId);
+        await awardPoints(linkedUserId, Math.round(amountNum));
         pointsMsg = ` (+${Math.round(amountNum)} pts awarded)`;
       }
       setSaving(false);
@@ -397,16 +434,21 @@ function BookingsTab({ bookings, onRefresh, onLogJob }: { bookings: Booking[]; o
 
   const markDone = async (b: Booking) => {
     setUpdating(b.id);
-    await supabase.from('bookings').update({ status: 'done' }).eq('id', b.id);
-    // Deduct the redeemed reward cost now. Earned points are added later, from the
-    // actual amount entered in the Log Job form (see JobsTab handleSave).
-    if (b.user_id && b.reward_applied) {
+    setUpdateError(null);
+    setUpdateErrorId(null);
+    const { error } = await supabase.from('bookings').update({ status: 'done' }).eq('id', b.id);
+    if (error) {
+      setUpdateError(`bookings update: ${error.message}`);
+      setUpdateErrorId(b.id);
+      setUpdating(null);
+      return;
+    }
+    // Deduct the redeemed reward cost now — but only on the transition into 'done',
+    // so re-running this on an already-completed booking can't double-deduct. Earned
+    // points are added later from the actual amount in the Log Job form.
+    if (b.status !== 'done' && b.user_id && b.reward_applied) {
       const reward = REWARDS.find(r => r.id === b.reward_applied);
-      if (reward) {
-        const { data: prof } = await supabase.from('profiles').select('points').eq('id', b.user_id).single();
-        const pts = Math.max(0, (prof?.points ?? 0) - reward.pts);
-        await supabase.from('profiles').update({ points: pts }).eq('id', b.user_id);
-      }
+      if (reward) await awardPoints(b.user_id, -reward.pts);
     }
     setUpdating(null);
     onRefresh();
@@ -751,12 +793,12 @@ function CustomersTab({ profiles, bookings }: { profiles: Profile[]; bookings: B
   });
   const guests = Array.from(guestMap.values()).sort((x, y) => y.lastDate.localeCompare(x.lastDate));
 
-  const actionBtn = (icon: React.ReactNode, href: string) => (
-    <motion.button whileHover={{ scale: 1.06 }} whileTap={{ scale: 0.94 }}
-      onClick={() => window.open(href)}
+  const actionBtn = (icon: React.ReactNode, href: string, label: string) => (
+    <motion.a whileHover={{ scale: 1.06 }} whileTap={{ scale: 0.94 }}
+      href={href} aria-label={label}
       style={{ width: 36, height: 36, borderRadius: '50%', border: '1px solid rgba(203,166,92,0.3)', background: 'rgba(203,166,92,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: GOLD }}>
       {icon}
-    </motion.button>
+    </motion.a>
   );
 
   return (
@@ -815,8 +857,8 @@ function CustomersTab({ profiles, bookings }: { profiles: Profile[]; bookings: B
                     ))}
                   </div>
                   <div style={{ display: 'flex', gap: 8 }}>
-                    {actionBtn(<Phone size={14} strokeWidth={1.8} />, `tel:${g.phone}`)}
-                    {actionBtn(<MessageCircle size={14} strokeWidth={1.8} />, `sms:${g.phone}`)}
+                    {actionBtn(<Phone size={14} strokeWidth={1.8} />, `tel:${g.phone}`, `Call ${g.name}`)}
+                    {actionBtn(<MessageCircle size={14} strokeWidth={1.8} />, `sms:${g.phone}`, `Text ${g.name}`)}
                   </div>
                 </motion.div>
               ))
@@ -843,6 +885,7 @@ function Dashboard() {
   const [availability, setAvailability] = useState<Record<string, DayStatus>>({});
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [prefillJob, setPrefillJob] = useState<JobFormPrefill | null>(null);
 
   const handleLogJob = (b: Booking) => {
@@ -851,12 +894,21 @@ function Dashboard() {
   };
 
   const loadData = useCallback(async () => {
+    setLoadError(null);
     const [jobsRes, bookingsRes, availRes, profilesRes] = await Promise.all([
-      supabase.from('jobs').select('*').order('date', { ascending: false }),
-      supabase.from('bookings').select('*').order('created_at', { ascending: false }),
+      supabase.from('jobs').select('*').order('date', { ascending: false }).limit(1000),
+      supabase.from('bookings').select('*').order('created_at', { ascending: false }).limit(1000),
       supabase.from('availability').select('*'),
-      supabase.from('profiles').select('*').order('created_at', { ascending: false }),
+      supabase.from('profiles').select('*').order('created_at', { ascending: false }).limit(1000),
     ]);
+
+    const firstErr = jobsRes.error || bookingsRes.error || availRes.error || profilesRes.error;
+    if (firstErr) {
+      // A blank dashboard with no message is the classic silent-RLS-failure trap.
+      setLoadError(firstErr.message);
+      setLoading(false);
+      return;
+    }
 
     if (jobsRes.data) setJobs(jobsRes.data as Job[]);
     if (bookingsRes.data) setBookings(bookingsRes.data as Booking[]);
@@ -908,6 +960,20 @@ function Dashboard() {
           </div>
           {loading && <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.25)', paddingTop: 14, margin: 0 }}>Loading…</p>}
         </motion.div>
+
+        {loadError && (
+          <div style={{ marginBottom: 24, padding: '14px 18px', borderRadius: 12, border: '1px solid rgba(239,68,68,0.35)', background: 'rgba(239,68,68,0.08)' }}>
+            <p style={{ margin: 0, fontSize: 12, color: 'rgba(239,68,68,0.9)' }}>
+              Couldn&rsquo;t load data: {loadError}
+            </p>
+            <p style={{ margin: '4px 0 0', fontSize: 11, color: 'rgba(255,255,255,0.4)' }}>
+              If tabs look empty, check the Supabase RLS policies for the dashboard role.
+            </p>
+            <button onClick={loadData} style={{ marginTop: 10, fontSize: 11, color: GOLD, background: 'rgba(203,166,92,0.08)', border: '1px solid rgba(203,166,92,0.3)', borderRadius: 8, padding: '6px 14px', cursor: 'pointer', letterSpacing: '0.06em' }}>
+              Retry
+            </button>
+          </div>
+        )}
 
         {/* Stat chips */}
         <div style={{ display: 'flex', gap: 14, marginBottom: 32, flexWrap: 'wrap' }}>
