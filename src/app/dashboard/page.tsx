@@ -27,9 +27,10 @@ interface Booking {
   name: string; phone: string; suburb: string;
   car_make: string; car_model: string; car_year?: string | null; car_colour?: string | null; notes: string;
   status: string; created_at: string;
+  user_id?: string | null; pending_points?: number | null; reward_applied?: string | null;
 }
 interface Profile {
-  id: string; email: string; created_at?: string; rewards_points?: number;
+  id: string; email: string; created_at?: string; points?: number;
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -326,6 +327,11 @@ function BookingsTab({ bookings, onRefresh, onLogJob }: { bookings: Booking[]; o
   const markDone = async (b: Booking) => {
     setUpdating(b.id);
     await supabase.from('bookings').update({ status: 'done' }).eq('id', b.id);
+    // Apply pending points to user profile
+    if (b.user_id && b.pending_points) {
+      const { data: prof } = await supabase.from('profiles').select('points').eq('id', b.user_id).single();
+      await supabase.from('profiles').update({ points: (prof?.points ?? 0) + b.pending_points }).eq('id', b.user_id);
+    }
     setUpdating(null);
     onRefresh();
     onLogJob(b);
@@ -364,6 +370,11 @@ function BookingsTab({ bookings, onRefresh, onLogJob }: { bookings: Booking[]; o
               </div>
               <p style={{ margin: 0, fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>{b.service} · {b.suburb}</p>
               {b.date && <p style={{ margin: '4px 0 0', fontSize: 11, color: 'rgba(255,255,255,0.25)' }}>{b.date}{b.time ? ` at ${b.time}` : ''}</p>}
+              {b.reward_applied && (
+                <span style={{ display: 'inline-block', marginTop: 6, fontSize: 9, color: '#CBA65C', background: 'rgba(203,166,92,0.1)', border: '1px solid rgba(203,166,92,0.3)', padding: '2px 8px', borderRadius: 5, letterSpacing: '0.1em', textTransform: 'uppercase' }}>
+                  Reward: {b.reward_applied}
+                </span>
+              )}
             </div>
             <div style={{ flex: 1, minWidth: 180 }}>
               <p style={{ margin: 0, fontSize: 13, color: '#E8E8E8' }}>{b.name}</p>
@@ -683,12 +694,10 @@ function CustomersTab({ profiles, bookings }: { profiles: Profile[]; bookings: B
                       Joined {p.created_at ? new Date(p.created_at).toLocaleDateString('en-AU') : '—'}
                     </p>
                   </div>
-                  {p.rewards_points != null && (
-                    <div style={{ textAlign: 'right', marginRight: 8 }}>
-                      <p style={{ margin: 0, fontSize: 9, color: 'rgba(203,166,92,0.5)', letterSpacing: '0.15em', textTransform: 'uppercase' }}>Points</p>
-                      <p style={{ margin: '2px 0 0', fontSize: 15, color: GOLD, fontWeight: 300 }}>{p.rewards_points}</p>
-                    </div>
-                  )}
+                  <div style={{ textAlign: 'right', marginRight: 8 }}>
+                    <p style={{ margin: 0, fontSize: 9, color: 'rgba(203,166,92,0.5)', letterSpacing: '0.15em', textTransform: 'uppercase' }}>Points</p>
+                    <p style={{ margin: '2px 0 0', fontSize: 15, color: GOLD, fontWeight: 300 }}>{p.points ?? 0}</p>
+                  </div>
                 </motion.div>
               ))
           )}

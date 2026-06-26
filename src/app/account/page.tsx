@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { ShadowOverlay } from '@/components/ui/shadow-overlay';
@@ -105,7 +105,7 @@ const s = (i: number) => ({
   transition: { duration: 0.65, ease: [0.22, 1, 0.36, 1] as [number, number, number, number], delay: i * 0.07 },
 });
 
-type Booking = { id: string; date: string; service: string; amount: number; status: string };
+type Booking = { id: string; date: string; service: string; amount: number; status: string; pending_points?: number };
 type Car = { make: string; model: string; year: number; colour: string };
 
 export default function AccountPage() {
@@ -114,10 +114,12 @@ export default function AccountPage() {
   const [email, setEmail] = useState('');
   const [memberSince, setMemberSince] = useState('');
   const [points, setPoints] = useState(0);
+  const [pendingPoints, setPendingPoints] = useState(0);
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [car, setCar] = useState<Car | null>(null);
   const [loading, setLoading] = useState(true);
   const [removingCar, setRemovingCar] = useState(false);
+  const [milestonePopup, setMilestonePopup] = useState<{ label: string; perk: string } | null>(null);
 
   useEffect(() => {
     supabase.auth.getSession().then(async ({ data }) => {
@@ -133,12 +135,28 @@ export default function AccountPage() {
       const [{ data: profile }, { data: carData }, { data: bookingsData }] = await Promise.all([
         supabase.from('profiles').select('points').eq('id', u.id).single(),
         supabase.from('cars').select('make,model,year,colour').eq('owner_id', u.id).maybeSingle(),
-        supabase.from('bookings').select('id,date,service,amount,status').eq('user_id', u.id).order('created_at', { ascending: false }),
+        supabase.from('bookings').select('id,date,service,amount,status,pending_points').eq('user_id', u.id).order('created_at', { ascending: false }),
       ]);
 
-      setPoints(profile?.points ?? 0);
+      const appliedPts = profile?.points ?? 0;
+      setPoints(appliedPts);
       setCar(carData ?? null);
-      setBookings(bookingsData ?? []);
+      const bkList = (bookingsData ?? []) as Booking[];
+      setBookings(bkList);
+
+      // Pending points from active bookings
+      const pending = bkList
+        .filter(b => b.status === 'pending' || b.status === 'confirmed')
+        .reduce((acc, b) => acc + (b.pending_points ?? 0), 0);
+      setPendingPoints(pending);
+
+      // Milestone popup — show if user has reached a tier
+      const eligible = TIERS.filter(t => appliedPts >= t.pts);
+      if (eligible.length > 0) {
+        const top = eligible[eligible.length - 1];
+        setMilestonePopup({ label: top.name, perk: top.perk });
+      }
+
       setLoading(false);
     });
   }, [router]);
@@ -175,6 +193,85 @@ export default function AccountPage() {
   return (
     <div className="min-h-screen w-screen relative overflow-x-hidden" style={{ backgroundColor: '#0a0a0a' }}>
 
+      {/* Milestone popup */}
+      <AnimatePresence>
+        {milestonePopup && (
+          <motion.div
+            key="milestone-overlay"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[100] flex items-center justify-center px-4"
+            style={{ background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(8px)' }}
+          >
+            <motion.div
+              initial={{ scale: 0.88, y: 20, opacity: 0 }}
+              animate={{ scale: 1, y: 0, opacity: 1 }}
+              exit={{ scale: 0.92, y: 12, opacity: 0 }}
+              transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
+              style={{
+                maxWidth: 360, width: '100%',
+                background: 'linear-gradient(160deg, #111008, #0a0a0a)',
+                border: '1px solid rgba(203,166,92,0.35)',
+                borderRadius: 24, padding: '36px 32px',
+                textAlign: 'center',
+                boxShadow: '0 0 60px rgba(203,166,92,0.15), 0 24px 60px rgba(0,0,0,0.6)',
+              }}
+            >
+              <motion.div
+                animate={{ scale: [1, 1.15, 1] }}
+                transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
+                style={{ fontSize: 32, marginBottom: 16 }}
+              >
+                ✦
+              </motion.div>
+              <p style={{ fontSize: 10, color: 'rgba(203,166,92,0.6)', letterSpacing: '0.26em', textTransform: 'uppercase', marginBottom: 10 }}>
+                Reward Unlocked
+              </p>
+              <h2 style={{ fontSize: 26, fontWeight: 200, color: '#E4C883', letterSpacing: '-0.02em', margin: '0 0 10px' }}>
+                {milestonePopup.label} Member
+              </h2>
+              <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.45)', lineHeight: 1.6, margin: '0 0 8px' }}>
+                You&apos;re eligible for
+              </p>
+              <p style={{ fontSize: 15, color: '#CBA65C', fontWeight: 500, margin: '0 0 24px' }}>
+                {milestonePopup.perk}
+              </p>
+              <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', margin: '0 0 24px' }}>
+                Book now to claim your reward at checkout.
+              </p>
+              <div style={{ display: 'flex', gap: 10 }}>
+                <motion.a
+                  href="/book"
+                  whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
+                  style={{
+                    flex: 1, display: 'block', padding: '12px', borderRadius: 12,
+                    background: 'linear-gradient(120deg, #BF9A50, #CBA65C 40%, #E4C883 65%, #CBA65C)',
+                    color: '#0a0a0a', fontWeight: 600, fontSize: 12, letterSpacing: '0.1em',
+                    textTransform: 'uppercase', textDecoration: 'none',
+                  }}
+                >
+                  Book now
+                </motion.a>
+                <motion.button
+                  onClick={() => setMilestonePopup(null)}
+                  whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }}
+                  style={{
+                    flex: 1, padding: '12px', borderRadius: 12,
+                    border: '1px solid rgba(255,255,255,0.1)',
+                    background: 'transparent', color: 'rgba(255,255,255,0.35)',
+                    fontSize: 12, letterSpacing: '0.1em', textTransform: 'uppercase',
+                    cursor: 'pointer',
+                  }}
+                >
+                  Later
+                </motion.button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       <div className="absolute inset-0 pointer-events-none">
         <ShadowOverlay color="rgba(203,166,92,0.32)" animation={{ scale: 40, speed: 20 }} noise={{ opacity: 0.25, scale: 1.5 }} />
       </div>
@@ -208,7 +305,7 @@ export default function AccountPage() {
         <motion.div {...s(1)} className="grid grid-cols-3 gap-3 mb-8">
           {[
             { label: 'Bookings', value: bookings.length || '0' },
-            { label: 'Points',   value: points },
+            { label: 'Points', value: pendingPoints > 0 ? `${points} (+${pendingPoints})` : points },
             { label: 'Status',   value: tier ?? 'New' },
           ].map((c, i) => (
             <GlassCard key={c.label} beamDelay={i * 0.4}>
@@ -236,6 +333,20 @@ export default function AccountPage() {
                       </motion.p>
                     ) : (
                       <p style={{ fontSize: 11, color: '#CBA65C', marginTop: 14, letterSpacing: '0.14em', textTransform: 'uppercase' }}>VIP Member ✦</p>
+                    )}
+                    {pendingPoints > 0 && (
+                      <motion.div
+                        initial={{ opacity: 0, y: 6 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 1.5 }}
+                        style={{
+                          marginTop: 12, padding: '6px 14px', borderRadius: 20,
+                          background: 'rgba(251,191,36,0.07)', border: '1px solid rgba(251,191,36,0.2)',
+                          fontSize: 11, color: 'rgba(251,191,36,0.7)', letterSpacing: '0.1em',
+                        }}
+                      >
+                        +{pendingPoints} pts pending
+                      </motion.div>
                     )}
                   </div>
                   <div className="flex flex-col gap-2">

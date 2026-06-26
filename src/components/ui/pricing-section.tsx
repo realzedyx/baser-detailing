@@ -6,6 +6,8 @@ import { useRouter } from "next/navigation";
 import { Check } from "lucide-react";
 import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
+import { supabase } from "@/lib/supabase";
+import { REWARDS } from "@/lib/rewards";
 
 if (typeof window !== "undefined") {
   gsap.registerPlugin(ScrollTrigger);
@@ -100,6 +102,135 @@ function useScrollVelocityTilt(maxTilt = 3.5) {
   }, [maxTilt]);
 
   return tilt;
+}
+
+// ─────────────────────────────────────────────
+// Rewards Progress Tracker
+// ─────────────────────────────────────────────
+
+function RewardsTracker() {
+  const router = useRouter();
+  const [pts, setPts] = useState<number | null>(null);
+  const [ready, setReady] = useState(false);
+
+  useEffect(() => {
+    supabase.auth.getSession().then(async ({ data }) => {
+      if (data.session) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('points')
+          .eq('id', data.session.user.id)
+          .single();
+        setPts(profile?.points ?? 0);
+      }
+      setReady(true);
+    });
+  }, []);
+
+  if (!ready) return null;
+
+  const current = pts ?? 0;
+  const MAX = 1000;
+
+  return (
+    <div className="max-w-2xl mx-auto mt-12">
+      <p className="text-center text-[10px] uppercase tracking-[0.26em] font-semibold mb-6" style={{ color: "rgba(203,166,92,0.45)" }}>
+        Rewards — $1 = 1 point
+      </p>
+
+      {/* Track */}
+      <div className="relative px-2 mb-8">
+        <div className="h-px rounded-full" style={{ background: "rgba(255,255,255,0.07)" }}>
+          <div
+            className="h-full rounded-full transition-all duration-1000"
+            style={{
+              width: `${(current / MAX) * 100}%`,
+              background: "linear-gradient(90deg, #CBA65C, #E4C883)",
+            }}
+          />
+        </div>
+
+        {/* Milestone dots */}
+        {REWARDS.map(r => {
+          const pct = (r.pts / MAX) * 100;
+          const earned = current >= r.pts;
+          return (
+            <div
+              key={r.id}
+              style={{
+                position: "absolute",
+                left: `calc(${pct}% + 0.5rem)`,
+                top: "50%",
+                transform: "translate(-50%, -50%)",
+              }}
+            >
+              <div
+                style={{
+                  width: 14,
+                  height: 14,
+                  borderRadius: "50%",
+                  background: earned ? "#CBA65C" : "#111",
+                  border: earned ? "1.5px solid #E4C883" : "1px solid rgba(255,255,255,0.12)",
+                  boxShadow: earned
+                    ? "0 0 14px rgba(203,166,92,0.8), 0 0 28px rgba(203,166,92,0.3)"
+                    : "none",
+                  transition: "all 0.5s",
+                }}
+              />
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Labels */}
+      <div className="flex justify-between px-2">
+        {REWARDS.map(r => {
+          const earned = current >= r.pts;
+          return (
+            <div key={r.id} className="text-center" style={{ flex: 1 }}>
+              <p
+                style={{
+                  margin: 0,
+                  fontSize: 11,
+                  fontWeight: 600,
+                  color: earned ? "#CBA65C" : "rgba(255,255,255,0.2)",
+                  letterSpacing: "0.06em",
+                  transition: "color 0.3s",
+                }}
+              >
+                {r.label}
+              </p>
+              <p style={{ margin: "3px 0 0", fontSize: 9, color: earned ? "rgba(203,166,92,0.5)" : "rgba(255,255,255,0.12)" }}>
+                {r.perk}
+              </p>
+              <p style={{ margin: "2px 0 0", fontSize: 9, color: "rgba(255,255,255,0.15)", letterSpacing: "0.06em" }}>
+                {r.pts} pts
+              </p>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* CTA */}
+      <p className="text-center mt-6 text-[12px]" style={{ color: "rgba(255,255,255,0.2)" }}>
+        {pts === null ? (
+          <>
+            <button
+              onClick={() => router.push('/signin')}
+              style={{ color: "#CBA65C", textDecoration: "underline", background: "none", border: "none", cursor: "pointer", fontSize: 12 }}
+            >
+              Sign in
+            </button>
+            {" "}to track your rewards
+          </>
+        ) : current >= MAX ? (
+          "VIP Member ✦"
+        ) : (
+          `${MAX - current} pts to VIP`
+        )}
+      </p>
+    </div>
+  );
 }
 
 export function PricingSection() {
@@ -573,6 +704,9 @@ export function PricingSection() {
         >
           Pricing varies by vehicle size & condition · Free quote available
         </p>
+
+        {/* Rewards progress tracker */}
+        <RewardsTracker />
       </div>
 
       {/* Bottom divider */}

@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { ErrorToast } from "@/components/ui/error-toast";
 import { supabase } from "@/lib/supabase";
+import { REWARDS, SERVICE_PRICE, type Reward } from "@/lib/rewards";
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
@@ -650,45 +651,196 @@ function Field({
   );
 }
 
-// ─── Loyalty display ──────────────────────────────────────────────────────────
+// ─── Rewards bar ─────────────────────────────────────────────────────────────
 
-function LoyaltyBadge() {
+function RewardsBar({
+  points,
+  selectedService,
+  appliedReward,
+  onApply,
+  locked,
+}: {
+  points: number | null;
+  selectedService: string | null;
+  appliedReward: string | null;
+  onApply: (id: string | null) => void;
+  locked: boolean;
+}) {
+  const [err, setErr] = useState<string | null>(null);
+  const pts = points ?? 0;
+  const MAX = 1000;
+  const applied = appliedReward ? REWARDS.find(r => r.id === appliedReward) ?? null : null;
+  const originalPrice = selectedService ? (SERVICE_PRICE[selectedService] ?? 0) : 0;
+  const discountedPrice = applied ? Math.round(originalPrice * (1 - applied.discount)) : originalPrice;
+
+  const handleApply = (r: Reward) => {
+    if (locked) return;
+    if (appliedReward === r.id) { onApply(null); setErr(null); return; }
+    if (r.services && selectedService && !r.services.includes(selectedService)) {
+      const names = r.services.map(s => SERVICES.find(sv => sv.id === s)?.label ?? s).join(' or ');
+      setErr(`This reward is only valid for: ${names}`);
+      return;
+    }
+    setErr(null);
+    onApply(r.id);
+  };
+
   return (
     <div
-      className="flex items-center gap-4 rounded-xl px-5 py-4"
+      className="rounded-2xl p-5 mt-5"
       style={{
-        background: "linear-gradient(135deg, rgba(203,166,92,0.07) 0%, rgba(10,10,10,0.5) 100%)",
-        border: "1px solid rgba(203,166,92,0.18)",
+        background: "linear-gradient(145deg, rgba(18,16,12,0.98) 0%, rgba(10,10,10,0.99) 100%)",
+        border: locked
+          ? "1px solid rgba(239,68,68,0.18)"
+          : "1px solid rgba(203,166,92,0.18)",
       }}
     >
-      <div
-        className="w-10 h-10 rounded-full flex items-center justify-center shrink-0"
-        style={{ background: "rgba(203,166,92,0.12)", border: `1px solid rgba(203,166,92,0.3)` }}
-      >
-        <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
-          <path d="M9 1.5l1.9 3.85 4.25.62-3.07 2.99.72 4.23L9 11.14l-3.79 1.99.72-4.23L2.85 5.97l4.25-.62L9 1.5z" fill={GOLD} fillOpacity="0.8"/>
-        </svg>
-      </div>
-      <div className="flex-1 min-w-0">
-        <p className="text-[10px] uppercase tracking-[0.2em] font-semibold mb-0.5" style={{ color: "rgba(203,166,92,0.5)" }}>
-          Loyalty Points
+      <div className="flex items-center justify-between mb-4">
+        <p className="text-[10px] uppercase tracking-[0.22em] font-semibold" style={{ color: "rgba(203,166,92,0.65)", margin: 0 }}>
+          Rewards
         </p>
-        <div className="flex items-baseline gap-2">
-          <span className="text-xl font-black" style={{ color: CHROME }}>0</span>
-          <span className="text-xs font-semibold" style={{ color: "rgba(232,232,232,0.3)" }}>pts</span>
+        {points !== null && (
+          <span className="text-[11px]" style={{ color: "rgba(255,255,255,0.3)" }}>{pts} pts</span>
+        )}
+      </div>
+
+      {locked ? (
+        <p className="text-[12px] leading-relaxed" style={{ color: "rgba(239,68,68,0.6)", margin: 0 }}>
+          You already have a reward applied to a pending booking. Complete or cancel it before using another.
+        </p>
+      ) : points === null ? (
+        <div>
+          <p className="text-[12px] leading-relaxed" style={{ color: "rgba(255,255,255,0.3)", margin: "0 0 14px" }}>
+            Earn 1 point per $1 spent. Unlock rewards at 300, 500 &amp; 1000 points.
+          </p>
+          <Link
+            href="/signin"
+            className="inline-block text-[11px] font-semibold px-4 py-2 rounded-lg"
+            style={{
+              background: "rgba(203,166,92,0.08)",
+              border: "1px solid rgba(203,166,92,0.25)",
+              color: GOLD,
+              textDecoration: "none",
+              letterSpacing: "0.08em",
+            }}
+          >
+            Sign in to use rewards →
+          </Link>
         </div>
-      </div>
-      <div className="text-right shrink-0">
-        <p className="text-[10px] uppercase tracking-[0.18em] font-semibold mb-0.5" style={{ color: "rgba(203,166,92,0.4)" }}>
-          Tier
-        </p>
-        <span
-          className="text-xs font-black uppercase tracking-[0.1em] px-2 py-0.5 rounded-full"
-          style={{ background: "rgba(180,140,70,0.15)", color: GOLD, border: "1px solid rgba(203,166,92,0.25)" }}
-        >
-          Bronze
-        </span>
-      </div>
+      ) : (
+        <>
+          {/* Progress bar */}
+          <div className="relative mb-6" style={{ paddingBottom: 4 }}>
+            <div className="h-1 rounded-full" style={{ background: "rgba(255,255,255,0.06)" }}>
+              <motion.div
+                className="h-full rounded-full"
+                initial={{ width: 0 }}
+                animate={{ width: `${Math.min((pts / MAX) * 100, 100)}%` }}
+                transition={{ duration: 1.2, ease: [0.22, 1, 0.36, 1] }}
+                style={{ background: `linear-gradient(90deg, ${GOLD}, ${CHROME})` }}
+              />
+            </div>
+            {REWARDS.map(r => {
+              const pct = (r.pts / MAX) * 100;
+              const earned = pts >= r.pts;
+              return (
+                <div
+                  key={r.id}
+                  style={{ position: "absolute", left: `${pct}%`, top: "50%", transform: "translate(-50%, -50%)" }}
+                >
+                  <div style={{
+                    width: 12, height: 12, borderRadius: "50%",
+                    background: earned ? GOLD : "#111",
+                    border: earned ? `1px solid ${CHROME}` : "1px solid rgba(255,255,255,0.12)",
+                    boxShadow: earned ? `0 0 10px rgba(203,166,92,0.7)` : "none",
+                    transition: "all 0.4s",
+                  }} />
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Reward rows */}
+          <div className="flex flex-col gap-2 mb-2">
+            {REWARDS.map(r => {
+              const eligible = pts >= r.pts;
+              const isApplied = appliedReward === r.id;
+              return (
+                <motion.button
+                  key={r.id}
+                  onClick={() => eligible && handleApply(r)}
+                  disabled={!eligible}
+                  whileHover={eligible ? { x: 2 } : {}}
+                  whileTap={eligible ? { scale: 0.98 } : {}}
+                  className="w-full flex items-center justify-between p-3 rounded-xl text-left focus:outline-none"
+                  style={{
+                    background: isApplied ? "rgba(203,166,92,0.1)" : eligible ? "rgba(255,255,255,0.03)" : "transparent",
+                    border: isApplied ? `1px solid rgba(203,166,92,0.4)` : eligible ? "1px solid rgba(203,166,92,0.18)" : "1px solid rgba(255,255,255,0.04)",
+                    boxShadow: eligible && !isApplied ? "0 0 20px rgba(203,166,92,0.07)" : "none",
+                    cursor: eligible ? "pointer" : "default",
+                  }}
+                >
+                  <div className="flex items-baseline gap-2">
+                    <span className="text-[11px] font-semibold" style={{ color: eligible ? GOLD : "rgba(255,255,255,0.18)", letterSpacing: "0.06em" }}>
+                      {r.label}
+                    </span>
+                    <span className="text-[11px]" style={{ color: eligible ? "rgba(255,255,255,0.45)" : "rgba(255,255,255,0.15)" }}>
+                      {r.perk}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <span className="text-[10px]" style={{ color: eligible ? "rgba(203,166,92,0.5)" : "rgba(255,255,255,0.12)", letterSpacing: "0.06em" }}>
+                      {r.pts} pts
+                    </span>
+                    {eligible && !isApplied && (
+                      <span className="text-[9px] font-bold uppercase tracking-[0.1em] px-2 py-0.5 rounded-md" style={{ color: GOLD, background: "rgba(203,166,92,0.1)", border: "1px solid rgba(203,166,92,0.25)" }}>
+                        Apply
+                      </span>
+                    )}
+                    {isApplied && (
+                      <span className="text-[9px] font-bold uppercase tracking-[0.1em] px-2 py-0.5 rounded-md" style={{ color: "#0a0a0a", background: GOLD }}>
+                        ✓ On
+                      </span>
+                    )}
+                  </div>
+                </motion.button>
+              );
+            })}
+          </div>
+
+          {/* Applied price breakdown */}
+          {applied && selectedService && (
+            <motion.div
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="rounded-xl p-4 mt-3"
+              style={{ background: "rgba(203,166,92,0.05)", border: "1px solid rgba(203,166,92,0.2)" }}
+            >
+              <p className="text-[10px] uppercase tracking-[0.18em]" style={{ color: "rgba(203,166,92,0.6)", margin: "0 0 8px" }}>
+                {applied.perk}
+              </p>
+              <div className="flex items-baseline gap-3">
+                <span className="text-xl" style={{ textDecoration: "line-through", color: "rgba(255,255,255,0.25)" }}>
+                  ${originalPrice}
+                </span>
+                <span className="text-3xl font-black" style={{ color: GOLD }}>${discountedPrice}</span>
+                <span className="text-[11px]" style={{ color: "rgba(255,255,255,0.3)" }}>with {applied.label} reward</span>
+              </div>
+            </motion.div>
+          )}
+
+          {err && (
+            <motion.p
+              initial={{ opacity: 0, y: -4 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="text-[11px] mt-3"
+              style={{ color: "rgba(239,68,68,0.7)", margin: "8px 0 0" }}
+            >
+              {err}
+            </motion.p>
+          )}
+        </>
+      )}
     </div>
   );
 }
@@ -768,6 +920,12 @@ function BookPageInner() {
   const [availability, setAvailability] = useState<Record<string, string>>({});
   const [bookingWindowWeeks, setBookingWindowWeeks] = useState(4);
 
+  // Rewards state
+  const [userPoints, setUserPoints] = useState<number | null>(null);
+  const [userId, setUserId] = useState<string | null>(null);
+  const [rewardLocked, setRewardLocked] = useState(false);
+  const [appliedReward, setAppliedReward] = useState<string | null>(null);
+
   useEffect(() => {
     supabase.from('availability').select('date,status').then(({ data }) => {
       if (data) {
@@ -778,6 +936,23 @@ function BookPageInner() {
     });
     supabase.from('settings').select('value').eq('key', 'booking_window_weeks').single()
       .then(({ data }) => { if (data?.value) setBookingWindowWeeks(parseInt(data.value, 10) || 4); });
+
+    // Load auth + rewards
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
+      if (!session) return;
+      setUserId(session.user.id);
+      const { data: profile } = await supabase.from('profiles').select('points').eq('id', session.user.id).single();
+      setUserPoints(profile?.points ?? 0);
+      // Check if a reward is already locked in a pending/confirmed booking
+      const { data: active } = await supabase
+        .from('bookings')
+        .select('id')
+        .eq('user_id', session.user.id)
+        .in('status', ['pending', 'confirmed'])
+        .not('reward_applied', 'is', null)
+        .limit(1);
+      if (active && active.length > 0) setRewardLocked(true);
+    });
   }, []);
 
   const [form, setForm] = useState({
@@ -807,6 +982,7 @@ function BookPageInner() {
     if (!form.name || !form.phone || !form.carMake || !form.carModel) return;
     setSubmitting(true);
     setToastError(null);
+    const pendingPts = userId && selectedService ? (SERVICE_PRICE[selectedService] ?? 0) : 0;
     try {
       const res = await fetch("/api/book", {
         method: "POST",
@@ -816,6 +992,9 @@ function BookPageInner() {
           date: selectedDate ?? "TBD",
           time: selectedTime ?? null,
           ...form,
+          userId: userId ?? null,
+          rewardApplied: appliedReward,
+          pendingPoints: pendingPts,
         }),
       });
       if (!res.ok) {
@@ -1098,7 +1277,13 @@ function BookPageInner() {
                 </div>
               </div>
 
-              <LoyaltyBadge />
+              <RewardsBar
+                points={userPoints}
+                selectedService={selectedService}
+                appliedReward={appliedReward}
+                onApply={setAppliedReward}
+                locked={rewardLocked}
+              />
 
               <div className="flex items-center justify-between mt-6">
                 <button
