@@ -18,8 +18,10 @@ export function ErrorToast({ message, onClose }: { message: string | null; onClo
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -16 }}
           transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
-          className="fixed top-5 left-1/2 -translate-x-1/2 z-[200] flex items-start gap-3 rounded-xl shadow-2xl"
+          className="fixed top-5 z-[200] flex items-start gap-3 rounded-xl shadow-2xl"
           style={{
+            left: '50%',
+            translateX: '-50%',
             background: 'rgba(28, 6, 6, 0.96)',
             border: '1px solid rgba(192,57,43,0.45)',
             backdropFilter: 'blur(18px)',
