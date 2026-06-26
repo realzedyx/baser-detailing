@@ -62,12 +62,13 @@ export function SectionNav() {
     if (idx < 0 || idx >= TOTAL) return;
     let target = starts[idx] ?? 0;
     // Pinned sections (Hero=0, WhyBaser=1) have long scroll ranges.
-    // Navigate to 75% through their pin so the settled content is visible,
-    // not the very start where the entrance animation is still running.
+    // WhyBaser's card/icon animations don't finish until the very end of its pin,
+    // so land near the end (95%) — just before it scrolls away — where everything
+    // is settled. This also avoids the scrub-lag empty state when arriving from above.
     if (idx === 0 && starts[1] !== Infinity) {
       target = starts[1] * 0.75;
     } else if (idx === 1 && starts[2] !== Infinity) {
-      target = starts[1] + (starts[2] - starts[1]) * 0.75;
+      target = starts[1] + (starts[2] - starts[1]) * 0.95;
     }
     window.scrollTo({ top: Math.max(0, target), behavior: "smooth" });
   };
