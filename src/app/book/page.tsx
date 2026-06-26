@@ -631,7 +631,7 @@ function Field({
         onChange={e => onChange(e.target.value)}
         required={required}
         placeholder={placeholder}
-        className="w-full bg-transparent rounded-xl px-4 py-3 text-sm font-medium outline-none transition-all duration-200 focus:ring-0"
+        className="w-full bg-transparent rounded-xl px-4 py-3 text-sm font-medium outline-none transition-all duration-200 focus:ring-0 placeholder:text-white/20"
         style={{
           background: "rgba(255,255,255,0.035)",
           border: "1px solid rgba(255,255,255,0.09)",
@@ -926,6 +926,19 @@ function BookPageInner() {
   const [rewardLocked, setRewardLocked] = useState(false);
   const [appliedReward, setAppliedReward] = useState<string | null>(null);
 
+  const [form, setForm] = useState({
+    name: "",
+    phone: "",
+    suburb: "",
+    carMake: "",
+    carModel: "",
+    carYear: "",
+    carColour: "",
+    notes: "",
+  });
+
+  const setField = useCallback((key: keyof typeof form) => (v: string) => setForm(f => ({ ...f, [key]: v })), []);
+
   useEffect(() => {
     supabase.from('availability').select('date,status').then(({ data }) => {
       if (data) {
@@ -943,6 +956,25 @@ function BookPageInner() {
       setUserId(session.user.id);
       const { data: profile } = await supabase.from('profiles').select('points').eq('id', session.user.id).single();
       setUserPoints(profile?.points ?? 0);
+
+      // Autofill contact + car details for signed-in members (only fields they leave blank)
+      const meta = session.user.user_metadata ?? {};
+      const { data: savedCar } = await supabase
+        .from('cars')
+        .select('make,model,year,colour')
+        .eq('owner_id', session.user.id)
+        .maybeSingle();
+      setForm(f => ({
+        ...f,
+        name: f.name || meta.full_name || '',
+        phone: f.phone || meta.phone || '',
+        suburb: f.suburb || meta.suburb || '',
+        carMake: f.carMake || savedCar?.make || '',
+        carModel: f.carModel || savedCar?.model || '',
+        carYear: f.carYear || (savedCar?.year ? String(savedCar.year) : ''),
+        carColour: f.carColour || savedCar?.colour || '',
+      }));
+
       // Check if a reward is already locked in a pending/confirmed booking
       const { data: active } = await supabase
         .from('bookings')
@@ -954,19 +986,6 @@ function BookPageInner() {
       if (active && active.length > 0) setRewardLocked(true);
     });
   }, []);
-
-  const [form, setForm] = useState({
-    name: "",
-    phone: "",
-    suburb: "",
-    carMake: "",
-    carModel: "",
-    carYear: "",
-    carColour: "",
-    notes: "",
-  });
-
-  const setField = useCallback((key: keyof typeof form) => (v: string) => setForm(f => ({ ...f, [key]: v })), []);
 
   const service = SERVICES.find(s => s.id === selectedService);
 
@@ -1267,7 +1286,7 @@ function BookPageInner() {
                     onChange={e => setField("notes")(e.target.value)}
                     rows={3}
                     placeholder="Stubborn stains, pet hair, light scratches..."
-                    className="w-full bg-transparent rounded-xl px-4 py-3 text-sm font-medium outline-none resize-none transition-all duration-200"
+                    className="w-full bg-transparent rounded-xl px-4 py-3 text-sm font-medium outline-none resize-none transition-all duration-200 placeholder:text-white/20"
                     style={{
                       background: "rgba(255,255,255,0.035)",
                       border: "1px solid rgba(255,255,255,0.09)",

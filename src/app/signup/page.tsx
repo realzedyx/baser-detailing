@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ShadowOverlay } from '@/components/ui/shadow-overlay';
-import { Mail, Lock, Eye, EyeClosed, ArrowRight, User, Home } from 'lucide-react';
+import { Mail, Lock, Eye, EyeClosed, ArrowRight, User, Home, Phone, MapPin } from 'lucide-react';
 import { cn } from "@/lib/utils"
 import { supabase } from '@/lib/supabase';
 
@@ -29,6 +29,8 @@ export default function SignUpPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [name, setName] = useState("");
+  const [phone, setPhone] = useState("");
+  const [suburb, setSuburb] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
@@ -46,7 +48,7 @@ export default function SignUpPage() {
     const { error } = await supabase.auth.signUp({
       email,
       password,
-      options: { data: { full_name: name } },
+      options: { data: { full_name: name, phone, suburb } },
     });
     if (error) {
       setError(error.message);
@@ -221,6 +223,68 @@ export default function SignUpPage() {
                         className="w-full bg-white/5 border-transparent focus:border-[#CBA65C]/30 text-white placeholder:text-white/30 h-10 transition-all duration-300 pl-10 pr-3 focus:bg-white/10"
                       />
                       {focusedInput === "name" && (
+                        <motion.div
+                          layoutId="input-highlight"
+                          className="absolute inset-0 bg-white/5 -z-10"
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                          exit={{ opacity: 0 }}
+                          transition={{ duration: 0.2 }}
+                        />
+                      )}
+                    </div>
+                  </motion.div>
+
+                  {/* Phone input */}
+                  <motion.div
+                    className={`relative ${focusedInput === "phone" ? 'z-10' : ''}`}
+                    whileFocus={{ scale: 1.02 }}
+                    whileHover={{ scale: 1.01 }}
+                    transition={{ type: "spring", stiffness: 400, damping: 25 }}
+                  >
+                    <div className="relative flex items-center overflow-hidden rounded-lg">
+                      <Phone className={`absolute left-3 w-4 h-4 transition-all duration-300 ${focusedInput === "phone" ? 'text-[#CBA65C]' : 'text-white/40'}`} />
+                      <Input
+                        type="tel"
+                        placeholder="Phone number"
+                        value={phone}
+                        onChange={(e) => setPhone(e.target.value)}
+                        onFocus={() => setFocusedInput("phone")}
+                        onBlur={() => setFocusedInput(null)}
+                        className="w-full bg-white/5 border-transparent focus:border-[#CBA65C]/30 text-white placeholder:text-white/30 h-10 transition-all duration-300 pl-10 pr-3 focus:bg-white/10"
+                      />
+                      {focusedInput === "phone" && (
+                        <motion.div
+                          layoutId="input-highlight"
+                          className="absolute inset-0 bg-white/5 -z-10"
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                          exit={{ opacity: 0 }}
+                          transition={{ duration: 0.2 }}
+                        />
+                      )}
+                    </div>
+                  </motion.div>
+
+                  {/* Suburb input */}
+                  <motion.div
+                    className={`relative ${focusedInput === "suburb" ? 'z-10' : ''}`}
+                    whileFocus={{ scale: 1.02 }}
+                    whileHover={{ scale: 1.01 }}
+                    transition={{ type: "spring", stiffness: 400, damping: 25 }}
+                  >
+                    <div className="relative flex items-center overflow-hidden rounded-lg">
+                      <MapPin className={`absolute left-3 w-4 h-4 transition-all duration-300 ${focusedInput === "suburb" ? 'text-[#CBA65C]' : 'text-white/40'}`} />
+                      <Input
+                        type="text"
+                        placeholder="Suburb"
+                        value={suburb}
+                        onChange={(e) => setSuburb(e.target.value)}
+                        onFocus={() => setFocusedInput("suburb")}
+                        onBlur={() => setFocusedInput(null)}
+                        className="w-full bg-white/5 border-transparent focus:border-[#CBA65C]/30 text-white placeholder:text-white/30 h-10 transition-all duration-300 pl-10 pr-3 focus:bg-white/10"
+                      />
+                      {focusedInput === "suburb" && (
                         <motion.div
                           layoutId="input-highlight"
                           className="absolute inset-0 bg-white/5 -z-10"
