@@ -5,7 +5,7 @@ import { createClient } from "@supabase/supabase-js";
 
 export async function POST(req: NextRequest) {
   const body = await req.json();
-  const { service, date, time, name, phone, suburb, carMake, carModel, notes } = body;
+  const { service, date, time, name, phone, suburb, carMake, carModel, carYear, carColour, notes } = body;
 
   const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -22,6 +22,8 @@ export async function POST(req: NextRequest) {
       suburb,
       car_make: carMake,
       car_model: carModel,
+      car_year: carYear || null,
+      car_colour: carColour || null,
       notes,
       status: "pending",
       created_at: new Date().toISOString(),

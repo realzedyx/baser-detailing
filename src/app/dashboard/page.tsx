@@ -25,7 +25,7 @@ interface Job {
 interface Booking {
   id: string; service: string; date: string; time: string | null;
   name: string; phone: string; suburb: string;
-  car_make: string; car_model: string; notes: string;
+  car_make: string; car_model: string; car_year?: string | null; car_colour?: string | null; notes: string;
   status: string; created_at: string;
 }
 interface Profile {
@@ -153,7 +153,7 @@ function RevenueChart({ jobs }: { jobs: Job[] }) {
 }
 
 // ─── Jobs Tab ─────────────────────────────────────────────────────────────────
-type JobFormPrefill = { date?: string; make?: string; model?: string; suburb?: string; service?: string; notes?: string };
+type JobFormPrefill = { date?: string; make?: string; model?: string; year?: string; colour?: string; suburb?: string; service?: string; notes?: string };
 
 function JobsTab({ jobs, onRefresh, prefill }: { jobs: Job[]; onRefresh: () => void; prefill?: JobFormPrefill | null }) {
   const [form, setForm] = useState({ date: '', make: '', model: '', year: '', colour: '', suburb: '', service: 'Interior', amount: '', payment: 'PayID', notes: '' });
@@ -166,7 +166,7 @@ function JobsTab({ jobs, onRefresh, prefill }: { jobs: Job[]; onRefresh: () => v
       if (s.includes('exterior')) return 'Exterior';
       return 'Interior';
     })();
-    setForm(f => ({ ...f, date: prefill.date ?? f.date, make: prefill.make ?? f.make, model: prefill.model ?? f.model, suburb: prefill.suburb ?? f.suburb, service: svc, notes: prefill.notes ?? f.notes }));
+    setForm(f => ({ ...f, date: prefill.date ?? f.date, make: prefill.make ?? f.make, model: prefill.model ?? f.model, year: prefill.year ?? f.year, colour: prefill.colour ?? f.colour, suburb: prefill.suburb ?? f.suburb, service: svc, notes: prefill.notes ?? f.notes }));
   }, [prefill]);
   const [focused, setFocused] = useState('');
   const [saving, setSaving] = useState(false);
@@ -722,7 +722,7 @@ function Dashboard() {
   const [prefillJob, setPrefillJob] = useState<JobFormPrefill | null>(null);
 
   const handleLogJob = (b: Booking) => {
-    setPrefillJob({ date: b.date, make: b.car_make, model: b.car_model, suburb: b.suburb, service: b.service, notes: b.notes || '' });
+    setPrefillJob({ date: b.date, make: b.car_make, model: b.car_model, year: b.car_year ?? '', colour: b.car_colour ?? '', suburb: b.suburb, service: b.service, notes: b.notes || '' });
     setTab('Jobs');
   };
 

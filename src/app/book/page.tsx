@@ -759,6 +759,8 @@ function BookPageInner() {
     suburb: "",
     carMake: "",
     carModel: "",
+    carYear: "",
+    carColour: "",
     notes: "",
   });
 
@@ -1036,6 +1038,10 @@ function BookPageInner() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 mb-5">
                   <Field label="Car make" name="carMake" value={form.carMake} onChange={setField("carMake")} required placeholder="Toyota" />
                   <Field label="Car model" name="carModel" value={form.carModel} onChange={setField("carModel")} required placeholder="Corolla" />
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 mb-5">
+                  <Field label="Year" name="carYear" value={form.carYear} onChange={setField("carYear")} placeholder="2021" />
+                  <Field label="Colour" name="carColour" value={form.carColour} onChange={setField("carColour")} placeholder="Black" />
                 </div>
                 <div className="flex flex-col gap-1.5">
                   <label className="text-[10px] uppercase tracking-[0.22em] font-semibold" style={{ color: "rgba(203,166,92,0.65)" }}>
