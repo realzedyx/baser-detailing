@@ -399,6 +399,7 @@ function AvailabilityTab({
   const [mode, setMode] = useState<DayStatus>('blocked');
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [applying, setApplying] = useState(false);
+  const [applyError, setApplyError] = useState<string | null>(null);
   const [startTime, setStartTime] = useState('8:00 AM');
   const [bookingWindow, setBookingWindow] = useState('4');
   const [offDays, setOffDays] = useState<number[]>([0]);
@@ -428,9 +429,12 @@ function AvailabilityTab({
   const applyStatus = async () => {
     if (selected.size === 0) return;
     setApplying(true);
+    setApplyError(null);
     const rows = Array.from(selected).map(date => ({ date, status: mode, updated_at: new Date().toISOString() }));
     const { error } = await supabase.from('availability').upsert(rows, { onConflict: 'date' });
-    if (!error) {
+    if (error) {
+      setApplyError(error.message);
+    } else {
       setSelected(new Set());
       onRefresh();
     }
@@ -539,6 +543,13 @@ function AvailabilityTab({
           ))}
           <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.2)', marginLeft: 'auto', fontStyle: 'italic' }}>Click dates to select, then apply</span>
         </div>
+
+        {/* Error */}
+        {applyError && (
+          <div style={{ marginTop: 12, padding: '10px 14px', background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.3)', borderRadius: 10, fontSize: 11, color: 'rgba(239,68,68,0.85)' }}>
+            Error: {applyError}
+          </div>
+        )}
 
         {/* Apply bar */}
         <AnimatePresence>
