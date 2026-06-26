@@ -311,13 +311,29 @@ function JobsTab({ jobs, onRefresh, prefill }: { jobs: Job[]; onRefresh: () => v
 function BookingsTab({ bookings, onRefresh, onLogJob }: { bookings: Booking[]; onRefresh: () => void; onLogJob: (b: Booking) => void }) {
   const [updating, setUpdating] = useState<string | null>(null);
   const [updateError, setUpdateError] = useState<string | null>(null);
+  const [updateErrorId, setUpdateErrorId] = useState<string | null>(null);
 
   const updateStatus = async (id: string, status: string, date?: string) => {
     setUpdating(id);
     setUpdateError(null);
-    const { error } = await supabase.from('bookings').update({ status }).eq('id', id);
-    if (error) {
-      setUpdateError(`bookings update: ${error.message}`);
+    setUpdateErrorId(null);
+    try {
+      const { data: updated, error } = await supabase.from('bookings').update({ status }).eq('id', id).select();
+      if (error) {
+        setUpdateError(`bookings update: ${error.message}`);
+        setUpdateErrorId(id);
+        setUpdating(null);
+        return;
+      }
+      if (!updated || updated.length === 0) {
+        setUpdateError(`RLS blocked write — no rows updated (id=${id}). Run the SQL fix in Supabase.`);
+        setUpdateErrorId(id);
+        setUpdating(null);
+        return;
+      }
+    } catch (e: unknown) {
+      setUpdateError(`JS error: ${e instanceof Error ? e.message : String(e)}`);
+      setUpdateErrorId(id);
       setUpdating(null);
       return;
     }
@@ -365,16 +381,11 @@ function BookingsTab({ bookings, onRefresh, onLogJob }: { bookings: Booking[]; o
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-      {updateError && (
-        <div style={{ padding: '10px 16px', background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.3)', borderRadius: 10, fontSize: 12, color: 'rgba(239,68,68,0.9)' }}>
-          Error: {updateError}
-        </div>
-      )}
       {bookings.length === 0 && (
         <div style={{ textAlign: 'center', padding: '60px 0', color: 'rgba(255,255,255,0.2)', fontSize: 13 }}>No booking requests yet</div>
       )}
       {bookings.map((b, i) => (
-        <motion.div key={b.id} {...a(i)} style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 18, padding: '22px 24px' }}>
+        <motion.div key={b.id} {...a(i)} style={{ background: 'rgba(255,255,255,0.02)', border: `1px solid ${updateErrorId === b.id ? 'rgba(239,68,68,0.4)' : 'rgba(255,255,255,0.06)'}`, borderRadius: 18, padding: '22px 24px' }}>
           <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap', alignItems: 'flex-start' }}>
             <div style={{ flex: 1, minWidth: 200 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
@@ -394,24 +405,31 @@ function BookingsTab({ bookings, onRefresh, onLogJob }: { bookings: Booking[]; o
               <p style={{ margin: '3px 0', fontSize: 12, color: GOLD }}>{b.phone}</p>
               {b.notes && <p style={{ margin: '4px 0 0', fontSize: 11, color: 'rgba(255,255,255,0.25)', fontStyle: 'italic' }}>{b.notes}</p>}
             </div>
-            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center', opacity: updating === b.id ? 0.5 : 1 }}>
-              {b.status === 'pending' && <>
-                <button style={btnStyle('rgba(34,197,94,0.8)', 'rgba(34,197,94,0.1)')} onClick={() => updateStatus(b.id, 'confirmed', b.date)} disabled={!!updating}>
-                  <Check size={10} style={{ display: 'inline', verticalAlign: 'middle', marginRight: 4 }} />Confirm &amp; Lock Day
-                </button>
-                <button style={btnStyle('rgba(239,68,68,0.7)', 'rgba(239,68,68,0.08)')} onClick={() => updateStatus(b.id, 'declined')} disabled={!!updating}>
-                  <X size={10} style={{ display: 'inline', verticalAlign: 'middle', marginRight: 4 }} />Decline
-                </button>
-              </>}
-              {b.status === 'confirmed' && <>
-                <button style={btnStyle('rgba(203,166,92,0.7)', 'rgba(203,166,92,0.08)')} onClick={() => textConfirm(b)}>Text Confirmation</button>
-                <button style={btnStyle('rgba(34,197,94,0.8)', 'rgba(34,197,94,0.1)')} onClick={() => markDone(b)} disabled={!!updating}>Mark Done → Log Job</button>
-                <button style={btnStyle('rgba(239,68,68,0.7)', 'rgba(239,68,68,0.08)')} onClick={() => updateStatus(b.id, 'declined')} disabled={!!updating}>
-                  <X size={10} style={{ display: 'inline', verticalAlign: 'middle', marginRight: 4 }} />Cancel
-                </button>
-              </>}
-              {(b.status === 'done' || b.status === 'declined') && (
-                <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.25)', fontStyle: 'italic' }}>{b.status === 'done' ? 'Completed' : 'Declined'}</span>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, alignItems: 'flex-start' }}>
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center', opacity: updating === b.id ? 0.5 : 1 }}>
+                {b.status === 'pending' && <>
+                  <button type="button" style={btnStyle('rgba(34,197,94,0.8)', 'rgba(34,197,94,0.1)')} onClick={() => updateStatus(b.id, 'confirmed', b.date)} disabled={!!updating}>
+                    {updating === b.id ? 'Saving…' : <><Check size={10} style={{ display: 'inline', verticalAlign: 'middle', marginRight: 4 }} />Confirm &amp; Lock Day</>}
+                  </button>
+                  <button type="button" style={btnStyle('rgba(239,68,68,0.7)', 'rgba(239,68,68,0.08)')} onClick={() => updateStatus(b.id, 'declined')} disabled={!!updating}>
+                    <X size={10} style={{ display: 'inline', verticalAlign: 'middle', marginRight: 4 }} />Decline
+                  </button>
+                </>}
+                {b.status === 'confirmed' && <>
+                  <button type="button" style={btnStyle('rgba(203,166,92,0.7)', 'rgba(203,166,92,0.08)')} onClick={() => textConfirm(b)}>Text Confirmation</button>
+                  <button type="button" style={btnStyle('rgba(34,197,94,0.8)', 'rgba(34,197,94,0.1)')} onClick={() => markDone(b)} disabled={!!updating}>Mark Done → Log Job</button>
+                  <button type="button" style={btnStyle('rgba(239,68,68,0.7)', 'rgba(239,68,68,0.08)')} onClick={() => updateStatus(b.id, 'declined')} disabled={!!updating}>
+                    <X size={10} style={{ display: 'inline', verticalAlign: 'middle', marginRight: 4 }} />Cancel
+                  </button>
+                </>}
+                {(b.status === 'done' || b.status === 'declined') && (
+                  <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.25)', fontStyle: 'italic' }}>{b.status === 'done' ? 'Completed' : 'Declined'}</span>
+                )}
+              </div>
+              {updateErrorId === b.id && updateError && (
+                <div style={{ fontSize: 11, color: 'rgba(239,68,68,0.9)', background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.25)', borderRadius: 8, padding: '6px 10px', maxWidth: 340 }}>
+                  ⚠ {updateError}
+                </div>
               )}
             </div>
           </div>
