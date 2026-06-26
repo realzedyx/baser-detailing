@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  Phone, MessageCircle, Check, X,
+  Phone, MessageCircle, Check, X, Trash2,
   ChevronLeft, ChevronRight, Calendar, Users, Briefcase, BookOpen,
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
@@ -180,6 +180,16 @@ function JobsTab({ jobs, onRefresh, prefill }: { jobs: Job[]; onRefresh: () => v
   const [filterPayment, setFilterPayment] = useState('All');
   const [search, setSearch] = useState('');
   const [fSearch, setFSearch] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState<string | null>(null);
+
+  const handleDelete = async (id: string) => {
+    setDeleting(id);
+    const { error } = await supabase.from('jobs').delete().eq('id', id);
+    setDeleting(null);
+    setConfirmDelete(null);
+    if (!error) onRefresh();
+  };
 
   const set = (k: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) =>
     setForm(f => ({ ...f, [k]: e.target.value }));
@@ -312,6 +322,24 @@ function JobsTab({ jobs, onRefresh, prefill }: { jobs: Job[]; onRefresh: () => v
                   <p style={{ margin: 0, fontSize: 15, fontWeight: 300, color: GOLD }}>${j.amount}</p>
                   <p style={{ margin: '3px 0 0', fontSize: 10, color: j.payment === 'Cash' ? 'rgba(255,255,255,0.35)' : 'rgba(203,166,92,0.5)', letterSpacing: '0.1em' }}>{j.payment}</p>
                 </div>
+                {confirmDelete === j.id ? (
+                  <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                    <button type="button" disabled={deleting === j.id} onClick={() => handleDelete(j.id)}
+                      style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'rgba(239,68,68,0.95)', background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.5)', borderRadius: 8, padding: '6px 10px', cursor: deleting === j.id ? 'wait' : 'pointer' }}>
+                      {deleting === j.id ? '…' : 'Delete'}
+                    </button>
+                    <button type="button" onClick={() => setConfirmDelete(null)}
+                      style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)', background: 'none', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, padding: '6px 10px', cursor: 'pointer' }}>
+                      Cancel
+                    </button>
+                  </div>
+                ) : (
+                  <motion.button type="button" whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} onClick={() => setConfirmDelete(j.id)}
+                    title="Delete job"
+                    style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 30, height: 30, borderRadius: 8, border: '1px solid rgba(255,255,255,0.08)', background: 'transparent', color: 'rgba(255,255,255,0.3)', cursor: 'pointer' }}>
+                    <Trash2 size={13} strokeWidth={1.8} />
+                  </motion.button>
+                )}
               </div>
             ))}
           </div>
