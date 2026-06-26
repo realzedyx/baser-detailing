@@ -170,6 +170,7 @@ function JobsTab({ jobs, onRefresh, prefill }: { jobs: Job[]; onRefresh: () => v
   }, [prefill]);
   const [focused, setFocused] = useState('');
   const [saving, setSaving] = useState(false);
+  const [saveResult, setSaveResult] = useState<{ ok: boolean; msg: string } | null>(null);
   const [filterService, setFilterService] = useState('All');
   const [filterPayment, setFilterPayment] = useState('All');
   const [search, setSearch] = useState('');
@@ -187,10 +188,14 @@ function JobsTab({ jobs, onRefresh, prefill }: { jobs: Job[]; onRefresh: () => v
       amount: parseFloat(form.amount) || 0, payment: form.payment, notes: form.notes,
     });
     setSaving(false);
-    if (!error) {
+    if (error) {
+      setSaveResult({ ok: false, msg: error.message });
+    } else {
       setForm({ date: '', make: '', model: '', year: '', colour: '', suburb: '', service: 'Interior', amount: '', payment: 'PayID', notes: '' });
+      setSaveResult({ ok: true, msg: 'Job saved!' });
       onRefresh();
     }
+    setTimeout(() => setSaveResult(null), 4000);
   };
 
   const filtered = jobs.filter(j => {
@@ -247,6 +252,14 @@ function JobsTab({ jobs, onRefresh, prefill }: { jobs: Job[]; onRefresh: () => v
             <motion.div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.25), transparent)' }} animate={{ x: ['-100%', '100%'] }} transition={{ duration: 2.5, ease: 'easeInOut', repeat: Infinity, repeatDelay: 4 }} />
             <span style={{ position: 'relative', zIndex: 1 }}>{saving ? 'Saving…' : 'Save Job →'}</span>
           </motion.button>
+          <AnimatePresence>
+            {saveResult && (
+              <motion.p initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
+                style={{ margin: 0, fontSize: 12, textAlign: 'center', color: saveResult.ok ? 'rgba(74,222,128,0.85)' : 'rgba(239,68,68,0.85)' }}>
+                {saveResult.msg}
+              </motion.p>
+            )}
+          </AnimatePresence>
         </form>
       </motion.div>
 
@@ -401,9 +414,14 @@ function AvailabilityTab({
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [applying, setApplying] = useState(false);
   const [applyError, setApplyError] = useState<string | null>(null);
-  const [startTime, setStartTime] = useState('8:00 AM');
   const [bookingWindow, setBookingWindow] = useState('4');
-  const [offDays, setOffDays] = useState<number[]>([0]);
+  const [settingsSaved, setSettingsSaved] = useState(false);
+  const [settingsError, setSettingsError] = useState<string | null>(null);
+
+  useEffect(() => {
+    supabase.from('settings').select('value').eq('key', 'booking_window_weeks').single()
+      .then(({ data }) => { if (data?.value) setBookingWindow(data.value); });
+  }, []);
 
   const firstDay = new Date(viewYear, viewMonth, 1).getDay();
   const daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate();
@@ -581,28 +599,33 @@ function AvailabilityTab({
       <motion.div {...a(1)} style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 18, padding: '24px', display: 'flex', flexDirection: 'column', gap: 20 }}>
         <p style={{ margin: 0, fontSize: 9, color: 'rgba(203,166,92,0.6)', letterSpacing: '0.22em', textTransform: 'uppercase' }}>Settings</p>
         <div>
-          <label style={lbl}>Default Start Time</label>
-          <input value={startTime} onChange={e => setStartTime(e.target.value)} style={inp(false)} />
-        </div>
-        <div>
           <label style={lbl}>Booking Window (weeks ahead)</label>
-          <input value={bookingWindow} onChange={e => setBookingWindow(e.target.value)} style={inp(false)} />
-        </div>
-        <div>
-          <label style={lbl}>Default Off Days</label>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-            {DAY_NAMES.map((d, i) => (
-              <button key={i} onClick={() => setOffDays(ds => ds.includes(i) ? ds.filter(x => x !== i) : [...ds, i])}
-                style={{ padding: '6px 10px', fontSize: 10, borderRadius: 8, cursor: 'pointer', border: `1px solid ${offDays.includes(i) ? 'rgba(239,68,68,0.5)' : 'rgba(255,255,255,0.08)'}`, background: offDays.includes(i) ? 'rgba(239,68,68,0.1)' : 'transparent', color: offDays.includes(i) ? 'rgba(239,68,68,0.8)' : 'rgba(255,255,255,0.35)', transition: 'all 0.15s' }}>
-                {d}
-              </button>
-            ))}
-          </div>
+          <input value={bookingWindow} onChange={e => setBookingWindow(e.target.value)} style={inp(false)} placeholder="4" />
         </div>
         <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }}
+          onClick={async () => {
+            setSettingsError(null);
+            const { error } = await supabase.from('settings').upsert({ key: 'booking_window_weeks', value: bookingWindow }, { onConflict: 'key' });
+            if (error) { setSettingsError(error.message); }
+            else { setSettingsSaved(true); setTimeout(() => setSettingsSaved(false), 3000); }
+          }}
           style={{ marginTop: 4, background: `linear-gradient(120deg, #BF9A50, ${GOLD} 40%, #E4C883 65%, ${GOLD})`, color: BG, border: 'none', borderRadius: 12, padding: '12px', fontSize: 11, fontWeight: 500, letterSpacing: '0.14em', textTransform: 'uppercase', cursor: 'pointer' }}>
           Save Settings
         </motion.button>
+        <AnimatePresence>
+          {settingsSaved && (
+            <motion.p initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
+              style={{ margin: 0, fontSize: 12, textAlign: 'center', color: 'rgba(74,222,128,0.85)' }}>
+              Settings saved
+            </motion.p>
+          )}
+          {settingsError && (
+            <motion.p initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
+              style={{ margin: 0, fontSize: 12, textAlign: 'center', color: 'rgba(239,68,68,0.85)' }}>
+              {settingsError}
+            </motion.p>
+          )}
+        </AnimatePresence>
       </motion.div>
     </div>
   );

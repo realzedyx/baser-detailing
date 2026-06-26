@@ -277,14 +277,21 @@ function Calendar({
   selectedDate,
   onSelectDate,
   availability,
+  maxWeeks = 4,
 }: {
   selectedDate: string | null;
   onSelectDate: (d: string) => void;
   availability: Record<string, string>;
+  maxWeeks?: number;
 }) {
   const today = new Date();
   const [viewYear, setViewYear] = useState(today.getFullYear());
   const [viewMonth, setViewMonth] = useState(today.getMonth());
+  const [windowMsg, setWindowMsg] = useState(false);
+
+  const maxDate = new Date(today.getFullYear(), today.getMonth(), today.getDate() + maxWeeks * 7);
+  const maxYear = maxDate.getFullYear();
+  const maxMonth = maxDate.getMonth();
 
   const daysInMonth = getDaysInMonth(viewYear, viewMonth);
   const firstDay = getFirstDayOfMonth(viewYear, viewMonth);
@@ -296,6 +303,13 @@ function Calendar({
     else setViewMonth(m => m - 1);
   };
   const nextMonth = () => {
+    const nextY = viewMonth === 11 ? viewYear + 1 : viewYear;
+    const nextM = viewMonth === 11 ? 0 : viewMonth + 1;
+    if (nextY > maxYear || (nextY === maxYear && nextM > maxMonth)) {
+      setWindowMsg(true);
+      setTimeout(() => setWindowMsg(false), 3000);
+      return;
+    }
     if (viewMonth === 11) { setViewMonth(0); setViewYear(y => y + 1); }
     else setViewMonth(m => m + 1);
   };
@@ -304,6 +318,8 @@ function Calendar({
     d === today.getDate() && viewMonth === today.getMonth() && viewYear === today.getFullYear();
   const isPast = (d: number) =>
     new Date(viewYear, viewMonth, d) < new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  const isBeyondWindow = (d: number) =>
+    new Date(viewYear, viewMonth, d) > maxDate;
   const dateStr = (d: number) =>
     `${viewYear}-${String(viewMonth + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
 
@@ -340,6 +356,13 @@ function Calendar({
         </button>
       </div>
 
+      {/* Booking window message */}
+      {windowMsg && (
+        <p className="text-center text-[11px] mb-3" style={{ color: 'rgba(203,166,92,0.8)' }}>
+          Bookings are only available up to {maxWeeks} {maxWeeks === 1 ? 'week' : 'weeks'} ahead
+        </p>
+      )}
+
       {/* Day headers */}
       <div className="grid grid-cols-7 mb-2">
         {DAYS_OF_WEEK.map(d => (
@@ -356,13 +379,14 @@ function Calendar({
         {blanks.map((_, i) => <div key={`b-${i}`} />)}
         {days.map(d => {
           const past = isPast(d);
+          const beyond = isBeyondWindow(d);
           const ds = dateStr(d);
           const sel = selectedDate === ds;
           const tod = isToday(d);
           const status = availability[ds];
           const isOpen = status === 'open';
           const isUnavailable = status === 'booked' || status === 'blocked';
-          const disabled = past || isUnavailable || !isOpen;
+          const disabled = past || beyond || isUnavailable || !isOpen;
 
           return (
             <button
@@ -742,6 +766,7 @@ function BookPageInner() {
   const [submitting, setSubmitting] = useState(false);
   const [toastError, setToastError] = useState<string | null>(null);
   const [availability, setAvailability] = useState<Record<string, string>>({});
+  const [bookingWindowWeeks, setBookingWindowWeeks] = useState(4);
 
   useEffect(() => {
     supabase.from('availability').select('date,status').then(({ data }) => {
@@ -751,6 +776,8 @@ function BookPageInner() {
         setAvailability(map);
       }
     });
+    supabase.from('settings').select('value').eq('key', 'booking_window_weeks').single()
+      .then(({ data }) => { if (data?.value) setBookingWindowWeeks(parseInt(data.value, 10) || 4); });
   }, []);
 
   const [form, setForm] = useState({
@@ -935,7 +962,7 @@ function BookPageInner() {
                 Pick a day that works for you.
               </p>
 
-              <Calendar selectedDate={selectedDate} onSelectDate={(d) => { setSelectedDate(d); setSelectedTime(null); }} availability={availability} />
+              <Calendar selectedDate={selectedDate} onSelectDate={(d) => { setSelectedDate(d); setSelectedTime(null); }} availability={availability} maxWeeks={bookingWindowWeeks} />
 
               {selectedDate && <DateConfirmation selectedDate={selectedDate} />}
 
