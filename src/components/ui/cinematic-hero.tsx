@@ -200,13 +200,13 @@ export interface CinematicHeroProps extends React.HTMLAttributes<HTMLDivElement>
 }
 
 export function CinematicHero({
-  brandName = "Sobers",
-  tagline1 = "Track the journey,",
-  tagline2 = "not just the days.",
-  cardHeading = "Accountability, redefined.",
-  cardDescription = <><span className="text-white font-semibold">Sobers</span> empowers sponsors and sponsees in 12-step recovery programs with structured accountability, precise sobriety tracking, and beautiful visual timelines.</>,
-  metricValue = 365,
-  metricLabel = "Days Sober",
+  brandName = "Baser Detailing",
+  tagline1 = "Showroom finish,",
+  tagline2 = "in your driveway",
+  cardHeading = "Earn rewards with our loyalty program",
+  cardDescription = <><span className="text-white font-semibold">Baser Detailing</span> rewards every detail with points you can redeem for discounts. Premium mobile detailing across metro Melbourne — we come to you.</>,
+  metricValue = 357,
+  metricLabel = "Your Rewards",
   ctaHref = "/signup",
   ctaLabel = "Create Account",
   className,
@@ -408,10 +408,10 @@ export function CinematicHero({
                     <div className="relative w-full h-full pt-12 px-5 pb-8 flex flex-col">
                       <div className="phone-widget flex justify-between items-center mb-8">
                         <div className="flex flex-col">
-                          <span className="text-[10px] text-neutral-400 uppercase tracking-widest font-bold mb-1">Today</span>
-                          <span className="text-xl font-bold tracking-tight text-white drop-shadow-md">Journey</span>
+                          <span className="text-[10px] text-neutral-400 uppercase tracking-widest font-bold mb-1">Loyalty</span>
+                          <span className="text-xl font-bold tracking-tight text-white drop-shadow-md">Rewards</span>
                         </div>
-                        <div className="w-9 h-9 rounded-full bg-white/5 text-neutral-200 flex items-center justify-center font-bold text-sm border border-white/10 shadow-lg shadow-black/50">JS</div>
+                        <div className="w-9 h-9 rounded-full bg-white/5 text-neutral-200 flex items-center justify-center font-bold text-sm border border-white/10 shadow-lg shadow-black/50">B</div>
                       </div>
 
                       <div className="phone-widget relative w-44 h-44 mx-auto flex items-center justify-center mb-8 drop-shadow-[0_15px_25px_rgba(0,0,0,0.8)]">

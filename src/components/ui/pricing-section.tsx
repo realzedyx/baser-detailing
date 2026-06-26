@@ -54,6 +54,7 @@ const PACKAGES = [
     price: "$219",
     featured: true,
     badge: "Most Booked",
+    save: "Save $59 vs booking separately",
     inclusions: [
       "Everything in the Interior package",
       "Everything in the Exterior package",
@@ -215,13 +216,14 @@ function RewardsTracker() {
       <p className="text-center mt-6 text-[12px]" style={{ color: "rgba(255,255,255,0.2)" }}>
         {pts === null ? (
           <>
+            Every $1 spent = 1 point toward free details.{" "}
             <button
               onClick={() => router.push('/signin')}
               style={{ color: "#CBA65C", textDecoration: "underline", background: "none", border: "none", cursor: "pointer", fontSize: 12 }}
             >
               Sign in
             </button>
-            {" "}to track your rewards
+            {" "}to track yours
           </>
         ) : current >= MAX ? (
           "VIP Member ✦"
@@ -540,6 +542,11 @@ export function PricingSection() {
                         >
                           {pkg.price}
                         </motion.span>
+                        {(pkg as { save?: string }).save && (
+                          <span className="block text-[10px] font-semibold mt-1 whitespace-nowrap" style={{ color: "#E4C883" }}>
+                            {(pkg as { save?: string }).save}
+                          </span>
+                        )}
                       </div>
 
                       {/* Chevron */}
@@ -700,9 +707,14 @@ export function PricingSection() {
         {/* Footer note */}
         <p
           ref={footerRef}
-          className="text-center mt-10 text-[#E8E8E8]/25 text-xs tracking-wide"
+          className="text-center mt-10 text-[#E8E8E8]/45 text-xs tracking-wide"
         >
-          Pricing varies by vehicle size & condition · Free quote available
+          Prices shown are for sedans &amp; small cars · SUVs, 4WDs &amp; vans a little more · Free quote anytime
+        </p>
+
+        {/* Guarantee — reduce purchase anxiety right where the decision happens */}
+        <p className="text-center mt-3 text-xs tracking-wide" style={{ color: "rgba(203,166,92,0.7)" }}>
+          Not happy with a spot? Tell me before I leave and I&rsquo;ll fix it free.
         </p>
 
         {/* Rewards progress tracker */}

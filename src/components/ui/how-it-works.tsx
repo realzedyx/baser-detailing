@@ -487,10 +487,23 @@ export function HowItWorksSection() {
           whileInView={{ opacity: 1 }}
           viewport={{ once: true, margin: "-60px" }}
           transition={{ duration: 0.6, delay: 0.2 }}
-          className="text-[#E8E8E8]/25 text-xs tracking-wide mt-2"
+          className="text-[#E8E8E8]/45 text-xs tracking-wide mt-2"
         >
           Total: 4–6 hours for a full detail · One detailer, start to finish
         </motion.p>
+
+        {/* Soft CTA so a convinced reader can act without scrolling on */}
+        <motion.a
+          href="#packages"
+          initial={{ opacity: 0 }}
+          whileInView={{ opacity: 1 }}
+          viewport={{ once: true, margin: "-60px" }}
+          transition={{ duration: 0.6, delay: 0.3 }}
+          className="inline-block mt-5 text-sm font-semibold tracking-tight transition-opacity hover:opacity-80"
+          style={{ color: "#CBA65C" }}
+        >
+          See packages &amp; pricing →
+        </motion.a>
       </div>
 
       {/* Bottom divider */}

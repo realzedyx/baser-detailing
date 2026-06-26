@@ -29,7 +29,7 @@ export function BookingSection() {
       .eq("status", "open")
       .gte("date", fmt(monday))
       .lte("date", fmt(sunday))
-      .then(({ count }) => setSpotsLeft(count ?? 0));
+      .then(({ count, error }) => setSpotsLeft(error ? null : count ?? 0));
   }, []);
 
   const anim = (delay = 0) => ({
@@ -198,7 +198,7 @@ export function BookingSection() {
                   <div className="relative flex-shrink-0">
                     <div
                       className="w-2 h-2 rounded-full"
-                      style={{ background: spotsLeft === null ? "#888" : spotsLeft > 0 ? "#4ade80" : "#f87171" }}
+                      style={{ background: spotsLeft === null ? "#888" : spotsLeft > 0 ? "#4ade80" : "#E4C883" }}
                     />
                     {(spotsLeft === null || spotsLeft > 0) && (
                       <motion.div
@@ -215,7 +215,9 @@ export function BookingSection() {
                     ) : spotsLeft > 0 ? (
                       <><span style={{ color: "#E4C883" }}>{spotsLeft} {spotsLeft === 1 ? "spot" : "spots"}</span> left this week</>
                     ) : (
-                      <span style={{ color: "#f87171" }}>No spots left this week</span>
+                      // Neutral fallback — a 0 count often just means days aren't seeded yet,
+                      // so never show a "closed for business" red message.
+                      <><span style={{ color: "#E4C883" }}>Booking by request</span> — get in touch to lock a day</>
                     )}
                   </p>
                 </div>

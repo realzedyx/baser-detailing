@@ -30,7 +30,7 @@ const faqs = [
   },
   {
     q: "Do you come to me?",
-    a: "Always. Pick a time and I'll bring everything to your place. You don't need to go anywhere.*",
+    a: "Always. Pick a time and I'll bring everything to your place. You don't need to go anywhere — I just need access to power and water.",
   },
   {
     q: "What do you need from me?",
