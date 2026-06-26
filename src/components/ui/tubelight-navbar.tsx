@@ -4,8 +4,14 @@ import React, { useEffect, useState } from "react"
 import { motion } from "framer-motion"
 import Link from "next/link"
 import { LucideIcon, User } from "lucide-react"
+import { gsap } from "gsap"
+import { ScrollTrigger } from "gsap/ScrollTrigger"
 import { cn } from "@/lib/utils"
 import { supabase } from "@/lib/supabase"
+
+if (typeof window !== "undefined") {
+  gsap.registerPlugin(ScrollTrigger)
+}
 
 interface NavItem {
   name: string
@@ -42,6 +48,35 @@ export function NavBar({ items, className }: NavBarProps) {
     return () => subscription.unsubscribe()
   }, [])
 
+  const handleNav = (e: React.MouseEvent, item: NavItem) => {
+    setActiveTab(item.name)
+
+    // Top of page
+    if (item.url === "#") {
+      e.preventDefault()
+      window.scrollTo({ top: 0, behavior: "smooth" })
+      return
+    }
+
+    // "Why us?" is a GSAP-pinned, scrubbed section. A native anchor jump lands on
+    // the pin START (progress 0 — nothing animated in yet). Instead jump straight to
+    // the END of the pin so all the card animations are settled. We use an instant
+    // jump (not smooth) because native smooth-scroll gets absorbed at the pin boundary;
+    // the scrub then eases the reveal over ~1s from wherever we were.
+    if (item.url === "#services") {
+      const st = ScrollTrigger.getAll().find(
+        (t) => t.vars.pin && (t.trigger as HTMLElement | undefined)?.id === "services",
+      )
+      if (st) {
+        e.preventDefault()
+        window.scrollTo({ top: Math.max(0, st.end - 2) })
+        return
+      }
+    }
+
+    // Other hash links are plain-scroll sections — let the native anchor handle them.
+  }
+
   return (
     <div
       className={cn(
@@ -58,7 +93,7 @@ export function NavBar({ items, className }: NavBarProps) {
             <Link
               key={item.name}
               href={item.url}
-              onClick={() => setActiveTab(item.name)}
+              onClick={(e) => handleNav(e, item)}
               className={cn(
                 "relative cursor-pointer text-sm font-semibold px-6 py-2 rounded-full transition-colors",
                 "text-foreground/80 hover:text-primary",
