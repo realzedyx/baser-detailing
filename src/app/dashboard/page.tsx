@@ -318,15 +318,9 @@ function BookingsTab({ bookings, onRefresh, onLogJob }: { bookings: Booking[]; o
     setUpdateError(null);
     setUpdateErrorId(null);
     try {
-      const { data: updated, error } = await supabase.from('bookings').update({ status }).eq('id', id).select();
+      const { error } = await supabase.from('bookings').update({ status }).eq('id', id);
       if (error) {
         setUpdateError(`bookings update: ${error.message}`);
-        setUpdateErrorId(id);
-        setUpdating(null);
-        return;
-      }
-      if (!updated || updated.length === 0) {
-        setUpdateError(`RLS blocked write — no rows updated (id=${id}). Run the SQL fix in Supabase.`);
         setUpdateErrorId(id);
         setUpdating(null);
         return;
