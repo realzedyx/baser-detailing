@@ -2,39 +2,145 @@ export const runtime = 'edge';
 
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { REWARDS, SERVICE_PRICE } from "@/lib/rewards";
+
+// The client may send either the service id ("full") or its display label
+// ("Full Detail"). Normalise both to the canonical id so pricing is server-trusted.
+const SERVICE_LABEL = "Exterior Detail" as const;
+const SERVICE_BY_LABEL: Record<string, string> = {
+  "Exterior Detail": "exterior",
+  "Interior Detail": "interior",
+  "Full Detail": "full",
+};
+function resolveServiceId(raw: unknown): string | null {
+  if (typeof raw !== "string") return null;
+  if (SERVICE_PRICE[raw] != null) return raw;
+  return SERVICE_BY_LABEL[raw] ?? null;
+}
+
+function str(v: unknown, max = 500): string | null {
+  if (typeof v !== "string") return null;
+  const t = v.trim();
+  return t ? t.slice(0, max) : null;
+}
 
 export async function POST(req: NextRequest) {
-  const body = await req.json();
-  const { service, date, time, name, phone, suburb, carMake, carModel, carYear, carColour, notes, userId, rewardApplied, pendingPoints, amount } = body;
+  let body: Record<string, unknown>;
+  try {
+    body = await req.json();
+  } catch {
+    return NextResponse.json({ error: "Invalid request" }, { status: 400 });
+  }
 
-  const authHeader = req.headers.get('Authorization');
+  const service = body.service;
+  const date = str(body.date, 20);
+  const time = str(body.time, 20);
+  const name = str(body.name, 80);
+  const phone = str(body.phone, 30);
+  const suburb = str(body.suburb, 80);
+  const carMake = str(body.carMake, 40);
+  const carModel = str(body.carModel, 40);
+  const carYear = str(body.carYear, 10);
+  const carColour = str(body.carColour, 40);
+  const notes = str(body.notes, 1000);
 
-  // Use the user's JWT if available so auth.uid() works in RLS and user_id is stored correctly
+  // Validate required fields server-side (the client also checks, but never trust it).
+  if (!name || !phone || !carMake || !carModel) {
+    return NextResponse.json({ error: "Missing required details" }, { status: 400 });
+  }
+  const serviceId = resolveServiceId(service);
+  if (!serviceId) {
+    return NextResponse.json({ error: "Invalid service" }, { status: 400 });
+  }
+  const serviceLabel =
+    Object.keys(SERVICE_BY_LABEL).find((l) => SERVICE_BY_LABEL[l] === serviceId) ?? SERVICE_LABEL;
+
+  const authHeader = req.headers.get("Authorization");
   const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     authHeader ? { global: { headers: { Authorization: authHeader } } } : {}
   );
 
+  // Identity is derived from the verified JWT — never from the request body.
+  let userId: string | null = null;
+  if (authHeader) {
+    const token = authHeader.replace(/^Bearer\s+/i, "");
+    const { data: userData } = await supabase.auth.getUser(token);
+    userId = userData.user?.id ?? null;
+  }
+
+  // Server-side availability check: refuse days that are explicitly booked/blocked.
+  if (date && date !== "TBD") {
+    const { data: day } = await supabase
+      .from("availability")
+      .select("status")
+      .eq("date", date)
+      .maybeSingle();
+    if (day && (day.status === "booked" || day.status === "blocked")) {
+      return NextResponse.json(
+        { error: "That day is no longer available. Please pick another." },
+        { status: 409 }
+      );
+    }
+  }
+
+  // Recompute price, reward and points from server-trusted values. The client's
+  // amount / pending_points / reward are ignored entirely.
+  const basePrice = SERVICE_PRICE[serviceId];
+  let finalAmount = basePrice;
+  let rewardId: string | null = null;
+  let pendingPoints = 0;
+
+  if (userId) {
+    const requestedReward = typeof body.rewardApplied === "string" ? body.rewardApplied : null;
+    if (requestedReward) {
+      const reward = REWARDS.find((r) => r.id === requestedReward);
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("points")
+        .eq("id", userId)
+        .single();
+      const userPoints = profile?.points ?? 0;
+      const serviceOk = reward && (!reward.services || reward.services.includes(serviceId));
+      if (reward && userPoints >= reward.pts && serviceOk) {
+        // Only one reward may be in flight at a time.
+        const { data: active } = await supabase
+          .from("bookings")
+          .select("id")
+          .eq("user_id", userId)
+          .in("status", ["pending", "confirmed"])
+          .not("reward_applied", "is", null)
+          .limit(1);
+        if (!active || active.length === 0) {
+          finalAmount = Math.round(basePrice * (1 - reward.discount));
+          rewardId = reward.id;
+        }
+      }
+    }
+    // Estimate only — real points are awarded from the actual amount when the job is logged.
+    pendingPoints = finalAmount;
+  }
+
   const { error } = await supabase.from("bookings").insert([
     {
-      service,
-      date,
+      service: serviceLabel,
+      date: date ?? "TBD",
       time,
       name,
       phone,
       suburb,
       car_make: carMake,
       car_model: carModel,
-      car_year: carYear || null,
-      car_colour: carColour || null,
+      car_year: carYear,
+      car_colour: carColour,
       notes,
-      amount: amount || null,
+      amount: finalAmount,
       status: "pending",
       created_at: new Date().toISOString(),
-      user_id: userId || null,
-      reward_applied: rewardApplied || null,
-      pending_points: pendingPoints || 0,
+      user_id: userId,
+      reward_applied: rewardId,
+      pending_points: pendingPoints,
     },
   ]);
 
@@ -42,14 +148,9 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
-  // Block the date immediately so no one else can book it while pending
-  if (date) {
-    // Use anon client (no auth) for availability upsert — anon INSERT policy covers this
-    const anonSupabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-    );
-    await anonSupabase.from("availability").upsert(
+  // Block the date immediately so no one else can book it while pending.
+  if (date && date !== "TBD") {
+    await supabase.from("availability").upsert(
       { date, status: "booked", updated_at: new Date().toISOString() },
       { onConflict: "date" }
     );
@@ -59,7 +160,7 @@ export async function POST(req: NextRequest) {
   try {
     await fetch(`https://ntfy.sh/${ntfyTopic}`, {
       method: "POST",
-      body: `New booking request from ${name}\nService: ${service}\nDate: ${date}${time ? ` at ${time}` : ""}\nCar: ${carMake} ${carModel}\nPhone: ${phone}\nSuburb: ${suburb}`,
+      body: `New booking request from ${name}\nService: ${serviceLabel}\nDate: ${date}${time ? ` at ${time}` : ""}\nCar: ${carMake} ${carModel}\nPhone: ${phone}\nSuburb: ${suburb ?? "-"}`,
       headers: {
         Title: "New Booking Request",
         Priority: "high",
