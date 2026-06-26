@@ -310,15 +310,23 @@ function JobsTab({ jobs, onRefresh, prefill }: { jobs: Job[]; onRefresh: () => v
 // ─── Bookings Tab ─────────────────────────────────────────────────────────────
 function BookingsTab({ bookings, onRefresh, onLogJob }: { bookings: Booking[]; onRefresh: () => void; onLogJob: (b: Booking) => void }) {
   const [updating, setUpdating] = useState<string | null>(null);
+  const [updateError, setUpdateError] = useState<string | null>(null);
 
   const updateStatus = async (id: string, status: string, date?: string) => {
     setUpdating(id);
-    await supabase.from('bookings').update({ status }).eq('id', id);
+    setUpdateError(null);
+    const { error } = await supabase.from('bookings').update({ status }).eq('id', id);
+    if (error) {
+      setUpdateError(`bookings update: ${error.message}`);
+      setUpdating(null);
+      return;
+    }
     if (status === 'confirmed' && date) {
-      await supabase.from('availability').upsert(
+      const { error: avErr } = await supabase.from('availability').upsert(
         { date, status: 'booked', updated_at: new Date().toISOString() },
         { onConflict: 'date' }
       );
+      if (avErr) setUpdateError(`availability upsert: ${avErr.message}`);
     }
     setUpdating(null);
     onRefresh();
@@ -357,6 +365,11 @@ function BookingsTab({ bookings, onRefresh, onLogJob }: { bookings: Booking[]; o
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+      {updateError && (
+        <div style={{ padding: '10px 16px', background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.3)', borderRadius: 10, fontSize: 12, color: 'rgba(239,68,68,0.9)' }}>
+          Error: {updateError}
+        </div>
+      )}
       {bookings.length === 0 && (
         <div style={{ textAlign: 'center', padding: '60px 0', color: 'rgba(255,255,255,0.2)', fontSize: 13 }}>No booking requests yet</div>
       )}
