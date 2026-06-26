@@ -65,6 +65,23 @@ const SERVICES = [
 const DAYS_OF_WEEK = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const MONTH_NAMES = ["January","February","March","April","May","June","July","August","September","October","November","December"];
 
+const TIME_SLOTS = [
+  { label: "9 AM",  value: "9:00 AM",  hour: 9  },
+  { label: "10 AM", value: "10:00 AM", hour: 10 },
+  { label: "11 AM", value: "11:00 AM", hour: 11 },
+  { label: "12 PM", value: "12:00 PM", hour: 12 },
+  { label: "1 PM",  value: "1:00 PM",  hour: 13 },
+  { label: "2 PM",  value: "2:00 PM",  hour: 14 },
+  { label: "3 PM",  value: "3:00 PM",  hour: 15 },
+  { label: "4 PM",  value: "4:00 PM",  hour: 16 },
+];
+
+const SERVICE_CUTOFFS: Record<string, { maxHour: number; reason: string }> = {
+  exterior: { maxHour: 16, reason: "Exterior detail takes up to 2 hrs" },
+  interior: { maxHour: 14, reason: "Interior detail takes up to 4 hrs" },
+  full:     { maxHour: 12, reason: "Full detail takes up to 6 hrs" },
+};
+
 // ─── Calendar helpers ─────────────────────────────────────────────────────────
 
 function getDaysInMonth(year: number, month: number) {
@@ -469,6 +486,95 @@ function DateConfirmation({ selectedDate }: { selectedDate: string }) {
   );
 }
 
+// ─── Time slots ───────────────────────────────────────────────────────────────
+
+function TimeSlots({
+  selectedService,
+  selectedTime,
+  onSelectTime,
+}: {
+  selectedService: string;
+  selectedTime: string | null;
+  onSelectTime: (t: string) => void;
+}) {
+  const cutoff = SERVICE_CUTOFFS[selectedService] ?? SERVICE_CUTOFFS.exterior;
+  const hasBlocked = TIME_SLOTS.some(s => s.hour > cutoff.maxHour);
+  const cutoffLabel = TIME_SLOTS.find(s => s.hour === cutoff.maxHour)?.label ?? "";
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+      className="mt-5"
+    >
+      <p className="text-[10px] uppercase tracking-[0.22em] font-semibold mb-3" style={{ color: "rgba(203,166,92,0.65)" }}>
+        Preferred start time
+      </p>
+      <div className="grid grid-cols-4 gap-2">
+        {TIME_SLOTS.map(slot => {
+          const isBlocked = slot.hour > cutoff.maxHour;
+          const isSel = selectedTime === slot.value;
+          return (
+            <div key={slot.value} className="relative group">
+              <button
+                onClick={() => !isBlocked && onSelectTime(slot.value)}
+                disabled={isBlocked}
+                className="w-full rounded-xl py-3 text-sm font-bold transition-all duration-200 focus:outline-none"
+                style={{
+                  background: isSel
+                    ? `linear-gradient(135deg, ${CHROME} 0%, ${GOLD} 100%)`
+                    : isBlocked
+                    ? "rgba(255,255,255,0.02)"
+                    : "rgba(255,255,255,0.05)",
+                  color: isSel
+                    ? "#0a0a0a"
+                    : isBlocked
+                    ? "rgba(232,232,232,0.18)"
+                    : "rgba(232,232,232,0.65)",
+                  border: isSel
+                    ? "none"
+                    : isBlocked
+                    ? "1px solid rgba(255,255,255,0.04)"
+                    : "1px solid rgba(255,255,255,0.08)",
+                  cursor: isBlocked ? "not-allowed" : "pointer",
+                  boxShadow: isSel ? `0 4px 20px rgba(203,166,92,0.3)` : "none",
+                }}
+              >
+                {slot.label}
+              </button>
+              {isBlocked && (
+                <div
+                  className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 rounded-lg text-[11px] font-medium pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap z-10"
+                  style={{
+                    background: "rgba(14,12,9,0.97)",
+                    border: "1px solid rgba(255,255,255,0.1)",
+                    color: "rgba(232,232,232,0.6)",
+                    boxShadow: "0 4px 20px rgba(0,0,0,0.6)",
+                  }}
+                >
+                  {cutoff.reason} — may exceed 6pm
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+      {hasBlocked && (
+        <div className="mt-3 flex items-start gap-2">
+          <svg width="13" height="13" viewBox="0 0 13 13" fill="none" className="shrink-0 mt-0.5">
+            <circle cx="6.5" cy="6.5" r="5.5" stroke="rgba(203,166,92,0.4)" strokeWidth="1.2"/>
+            <path d="M6.5 4.5v2.5M6.5 9h.01" stroke="rgba(203,166,92,0.5)" strokeWidth="1.2" strokeLinecap="round"/>
+          </svg>
+          <p className="text-[11px] leading-relaxed" style={{ color: "rgba(232,232,232,0.3)" }}>
+            <span style={{ color: "rgba(203,166,92,0.6)" }}>{cutoff.reason}</span> — starts after {cutoffLabel} risk finishing past 6pm and aren&apos;t available online.
+          </p>
+        </div>
+      )}
+    </motion.div>
+  );
+}
+
 // ─── Input component ──────────────────────────────────────────────────────────
 
 function Field({
@@ -631,6 +737,7 @@ function BookPageInner() {
   const [step, setStep] = useState(0);
   const [selectedService, setSelectedService] = useState<string | null>(preselected);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
+  const [selectedTime, setSelectedTime] = useState<string | null>(null);
   const [submitted, setSubmitted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [toastError, setToastError] = useState<string | null>(null);
@@ -659,6 +766,14 @@ function BookPageInner() {
 
   const service = SERVICES.find(s => s.id === selectedService);
 
+  // Reset time if it becomes blocked when service changes
+  useEffect(() => {
+    if (!selectedTime || !selectedService) return;
+    const cutoff = SERVICE_CUTOFFS[selectedService];
+    const slot = TIME_SLOTS.find(s => s.value === selectedTime);
+    if (slot && cutoff && slot.hour > cutoff.maxHour) setSelectedTime(null);
+  }, [selectedService, selectedTime]);
+
   const handleSubmit = async () => {
     if (!form.name || !form.phone || !form.carMake || !form.carModel) return;
     setSubmitting(true);
@@ -670,7 +785,7 @@ function BookPageInner() {
         body: JSON.stringify({
           service: service?.label ?? selectedService,
           date: selectedDate ?? "TBD",
-          time: null,
+          time: selectedTime ?? null,
           ...form,
         }),
       });
@@ -818,9 +933,17 @@ function BookPageInner() {
                 Pick a day that works for you.
               </p>
 
-              <Calendar selectedDate={selectedDate} onSelectDate={setSelectedDate} availability={availability} />
+              <Calendar selectedDate={selectedDate} onSelectDate={(d) => { setSelectedDate(d); setSelectedTime(null); }} availability={availability} />
 
               {selectedDate && <DateConfirmation selectedDate={selectedDate} />}
+
+              {selectedDate && selectedService && (
+                <TimeSlots
+                  selectedService={selectedService}
+                  selectedTime={selectedTime}
+                  onSelectTime={setSelectedTime}
+                />
+              )}
 
               <div className="flex items-center justify-between mt-8">
                 <button
@@ -836,6 +959,7 @@ function BookPageInner() {
                 <motion.button
                   onClick={() => {
                     if (!selectedDate) { setToastError("Please select a date to continue."); return; }
+                    if (!selectedTime) { setToastError("Please select a start time to continue."); return; }
                     setStep(2);
                   }}
                   whileHover={{ y: -2 }}
@@ -879,6 +1003,14 @@ function BookPageInner() {
                     style={{ background: "rgba(255,255,255,0.04)", color: "rgba(232,232,232,0.5)", border: "1px solid rgba(255,255,255,0.07)" }}
                   >
                     {new Date(selectedDate + "T00:00:00").toLocaleDateString("en-AU", { day: "numeric", month: "short" })}
+                  </div>
+                )}
+                {selectedTime && (
+                  <div
+                    className="px-3 py-1.5 rounded-lg text-[11px] font-semibold"
+                    style={{ background: "rgba(255,255,255,0.04)", color: "rgba(232,232,232,0.5)", border: "1px solid rgba(255,255,255,0.07)" }}
+                  >
+                    {selectedTime}
                   </div>
                 )}
               </div>
