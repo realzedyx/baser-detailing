@@ -615,7 +615,13 @@ function SuccessScreen({ name, service }: { name: string; service: string }) {
 
 export default function BookPage() {
   const [step, setStep] = useState(0);
-  const [selectedService, setSelectedService] = useState<string | null>(null);
+  const [selectedService, setSelectedService] = useState<string | null>(() => {
+    if (typeof window !== "undefined") {
+      const pkg = new URLSearchParams(window.location.search).get("package");
+      if (pkg && ["interior", "exterior", "full"].includes(pkg)) return pkg;
+    }
+    return null;
+  });
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [submitted, setSubmitted] = useState(false);
   const [submitting, setSubmitting] = useState(false);

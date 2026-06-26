@@ -2,6 +2,7 @@
 
 import { motion, AnimatePresence } from "framer-motion";
 import { useState, useRef, useEffect, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import { Check } from "lucide-react";
 import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
@@ -102,6 +103,7 @@ function useScrollVelocityTilt(maxTilt = 3.5) {
 }
 
 export function PricingSection() {
+  const router = useRouter();
   const [open, setOpen] = useState<string | null>(null);
   const [hoveredCard, setHoveredCard] = useState<string | null>(null);
   const [cardSpots, setCardSpots] = useState<Record<string, { x: number; y: number } | null>>({});
@@ -503,12 +505,11 @@ export function PricingSection() {
                           </ul>
 
                           {/* Book button */}
-                          <motion.a
-                            href="#contact"
+                          <motion.button
                             initial={{ opacity: 0, y: 10 }}
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ duration: 0.3, delay: pkg.inclusions.length * 0.06 + 0.05 }}
-                            onClick={(e) => e.stopPropagation()}
+                            onClick={(e) => { e.stopPropagation(); router.push(`/book?package=${pkg.id}`); }}
                             className="group relative inline-flex w-full items-center justify-center gap-2.5 rounded-xl py-3.5 font-semibold text-sm overflow-hidden transition-transform duration-300 hover:-translate-y-0.5 active:translate-y-0"
                             style={
                               pkg.featured
@@ -553,7 +554,7 @@ export function PricingSection() {
                                 strokeLinejoin="round"
                               />
                             </svg>
-                          </motion.a>
+                          </motion.button>
                         </div>
                       </motion.div>
                     )}

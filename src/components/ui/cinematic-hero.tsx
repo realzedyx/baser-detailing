@@ -195,6 +195,8 @@ export interface CinematicHeroProps extends React.HTMLAttributes<HTMLDivElement>
   cardDescription?: React.ReactNode;
   metricValue?: number;
   metricLabel?: string;
+  ctaHref?: string;
+  ctaLabel?: string;
 }
 
 export function CinematicHero({
@@ -205,6 +207,8 @@ export function CinematicHero({
   cardDescription = <><span className="text-white font-semibold">Sobers</span> empowers sponsors and sponsees in 12-step recovery programs with structured accountability, precise sobriety tracking, and beautiful visual timelines.</>,
   metricValue = 365,
   metricLabel = "Days Sober",
+  ctaHref = "/signup",
+  ctaLabel = "Create Account",
   className,
   ...props
 }: CinematicHeroProps) {
@@ -484,7 +488,7 @@ export function CinematicHero({
                 {cardDescription}
               </p>
               <a
-                href="#account"
+                href={ctaHref}
                 className="hidden md:inline-flex self-center lg:self-start items-center gap-2.5 mt-6 rounded-xl px-6 py-3 text-sm font-semibold tracking-tight transition-transform duration-200 hover:-translate-y-0.5 active:translate-y-0 group relative overflow-hidden"
                 style={{
                   background: "linear-gradient(135deg, #E4C883 0%, #CBA65C 55%, #A8862E 100%)",
@@ -496,7 +500,7 @@ export function CinematicHero({
                   className="absolute inset-0 translate-x-[-110%] group-hover:translate-x-[110%] transition-transform duration-700 ease-in-out pointer-events-none"
                   style={{ background: "linear-gradient(110deg, transparent 30%, rgba(255,255,255,0.22) 50%, transparent 70%)" }}
                 />
-                Create Account
+                {ctaLabel}
                 <svg width="14" height="14" viewBox="0 0 14 14" fill="none" style={{ opacity: 0.8 }}>
                   <path d="M2.5 7H11.5M11.5 7L8 3.5M11.5 7L8 10.5" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
                 </svg>

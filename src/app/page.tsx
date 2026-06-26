@@ -1,8 +1,10 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { Home as HomeIcon, Sparkles, Wrench, Phone } from "lucide-react";
 import { NavBar } from "@/components/ui/tubelight-navbar";
 import { CinematicHero } from "@/components/ui/cinematic-hero";
+import { supabase } from "@/lib/supabase";
 import { WhyBaserSection } from "@/components/ui/why-baser";
 import { BookingSection } from "@/components/ui/booking-section";
 import { HowItWorksSection } from "@/components/ui/how-it-works";
@@ -20,6 +22,16 @@ const navItems = [
 ];
 
 export default function Home() {
+  const [isSignedIn, setIsSignedIn] = useState(false);
+
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => setIsSignedIn(!!data.user));
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_, session) => {
+      setIsSignedIn(!!session);
+    });
+    return () => subscription.unsubscribe();
+  }, []);
+
   return (
     <main className="min-h-screen bg-background">
       <SectionNav />
@@ -34,6 +46,8 @@ export default function Home() {
         cardDescription="Every detail earns you points. Redeem them for discounts on your next booking."
         metricValue={357}
         metricLabel="Your Rewards"
+        ctaHref={isSignedIn ? "/account" : "/signup"}
+        ctaLabel={isSignedIn ? "My Account" : "Create Account"}
       />
 
       <div style={{ marginTop: "-100vh" }}>

@@ -1,9 +1,12 @@
 'use client'
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { motion, AnimatePresence, useMotionValue, useTransform } from 'framer-motion';
-import { Mail, Lock, Eye, EyeClosed, ArrowRight, User } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { motion, AnimatePresence } from 'framer-motion';
+import { ShadowOverlay } from '@/components/ui/shadow-overlay';
+import { Mail, Lock, Eye, EyeClosed, ArrowRight, User, Home } from 'lucide-react';
 import { cn } from "@/lib/utils"
+import { supabase } from '@/lib/supabase';
 
 function Input({ className, type, ...props }: React.ComponentProps<"input">) {
   return (
@@ -22,6 +25,7 @@ function Input({ className, type, ...props }: React.ComponentProps<"input">) {
 }
 
 export default function SignUpPage() {
+  const router = useRouter();
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [name, setName] = useState("");
@@ -30,67 +34,79 @@ export default function SignUpPage() {
   const [confirm, setConfirm] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [focusedInput, setFocusedInput] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState(false);
 
-  const mouseX = useMotionValue(0);
-  const mouseY = useMotionValue(0);
-  const rotateX = useTransform(mouseY, [-300, 300], [10, -10]);
-  const rotateY = useTransform(mouseX, [-300, 300], [-10, 10]);
-
-  const handleMouseMove = (e: React.MouseEvent) => {
-    const rect = e.currentTarget.getBoundingClientRect();
-    mouseX.set(e.clientX - rect.left - rect.width / 2);
-    mouseY.set(e.clientY - rect.top - rect.height / 2);
+  const handleSignUp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+    if (password !== confirm) { setError("Passwords don't match."); return; }
+    if (password.length < 6) { setError("Password must be at least 6 characters."); return; }
+    setIsLoading(true);
+    const { error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: { data: { full_name: name } },
+    });
+    if (error) {
+      setError(error.message);
+      setIsLoading(false);
+    } else {
+      setSuccess(true);
+      setTimeout(() => router.push('/account'), 1500);
+    }
   };
 
-  const handleMouseLeave = () => {
-    mouseX.set(0);
-    mouseY.set(0);
-  };
 
   return (
     <div className="min-h-screen w-screen bg-[#0a0a0a] relative overflow-hidden flex items-center justify-center">
-      {/* Background gradient — gold palette */}
-      <div className="absolute inset-0 bg-gradient-to-b from-[#CBA65C]/40 via-[#CBA65C]/25 to-[#0a0a0a]" />
-
-      {/* Subtle noise texture overlay */}
-      <div className="absolute inset-0 opacity-[0.03] mix-blend-soft-light"
-        style={{
-          backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")`,
-          backgroundSize: '200px 200px'
-        }}
-      />
-
-      {/* Top radial glow */}
-      <div className="absolute top-0 left-1/2 transform -translate-x-1/2 w-[120vh] h-[60vh] rounded-b-[50%] bg-[#CBA65C]/20 blur-[80px]" />
+      {/* Home button */}
       <motion.div
-        className="absolute top-0 left-1/2 transform -translate-x-1/2 w-[100vh] h-[60vh] rounded-b-full bg-[#CBA65C]/15 blur-[60px]"
-        animate={{ opacity: [0.15, 0.3, 0.15], scale: [0.98, 1.02, 0.98] }}
-        transition={{ duration: 8, repeat: Infinity, repeatType: "mirror" }}
-      />
-      <motion.div
-        className="absolute bottom-0 left-1/2 transform -translate-x-1/2 w-[90vh] h-[90vh] rounded-t-full bg-[#CBA65C]/15 blur-[60px]"
-        animate={{ opacity: [0.3, 0.5, 0.3], scale: [1, 1.1, 1] }}
-        transition={{ duration: 6, repeat: Infinity, repeatType: "mirror", delay: 1 }}
-      />
+        initial={{ opacity: 0, x: -12 }}
+        animate={{ opacity: 1, x: 0 }}
+        transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+        className="fixed top-5 left-5 z-50"
+      >
+        <Link
+          href="/"
+          className="flex items-center gap-2 transition-colors"
+          style={{
+            background: 'rgba(10,10,10,0.75)',
+            backdropFilter: 'blur(14px)',
+            WebkitBackdropFilter: 'blur(14px)',
+            border: '1px solid rgba(255,255,255,0.07)',
+            borderRadius: 10,
+            padding: '8px 14px',
+            color: 'rgba(255,255,255,0.45)',
+            textDecoration: 'none',
+            fontSize: 12,
+            letterSpacing: '0.04em',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 6,
+          }}
+        >
+          <Home size={14} strokeWidth={1.8} />
+          Home
+        </Link>
+      </motion.div>
 
-      {/* Animated glow spots */}
-      <div className="absolute left-1/4 top-1/4 w-96 h-96 bg-white/5 rounded-full blur-[100px] animate-pulse opacity-40" />
-      <div className="absolute right-1/4 bottom-1/4 w-96 h-96 bg-white/5 rounded-full blur-[100px] animate-pulse delay-1000 opacity-40" />
+      {/* Shadow overlay background */}
+      <div className="absolute inset-0 pointer-events-none">
+        <ShadowOverlay
+          color="rgba(203,166,92,0.32)"
+          animation={{ scale: 40, speed: 20 }}
+          noise={{ opacity: 0.25, scale: 1.5 }}
+        />
+      </div>
 
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.8 }}
         className="w-full max-w-sm relative z-10"
-        style={{ perspective: 1500 }}
       >
-        <motion.div
-          className="relative"
-          style={{ rotateX, rotateY }}
-          onMouseMove={handleMouseMove}
-          onMouseLeave={handleMouseLeave}
-          whileHover={{ z: 10 }}
-        >
+        <div className="relative">
           <div className="relative group">
             {/* Card glow effect */}
             <motion.div
@@ -184,7 +200,7 @@ export default function SignUpPage() {
               </div>
 
               {/* Sign up form */}
-              <form onSubmit={(e) => { e.preventDefault(); setIsLoading(true); setTimeout(() => setIsLoading(false), 2000); }} className="space-y-4">
+              <form onSubmit={handleSignUp} className="space-y-4">
                 <motion.div className="space-y-3">
                   {/* Name input */}
                   <motion.div
@@ -325,12 +341,19 @@ export default function SignUpPage() {
                   </motion.div>
                 </motion.div>
 
+                {error && (
+                  <p style={{ fontSize: 12, color: '#f87171', textAlign: 'center', marginTop: 4 }}>{error}</p>
+                )}
+                {success && (
+                  <p style={{ fontSize: 12, color: '#4ade80', textAlign: 'center', marginTop: 4 }}>Account created! Redirecting...</p>
+                )}
+
                 {/* Sign up button */}
                 <motion.button
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
                   type="submit"
-                  disabled={isLoading}
+                  disabled={isLoading || success}
                   className="w-full relative group/button mt-5"
                 >
                   <div className="absolute inset-0 bg-[#CBA65C]/20 rounded-lg blur-lg opacity-0 group-hover/button:opacity-70 transition-opacity duration-300" />
@@ -413,7 +436,7 @@ export default function SignUpPage() {
               </form>
             </div>
           </div>
-        </motion.div>
+        </div>
       </motion.div>
     </div>
   );

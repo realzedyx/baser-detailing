@@ -5,6 +5,7 @@ import { motion } from "framer-motion"
 import Link from "next/link"
 import { LucideIcon, User } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { supabase } from "@/lib/supabase"
 
 interface NavItem {
   name: string
@@ -20,15 +21,25 @@ interface NavBarProps {
 export function NavBar({ items, className }: NavBarProps) {
   const [activeTab, setActiveTab] = useState(items[0].name)
   const [, setIsMobile] = useState(false)
+  const [isSignedIn, setIsSignedIn] = useState(false)
 
   useEffect(() => {
     const handleResize = () => {
       setIsMobile(window.innerWidth < 768)
     }
-
     handleResize()
     window.addEventListener("resize", handleResize)
     return () => window.removeEventListener("resize", handleResize)
+  }, [])
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data }) => {
+      setIsSignedIn(!!data.session)
+    })
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_, session) => {
+      setIsSignedIn(!!session)
+    })
+    return () => subscription.unsubscribe()
   }, [])
 
   return (
@@ -85,7 +96,7 @@ export function NavBar({ items, className }: NavBarProps) {
 
         {/* Account */}
         <Link
-          href="#account"
+          href={isSignedIn ? "/account" : "/signin"}
           aria-label="My account"
           className="relative cursor-pointer flex items-center justify-center w-9 h-9 rounded-full transition-colors text-foreground/60 hover:text-[#CBA65C]"
           style={{ background: "rgba(203,166,92,0.07)", border: "1px solid rgba(203,166,92,0.18)" }}
