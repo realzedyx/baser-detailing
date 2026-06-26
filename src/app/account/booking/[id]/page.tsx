@@ -7,6 +7,10 @@ import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 
+// Required by Cloudflare Pages (next-on-pages): every dynamic route must run on
+// the edge runtime, or the deploy fails. Do NOT remove — it broke prod once.
+export const runtime = 'edge';
+
 const SERVICES = [
   { value: 'Exterior Detail', label: 'Exterior Detail' },
   { value: 'Interior Detail', label: 'Interior Detail' },
