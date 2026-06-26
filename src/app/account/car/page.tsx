@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { ShadowOverlay } from '@/components/ui/shadow-overlay';
 import { ArrowLeft } from 'lucide-react';
+import { supabase } from '@/lib/supabase';
 
 const s = (i: number) => ({
   initial: { opacity: 0, y: 22, filter: 'blur(4px)' },
@@ -32,9 +33,14 @@ export default function AddCarPage() {
   const set = (k: string) => (e: React.ChangeEvent<HTMLInputElement>) =>
     setForm(f => ({ ...f, [k]: e.target.value }));
 
-  const handleSave = (e: React.FormEvent) => {
+  const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    // TODO: save to Supabase
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) { router.push('/signin'); return; }
+    await supabase.from('cars').upsert(
+      { user_id: session.user.id, make: form.make, model: form.model, year: parseInt(form.year), colour: form.colour },
+      { onConflict: 'user_id' }
+    );
     router.push('/account');
   };
 
