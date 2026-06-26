@@ -45,10 +45,7 @@ export function MobileNotice() {
           </svg>
         </div>
 
-        <h2 className="mb-2 text-lg font-semibold" style={{ color: "#E8E8E8" }}>
-          Best viewed on a larger screen
-        </h2>
-        <p className="mb-6 text-sm leading-relaxed" style={{ color: "rgba(232,232,232,0.65)" }}>
+        <p className="mb-6 mt-2 text-sm leading-relaxed" style={{ color: "rgba(232,232,232,0.65)" }}>
           This website is designed to be experienced on a laptop or desktop. For
           the full cinematic experience, we highly recommend visiting us on a
           bigger screen.
