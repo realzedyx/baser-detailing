@@ -138,6 +138,7 @@ export default function AccountPage() {
   const [removingCar, setRemovingCar] = useState(false);
   const [milestonePopup, setMilestonePopup] = useState<{ label: string; perk: string } | null>(null);
   const [showAllBookings, setShowAllBookings] = useState(false);
+  const isMobile = useIsMobile();
 
   useEffect(() => {
     supabase.auth.getSession().then(async ({ data }) => {
@@ -291,14 +292,27 @@ export default function AccountPage() {
         )}
       </AnimatePresence>
 
-      <div className="absolute inset-0 pointer-events-none">
-        <ShadowOverlay color="rgba(203,166,92,0.32)" animation={{ scale: 40, speed: 20 }} noise={{ opacity: 0.25, scale: 1.5 }} />
-      </div>
+      {/* Atmospheric background. The animated ShadowOverlay (full-page SVG
+          feTurbulence + feDisplacementMap, re-rasterised every frame) and the
+          big animated blur blobs cripple mobile GPUs — they were the real cause
+          of blank/laggy scrolling. On mobile, swap in a cheap static gradient. */}
+      {isMobile ? (
+        <div
+          className="absolute inset-0 pointer-events-none"
+          style={{ background: 'radial-gradient(ellipse 90% 50% at 50% 0%, rgba(203,166,92,0.06) 0%, transparent 60%)' }}
+        />
+      ) : (
+        <>
+          <div className="absolute inset-0 pointer-events-none">
+            <ShadowOverlay color="rgba(203,166,92,0.32)" animation={{ scale: 40, speed: 20 }} noise={{ opacity: 0.25, scale: 1.5 }} />
+          </div>
 
-      <div className="absolute inset-0 pointer-events-none overflow-hidden">
-        <motion.div animate={{ x: [0, 40, 0], y: [0, -30, 0] }} transition={{ duration: 14, repeat: Infinity, ease: 'easeInOut' }} style={{ position: 'absolute', width: 500, height: 500, top: '2%', right: '-8%', background: 'radial-gradient(circle, rgba(203,166,92,0.055) 0%, transparent 70%)', filter: 'blur(50px)', borderRadius: '50%' }} />
-        <motion.div animate={{ x: [0, -30, 0], y: [0, 40, 0] }} transition={{ duration: 18, repeat: Infinity, ease: 'easeInOut', delay: 4 }} style={{ position: 'absolute', width: 600, height: 600, bottom: '5%', left: '-12%', background: 'radial-gradient(circle, rgba(203,166,92,0.04) 0%, transparent 70%)', filter: 'blur(60px)', borderRadius: '50%' }} />
-      </div>
+          <div className="absolute inset-0 pointer-events-none overflow-hidden">
+            <motion.div animate={{ x: [0, 40, 0], y: [0, -30, 0] }} transition={{ duration: 14, repeat: Infinity, ease: 'easeInOut' }} style={{ position: 'absolute', width: 500, height: 500, top: '2%', right: '-8%', background: 'radial-gradient(circle, rgba(203,166,92,0.055) 0%, transparent 70%)', filter: 'blur(50px)', borderRadius: '50%' }} />
+            <motion.div animate={{ x: [0, -30, 0], y: [0, 40, 0] }} transition={{ duration: 18, repeat: Infinity, ease: 'easeInOut', delay: 4 }} style={{ position: 'absolute', width: 600, height: 600, bottom: '5%', left: '-12%', background: 'radial-gradient(circle, rgba(203,166,92,0.04) 0%, transparent 70%)', filter: 'blur(60px)', borderRadius: '50%' }} />
+          </div>
+        </>
+      )}
 
       <motion.div initial={{ opacity: 0, x: -12 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }} className="fixed top-5 left-5 z-50">
         <Link href="/" className="flex items-center gap-2 text-sm font-medium transition-colors" style={{ background: 'rgba(10,10,10,0.75)', backdropFilter: 'blur(14px)', WebkitBackdropFilter: 'blur(14px)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 10, padding: '8px 14px', color: 'rgba(255,255,255,0.45)', textDecoration: 'none' }}>
