@@ -3,7 +3,6 @@ import localFont from "next/font/local";
 import "./globals.css";
 import { CursorTracker } from "@/components/cursor-tracker";
 import { SmoothScroll } from "@/components/smooth-scroll";
-import { MobileNotice } from "@/components/mobile-notice";
 
 const geistSans = localFont({
   src: "./fonts/GeistVF.woff",
@@ -111,7 +110,6 @@ export default function RootLayout({
       >
         <SmoothScroll />
 <CursorTracker />
-        <MobileNotice />
         {children}
       </body>
     </html>
