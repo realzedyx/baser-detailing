@@ -3,6 +3,7 @@
 import { motion, AnimatePresence } from "framer-motion";
 import { useState, useCallback } from "react";
 import Link from "next/link";
+import { ErrorToast } from "@/components/ui/error-toast";
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
@@ -625,7 +626,7 @@ export default function BookPage() {
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [submitted, setSubmitted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [toastError, setToastError] = useState<string | null>(null);
 
   const [form, setForm] = useState({
     name: "",
@@ -643,7 +644,7 @@ export default function BookPage() {
   const handleSubmit = async () => {
     if (!form.name || !form.phone || !form.carMake || !form.carModel) return;
     setSubmitting(true);
-    setSubmitError(null);
+    setToastError(null);
     try {
       const res = await fetch("/api/book", {
         method: "POST",
@@ -661,7 +662,7 @@ export default function BookPage() {
       }
       setSubmitted(true);
     } catch (err: unknown) {
-      setSubmitError(err instanceof Error ? err.message : "Something went wrong. Please call instead.");
+      setToastError(err instanceof Error ? err.message : "Something went wrong. Please call instead.");
     } finally {
       setSubmitting(false);
     }
@@ -677,6 +678,7 @@ export default function BookPage() {
 
   return (
     <div style={{ backgroundColor: BG, minHeight: "100vh" }} className="relative overflow-x-hidden">
+      <ErrorToast message={toastError} onClose={() => setToastError(null)} />
       {/* Ambient background */}
       <div className="fixed inset-0 pointer-events-none" aria-hidden>
         <div style={{ background: "radial-gradient(ellipse 70% 50% at 20% 20%, rgba(203,166,92,0.055) 0%, transparent 60%)" }} className="absolute inset-0" />
@@ -814,7 +816,10 @@ export default function BookPage() {
                   Back
                 </button>
                 <motion.button
-                  onClick={() => setStep(2)}
+                  onClick={() => {
+                    if (!selectedDate) { setToastError("Please select a date to continue."); return; }
+                    setStep(2);
+                  }}
                   whileHover={{ y: -2 }}
                   whileTap={{ scale: 0.97 }}
                   className="relative inline-flex items-center gap-3 px-8 py-3.5 rounded-xl font-bold text-sm overflow-hidden"
@@ -824,7 +829,7 @@ export default function BookPage() {
                     boxShadow: `0 8px 28px -4px rgba(203,166,92,0.35)`,
                   }}
                 >
-                  {selectedDate ? "Continue" : "Skip to details"}
+                  Continue
                   <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
                     <path d="M6 4l4 4-4 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                   </svg>
@@ -911,15 +916,6 @@ export default function BookPage() {
               </div>
 
               <LoyaltyBadge />
-
-              {submitError && (
-                <div
-                  className="mt-4 rounded-xl px-4 py-3 text-sm"
-                  style={{ background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.2)", color: "rgba(232,232,232,0.6)" }}
-                >
-                  {submitError}
-                </div>
-              )}
 
               <div className="flex items-center justify-between mt-6">
                 <button

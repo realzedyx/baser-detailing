@@ -7,6 +7,7 @@ import Link from 'next/link';
 import { ShadowOverlay } from '@/components/ui/shadow-overlay';
 import { ArrowLeft } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
+import { ErrorToast } from '@/components/ui/error-toast';
 
 const s = (i: number) => ({
   initial: { opacity: 0, y: 22, filter: 'blur(4px)' },
@@ -29,19 +30,47 @@ export default function AddCarPage() {
   const router = useRouter();
   const [form, setForm] = useState({ make: '', model: '', year: '', colour: '' });
   const [focused, setFocused] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const set = (k: string) => (e: React.ChangeEvent<HTMLInputElement>) =>
     setForm(f => ({ ...f, [k]: e.target.value }));
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) { router.push('/signin'); return; }
-    await supabase.from('cars').upsert(
-      { user_id: session.user.id, make: form.make, model: form.model, year: parseInt(form.year), colour: form.colour },
-      { onConflict: 'user_id' }
-    );
-    router.push('/account');
+    setError(null);
+    setSaving(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) { router.push('/signin'); return; }
+
+      const { data: existing } = await supabase
+        .from('cars')
+        .select('id')
+        .eq('user_id', session.user.id)
+        .maybeSingle();
+
+      const payload = {
+        make: form.make,
+        model: form.model,
+        year: parseInt(form.year),
+        colour: form.colour,
+      };
+
+      let err;
+      if (existing) {
+        ({ error: err } = await supabase.from('cars').update(payload).eq('user_id', session.user.id));
+      } else {
+        ({ error: err } = await supabase.from('cars').insert({ user_id: session.user.id, ...payload }));
+      }
+
+      if (err) throw new Error(err.message);
+      router.push('/account');
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : 'Failed to save. Please try again.');
+    } finally {
+      setSaving(false);
+    }
   };
 
   const fields: { key: keyof typeof form; label: string; type?: string; placeholder: string }[] = [
@@ -54,7 +83,8 @@ export default function AddCarPage() {
   return (
     <div className="min-h-screen w-screen relative overflow-x-hidden flex items-center justify-center" style={{ backgroundColor: '#0a0a0a' }}>
 
-      {/* Background */}
+      <ErrorToast message={error} onClose={() => setError(null)} />
+
       <div className="absolute inset-0 pointer-events-none">
         <ShadowOverlay color="rgba(203,166,92,0.32)" animation={{ scale: 40, speed: 20 }} noise={{ opacity: 0.25, scale: 1.5 }} />
       </div>
@@ -63,7 +93,6 @@ export default function AddCarPage() {
         <motion.div animate={{ x: [0, -30, 0], y: [0, 40, 0] }} transition={{ duration: 18, repeat: Infinity, ease: 'easeInOut', delay: 4 }} style={{ position: 'absolute', width: 600, height: 600, bottom: '5%', left: '-12%', background: 'radial-gradient(circle, rgba(203,166,92,0.04) 0%, transparent 70%)', filter: 'blur(60px)', borderRadius: '50%' }} />
       </div>
 
-      {/* Back button */}
       <motion.div initial={{ opacity: 0, x: -12 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }} className="fixed top-5 left-5 z-50">
         <Link href="/account" className="flex items-center gap-2 text-sm" style={{ background: 'rgba(10,10,10,0.75)', backdropFilter: 'blur(14px)', WebkitBackdropFilter: 'blur(14px)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 10, padding: '8px 14px', color: 'rgba(255,255,255,0.45)', textDecoration: 'none' }}>
           <ArrowLeft size={14} strokeWidth={1.8} />
@@ -71,7 +100,6 @@ export default function AddCarPage() {
         </Link>
       </motion.div>
 
-      {/* Card */}
       <div className="relative z-10 w-full" style={{ maxWidth: 440, padding: '0 24px' }}>
         <motion.div {...s(0)} style={{ marginBottom: 28 }}>
           <p style={{ fontSize: 10, color: 'rgba(203,166,92,0.65)', letterSpacing: '0.24em', textTransform: 'uppercase', marginBottom: 10 }}>My Garage</p>
@@ -120,13 +148,14 @@ export default function AddCarPage() {
               <motion.button
                 {...s(6)}
                 type="submit"
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
+                disabled={saving}
+                whileHover={saving ? {} : { scale: 1.02 }}
+                whileTap={saving ? {} : { scale: 0.98 }}
                 className="relative overflow-hidden w-full"
-                style={{ marginTop: 32, background: 'linear-gradient(120deg, #BF9A50, #CBA65C 35%, #E4C883 60%, #CBA65C)', color: '#0a0a0a', border: 'none', borderRadius: 14, padding: '14px', fontSize: 12, fontWeight: 500, letterSpacing: '0.14em', textTransform: 'uppercase', cursor: 'pointer' }}
+                style={{ marginTop: 32, background: 'linear-gradient(120deg, #BF9A50, #CBA65C 35%, #E4C883 60%, #CBA65C)', color: '#0a0a0a', border: 'none', borderRadius: 14, padding: '14px', fontSize: 12, fontWeight: 500, letterSpacing: '0.14em', textTransform: 'uppercase', cursor: saving ? 'wait' : 'pointer', opacity: saving ? 0.7 : 1 }}
               >
                 <motion.div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/25 to-transparent" animate={{ x: ['-100%', '100%'] }} transition={{ duration: 2.5, ease: 'easeInOut', repeat: Infinity, repeatDelay: 4 }} />
-                <span className="relative z-10">Save car →</span>
+                <span className="relative z-10">{saving ? 'Saving…' : 'Save car →'}</span>
               </motion.button>
             </form>
           </div>
