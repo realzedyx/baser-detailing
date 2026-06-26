@@ -307,7 +307,7 @@ export default function AccountPage() {
         <motion.div {...s(1)} className="grid grid-cols-3 gap-3 mb-8">
           {[
             { label: 'Bookings', value: bookings.length || '0' },
-            { label: 'Points', value: pendingPoints > 0 ? `${points} (+${pendingPoints})` : points },
+            { label: 'Points', value: points },
             { label: 'Status',   value: tier ?? 'New' },
           ].map((c, i) => (
             <GlassCard key={c.label} beamDelay={i * 0.4}>
