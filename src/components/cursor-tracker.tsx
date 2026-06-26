@@ -6,7 +6,8 @@ export function CursorTracker() {
   const mousePos  = useRef({ x: 0, y: 0 });
   const dotPos    = useRef({ x: 0, y: 0 });
   const glowPos   = useRef({ x: 0, y: 0 });
-  const [pos, setPos]         = useState({ dot: { x: 0, y: 0 }, glow: { x: 0, y: 0 } });
+  const dotRef    = useRef<HTMLDivElement>(null);
+  const glowRef   = useRef<HTMLDivElement>(null);
   const [isHovering, setHovering]   = useState(false);
   const [isDragZone, setDragZone]   = useState(false);
   const [mounted, setMounted]       = useState(false);
@@ -38,7 +39,9 @@ export function CursorTracker() {
       dotPos.current.y  = lerp(dotPos.current.y,  mousePos.current.y, 0.28);
       glowPos.current.x = lerp(glowPos.current.x, mousePos.current.x, 0.1);
       glowPos.current.y = lerp(glowPos.current.y, mousePos.current.y, 0.1);
-      setPos({ dot: { ...dotPos.current }, glow: { ...glowPos.current } });
+      // Write transforms straight to the DOM — no React re-render per frame.
+      if (dotRef.current)  dotRef.current.style.transform  = `translate(${dotPos.current.x}px, ${dotPos.current.y}px) translate(-50%,-50%)`;
+      if (glowRef.current) glowRef.current.style.transform = `translate(${glowPos.current.x}px, ${glowPos.current.y}px) translate(-50%,-50%)`;
       raf = requestAnimationFrame(tick);
     };
 
@@ -59,15 +62,15 @@ export function CursorTracker() {
     <div className="pointer-events-none fixed inset-0 z-[9999]" aria-hidden>
       {/* Outer glow halo */}
       <div
+        ref={glowRef}
         style={{
           position: "absolute",
+          top: 0,
+          left: 0,
           width: glowSize,
           height: glowSize,
           borderRadius: "50%",
           background: "radial-gradient(circle, rgba(203,166,92,0.22) 0%, transparent 70%)",
-          transform: "translate(-50%,-50%)",
-          left: pos.glow.x,
-          top: pos.glow.y,
           filter: "blur(10px)",
           transition: "width 0.4s cubic-bezier(0.22,1,0.36,1), height 0.4s cubic-bezier(0.22,1,0.36,1)",
         }}
@@ -75,8 +78,11 @@ export function CursorTracker() {
 
       {/* Core dot */}
       <div
+        ref={dotRef}
         style={{
           position: "absolute",
+          top: 0,
+          left: 0,
           width: dotSize,
           height: dotSize,
           borderRadius: "50%",
@@ -87,9 +93,6 @@ export function CursorTracker() {
           boxShadow: isDragZone
             ? "0 0 18px rgba(203,166,92,0.45), 0 0 6px rgba(203,166,92,0.25)"
             : "0 0 10px rgba(203,166,92,0.55)",
-          transform: "translate(-50%,-50%)",
-          left: pos.dot.x,
-          top: pos.dot.y,
           transition: "width 0.3s cubic-bezier(0.22,1,0.36,1), height 0.3s cubic-bezier(0.22,1,0.36,1)",
           display: "flex",
           alignItems: "center",

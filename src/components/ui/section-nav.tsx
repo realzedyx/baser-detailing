@@ -84,11 +84,16 @@ export function SectionNav() {
       {/* Section dots */}
       <div className="flex flex-col gap-[6px] py-1">
         {Array.from({ length: TOTAL }).map((_, i) => (
-          <div
+          <button
             key={i}
-            className="relative flex items-center justify-end pointer-events-auto"
+            type="button"
+            aria-label={`Go to ${SECTION_NAMES[i]}`}
+            aria-current={i === current ? "true" : undefined}
+            className="relative flex items-center justify-end pointer-events-auto bg-transparent border-0 p-0"
             onMouseEnter={() => setHoveredDot(i)}
             onMouseLeave={() => setHoveredDot(null)}
+            onFocus={() => setHoveredDot(i)}
+            onBlur={() => setHoveredDot(null)}
             onClick={() => goTo(i)}
             style={{ cursor: "pointer" }}
           >
@@ -131,7 +136,7 @@ export function SectionNav() {
               transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
               style={{ width: 3, borderRadius: 999 }}
             />
-          </div>
+          </button>
         ))}
       </div>
 

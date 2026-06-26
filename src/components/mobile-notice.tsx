@@ -1,9 +1,10 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 
 export function MobileNotice() {
   const [show, setShow] = useState(false);
+  const btnRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     // Only on small / touch screens. Shown once per page load on entry.
@@ -11,6 +12,15 @@ export function MobileNotice() {
       setShow(true);
     }
   }, []);
+
+  // While open: move focus into the dialog and allow Esc to dismiss.
+  useEffect(() => {
+    if (!show) return;
+    btnRef.current?.focus();
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") setShow(false); };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [show]);
 
   if (!show) return null;
 
@@ -20,6 +30,7 @@ export function MobileNotice() {
       style={{ background: "rgba(0,0,0,0.78)", backdropFilter: "blur(2px)" }}
       role="dialog"
       aria-modal="true"
+      aria-label="Best viewed on a larger screen"
     >
       <div
         className="relative w-full max-w-sm rounded-2xl border border-white/10 p-7 text-center shadow-2xl"
@@ -52,6 +63,7 @@ export function MobileNotice() {
         </p>
 
         <button
+          ref={btnRef}
           onClick={() => setShow(false)}
           className="w-full rounded-xl py-3 text-sm font-semibold tracking-wide transition-opacity hover:opacity-90"
           style={{ backgroundColor: "#D6342C", color: "#fff" }}

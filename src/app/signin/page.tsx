@@ -211,6 +211,7 @@ export default function SignInPage() {
                       <Mail className={`absolute left-3 w-4 h-4 transition-all duration-300 ${focusedInput === "email" ? 'text-[#CBA65C]' : 'text-white/40'}`} />
                       <Input
                         type="email"
+                        aria-label="Email address"
                         placeholder="Email address"
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
@@ -242,6 +243,7 @@ export default function SignInPage() {
                       <Lock className={`absolute left-3 w-4 h-4 transition-all duration-300 ${focusedInput === "password" ? 'text-[#CBA65C]' : 'text-white/40'}`} />
                       <Input
                         type={showPassword ? "text" : "password"}
+                        aria-label="Password"
                         placeholder="Password"
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
