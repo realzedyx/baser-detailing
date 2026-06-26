@@ -915,6 +915,9 @@ function BookPageInner() {
   const searchParams = useSearchParams();
   const pkgParam = searchParams.get("package");
   const preselected = pkgParam && ["interior", "exterior", "full"].includes(pkgParam) ? pkgParam : null;
+  // A referral link (/book?ref=Name) records who referred this booking so the
+  // owner can credit both accounts when the first detail is completed.
+  const refParam = (searchParams.get("ref") || "").trim().slice(0, 60);
 
   const [step, setStep] = useState(0);
   const [selectedService, setSelectedService] = useState<string | null>(preselected);
@@ -1025,6 +1028,7 @@ function BookPageInner() {
           date: selectedDate ?? "TBD",
           time: selectedTime ?? null,
           ...form,
+          notes: refParam ? `[Referred by ${refParam}] ${form.notes}`.trim() : form.notes,
           userId: userId ?? null,
           rewardApplied: appliedReward,
           pendingPoints: pendingPts,

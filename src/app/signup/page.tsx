@@ -38,6 +38,7 @@ export default function SignUpPage() {
   const [focusedInput, setFocusedInput] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+  const [needsConfirm, setNeedsConfirm] = useState(false);
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -45,18 +46,36 @@ export default function SignUpPage() {
     if (password !== confirm) { setError("Passwords don't match."); return; }
     if (password.length < 6) { setError("Password must be at least 6 characters."); return; }
     setIsLoading(true);
-    const { error } = await supabase.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
       email,
       password,
-      options: { data: { full_name: name, phone, suburb } },
+      options: {
+        data: { full_name: name, phone, suburb },
+        emailRedirectTo: `${window.location.origin}/account`,
+      },
     });
     if (error) {
       setError(error.message);
       setIsLoading(false);
-    } else {
+    } else if (data.session) {
+      // Email confirmation is disabled — we have a live session, go straight in.
       setSuccess(true);
       setTimeout(() => router.push('/account'), 1500);
+    } else {
+      // Confirmation required: no session yet. Don't redirect to /account (it would
+      // bounce to /signin). Tell the user to check their email instead.
+      setNeedsConfirm(true);
+      setIsLoading(false);
     }
+  };
+
+  const handleGoogle = async () => {
+    setError(null);
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: { redirectTo: `${window.location.origin}/account` },
+    });
+    if (error) setError(error.message);
   };
 
 
@@ -411,13 +430,21 @@ export default function SignUpPage() {
                 {success && (
                   <p style={{ fontSize: 12, color: '#4ade80', textAlign: 'center', marginTop: 4 }}>Account created! Redirecting...</p>
                 )}
+                {needsConfirm && (
+                  <div style={{ textAlign: 'center', marginTop: 6, padding: '10px 12px', borderRadius: 10, border: '1px solid rgba(203,166,92,0.25)', background: 'rgba(203,166,92,0.06)' }}>
+                    <p style={{ fontSize: 13, color: '#E8E8E8', fontWeight: 600, margin: 0 }}>Check your email</p>
+                    <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.55)', marginTop: 4, lineHeight: 1.5 }}>
+                      We sent a confirmation link to {email}. Click it to activate your account, then sign in.
+                    </p>
+                  </div>
+                )}
 
                 {/* Sign up button */}
                 <motion.button
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
                   type="submit"
-                  disabled={isLoading || success}
+                  disabled={isLoading || success || needsConfirm}
                   className="w-full relative group/button mt-5"
                 >
                   <div className="absolute inset-0 bg-[#CBA65C]/20 rounded-lg blur-lg opacity-0 group-hover/button:opacity-70 transition-opacity duration-300" />
@@ -464,6 +491,7 @@ export default function SignUpPage() {
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
                   type="button"
+                  onClick={handleGoogle}
                   className="w-full relative group/google"
                 >
                   <div className="absolute inset-0 bg-white/5 rounded-lg blur opacity-0 group-hover/google:opacity-70 transition-opacity duration-300" />

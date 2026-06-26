@@ -31,7 +31,6 @@ export default function SignInPage() {
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [focusedInput, setFocusedInput] = useState<string | null>(null);
-  const [rememberMe, setRememberMe] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const handleSignIn = async (e: React.FormEvent) => {
@@ -45,6 +44,15 @@ export default function SignInPage() {
     } else {
       router.push('/account');
     }
+  };
+
+  const handleGoogle = async () => {
+    setError(null);
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: { redirectTo: `${window.location.origin}/account` },
+    });
+    if (error) setError(error.message);
   };
 
 
@@ -262,35 +270,8 @@ export default function SignInPage() {
                   </motion.div>
                 </motion.div>
 
-                {/* Remember me & Forgot password */}
-                <div className="flex items-center justify-between pt-1">
-                  <div className="flex items-center space-x-2">
-                    <div className="relative">
-                      <input
-                        id="remember-me"
-                        name="remember-me"
-                        type="checkbox"
-                        checked={rememberMe}
-                        onChange={() => setRememberMe(!rememberMe)}
-                        className="appearance-none h-4 w-4 rounded border border-white/20 bg-white/5 checked:bg-[#CBA65C] checked:border-[#CBA65C] focus:outline-none focus:ring-1 focus:ring-[#CBA65C]/30 transition-all duration-200"
-                      />
-                      {rememberMe && (
-                        <motion.div
-                          initial={{ opacity: 0, scale: 0.5 }}
-                          animate={{ opacity: 1, scale: 1 }}
-                          className="absolute inset-0 flex items-center justify-center text-[#0a0a0a] pointer-events-none"
-                        >
-                          <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                            <polyline points="20 6 9 17 4 12"></polyline>
-                          </svg>
-                        </motion.div>
-                      )}
-                    </div>
-                    <label htmlFor="remember-me" className="text-xs text-white/60 hover:text-white/80 transition-colors duration-200">
-                      Remember me
-                    </label>
-                  </div>
-
+                {/* Forgot password */}
+                <div className="flex items-center justify-end pt-1">
                   <div className="text-xs relative group/link">
                     <Link href="/forgot-password" className="text-white/60 hover:text-white transition-colors duration-200">
                       Forgot password?
@@ -354,6 +335,7 @@ export default function SignInPage() {
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
                   type="button"
+                  onClick={handleGoogle}
                   className="w-full relative group/google"
                 >
                   <div className="absolute inset-0 bg-white/5 rounded-lg blur opacity-0 group-hover/google:opacity-70 transition-opacity duration-300" />

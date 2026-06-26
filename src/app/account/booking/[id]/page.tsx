@@ -1,7 +1,5 @@
 'use client';
 
-export const runtime = 'edge';
-
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useRouter, useParams } from 'next/navigation';
@@ -15,11 +13,18 @@ const SERVICES = [
   { value: 'Full Detail', label: 'Full Detail' },
 ];
 
-const TIME_SLOTS = [
-  '7:00 AM', '7:30 AM', '8:00 AM', '8:30 AM', '9:00 AM', '9:30 AM',
-  '10:00 AM', '10:30 AM', '11:00 AM', '11:30 AM', '12:00 PM', '12:30 PM',
-  '1:00 PM', '1:30 PM', '2:00 PM', '2:30 PM', '3:00 PM', '3:30 PM', '4:00 PM',
+// Match the booking flow: hourly 9 AM–4 PM, with later start times ruled out for
+// longer services so the detail can finish in daylight.
+const TIME_SLOTS: { value: string; hour: number }[] = [
+  { value: '9:00 AM', hour: 9 }, { value: '10:00 AM', hour: 10 }, { value: '11:00 AM', hour: 11 },
+  { value: '12:00 PM', hour: 12 }, { value: '1:00 PM', hour: 13 }, { value: '2:00 PM', hour: 14 },
+  { value: '3:00 PM', hour: 15 }, { value: '4:00 PM', hour: 16 },
 ];
+const SERVICE_MAX_HOUR: Record<string, number> = {
+  'Exterior Detail': 16,
+  'Interior Detail': 14,
+  'Full Detail': 12,
+};
 
 type Booking = {
   id: string;
@@ -75,29 +80,53 @@ export default function ManageBookingPage() {
   const [date, setDate] = useState('');
   const [time, setTime] = useState('');
   const [notes, setNotes] = useState('');
+  const [origDate, setOrigDate] = useState('');
+  const [availability, setAvailability] = useState<Record<string, string>>({});
 
   useEffect(() => {
     supabase.auth.getSession().then(async ({ data }) => {
       if (!data.session) { router.replace('/signin'); return; }
 
-      const { data: bk, error: bkErr } = await supabase
-        .from('bookings')
-        .select('id,service,date,time,notes,status,name,phone,suburb,car_make,car_model')
-        .eq('id', id)
-        .eq('user_id', data.session.user.id)
-        .single();
+      const [{ data: bk, error: bkErr }, { data: avail }] = await Promise.all([
+        supabase
+          .from('bookings')
+          .select('id,service,date,time,notes,status,name,phone,suburb,car_make,car_model')
+          .eq('id', id)
+          .eq('user_id', data.session.user.id)
+          .single(),
+        supabase.from('availability').select('date,status'),
+      ]);
 
       if (bkErr || !bk) { router.replace('/account'); return; }
       if (bk.status !== 'pending' && bk.status !== 'confirmed') { router.replace('/account'); return; }
 
+      const map: Record<string, string> = {};
+      (avail ?? []).forEach((r: { date: string; status: string }) => { map[r.date] = r.status; });
+      setAvailability(map);
+
       setBooking(bk as Booking);
       setService(bk.service ?? '');
       setDate(bk.date ?? '');
+      setOrigDate(bk.date ?? '');
       setTime(bk.time ?? '');
       setNotes(bk.notes ?? '');
       setLoading(false);
     });
   }, [id, router]);
+
+  // Available slots for the chosen service, and reset an invalid time on change.
+  const maxHour = SERVICE_MAX_HOUR[service] ?? 16;
+  const slots = TIME_SLOTS.filter(s => s.hour <= maxHour);
+  useEffect(() => {
+    if (time && !slots.some(s => s.value === time)) setTime('');
+  }, [service]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // A day the user is trying to move onto is unavailable if it's booked/blocked —
+  // unless it's their own current booking's day.
+  const dateUnavailable =
+    !!date &&
+    date !== origDate &&
+    (availability[date] === 'booked' || availability[date] === 'blocked');
 
   const handleSave = async () => {
     setSaving(true);
@@ -121,20 +150,30 @@ export default function ManageBookingPage() {
       return;
     }
 
-    setSaved(true);
-    setTimeout(() => { setSaved(false); setSaving(false); }, 2200);
     setSaving(false);
+    setSaved(true);
+    setOrigDate(date);
+    setTimeout(() => setSaved(false), 2200);
   };
 
   const handleCancel = async () => {
     setCancelling(true);
+    setError('');
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) { router.replace('/signin'); return; }
 
-    await fetch(`/api/booking/${id}`, {
+    const res = await fetch(`/api/booking/${id}`, {
       method: 'DELETE',
       headers: { Authorization: `Bearer ${session.access_token}` },
     });
+
+    if (!res.ok) {
+      const j = await res.json().catch(() => ({}));
+      setError(j.error ?? 'Could not cancel. Please try again or call us.');
+      setCancelling(false);
+      setConfirmCancel(false);
+      return;
+    }
 
     router.replace('/account');
   };
@@ -198,15 +237,20 @@ export default function ManageBookingPage() {
                   value={date}
                   onChange={e => setDate(e.target.value)}
                   min={new Date().toISOString().split('T')[0]}
-                  style={{ ...inputStyle, colorScheme: 'dark' }}
+                  style={{ ...inputStyle, colorScheme: 'dark', borderColor: dateUnavailable ? 'rgba(192,57,43,0.5)' : 'rgba(255,255,255,0.09)' }}
                 />
+                {dateUnavailable && (
+                  <p style={{ fontSize: 11, color: 'rgba(192,57,43,0.8)', margin: '8px 0 0' }}>
+                    That day is already taken. Please choose another.
+                  </p>
+                )}
               </div>
 
               <div>
                 <label style={{ display: 'block', fontSize: 10, color: 'rgba(255,255,255,0.25)', letterSpacing: '0.18em', textTransform: 'uppercase', marginBottom: 8 }}>Preferred Time</label>
                 <select value={time} onChange={e => setTime(e.target.value)} style={{ ...inputStyle, cursor: 'pointer' }}>
                   <option value="" style={{ background: '#111' }}>Any time</option>
-                  {TIME_SLOTS.map(t => <option key={t} value={t} style={{ background: '#111' }}>{t}</option>)}
+                  {slots.map(t => <option key={t.value} value={t.value} style={{ background: '#111' }}>{t.value}</option>)}
                 </select>
               </div>
 
@@ -229,7 +273,7 @@ export default function ManageBookingPage() {
                 whileHover={{ scale: 1.01 }}
                 whileTap={{ scale: 0.98 }}
                 onClick={handleSave}
-                disabled={saving}
+                disabled={saving || dateUnavailable}
                 style={{
                   width: '100%',
                   padding: '13px',
@@ -243,8 +287,8 @@ export default function ManageBookingPage() {
                   fontSize: 12,
                   letterSpacing: '0.1em',
                   textTransform: 'uppercase',
-                  cursor: saving ? 'wait' : 'pointer',
-                  opacity: saving ? 0.7 : 1,
+                  cursor: saving || dateUnavailable ? 'not-allowed' : 'pointer',
+                  opacity: saving || dateUnavailable ? 0.7 : 1,
                   transition: 'all 0.3s',
                 }}
               >

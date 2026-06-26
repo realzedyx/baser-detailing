@@ -32,6 +32,22 @@ function formatMemberSince(dateStr: string) {
   return new Date(dateStr).toLocaleDateString('en-AU', { month: 'short', year: 'numeric' });
 }
 
+// Free-text colours like "Pearl White" or "Midnight Black" aren't valid CSS
+// colours, so the swatch would render transparent. Map common names (and the
+// adjective-prefixed variants) to a sensible hex, with a neutral fallback.
+const COLOUR_MAP: Record<string, string> = {
+  black: '#1a1a1a', white: '#f4f4f4', silver: '#c9ccce', grey: '#7d7f82', gray: '#7d7f82',
+  red: '#b3261e', blue: '#1f4e8c', navy: '#1b2a4a', green: '#1f5c3a', yellow: '#e0b400',
+  orange: '#cc5b1e', gold: '#CBA65C', bronze: '#8c6a3f', brown: '#5a3d2b', beige: '#d8cab0',
+  purple: '#5b2a86', pink: '#cf6f93', maroon: '#5c1a1a', charcoal: '#36393b', gunmetal: '#3a3f44',
+};
+function colourToCss(raw: string | null | undefined): string {
+  if (!raw) return '#3a3f44';
+  const lower = raw.toLowerCase();
+  const key = Object.keys(COLOUR_MAP).find((c) => lower.includes(c));
+  return key ? COLOUR_MAP[key] : '#3a3f44';
+}
+
 // Mobile devices choke on stacked backdrop-blur + many infinite animations
 // (janky scroll, blank/late repaints). Detect mobile so we can drop those.
 function useIsMobile() {
@@ -208,7 +224,9 @@ export default function AccountPage() {
 
   const tier = getTier(points);
   const nextTier = tier === 'VIP' ? null : TIERS[TIERS.findIndex(t => t.name === (tier || 'Regular')) + (tier ? 1 : 0)];
-  const referralMsg = `Hey! I use Baser Detailing — results are incredible. Book through my referral and we both get bonus points: baserdetailing.com.au/book`;
+  // Carry the referrer's name in the link so the booking it produces records who
+  // referred it (see /book) and the owner can credit both accounts.
+  const referralMsg = `Hey! I use Baser Detailing — results are incredible. Book through my link and we both get 50 bonus points: baserdetailing.com.au/book?ref=${encodeURIComponent(name)}`;
 
   return (
     <div className="min-h-screen w-screen relative overflow-x-hidden" style={{ backgroundColor: '#0a0a0a' }}>
@@ -447,7 +465,7 @@ export default function AccountPage() {
                   ) : (
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-                        <div style={{ width: 42, height: 42, borderRadius: 10, background: car.colour, border: '1px solid rgba(255,255,255,0.1)', flexShrink: 0 }} />
+                        <div style={{ width: 42, height: 42, borderRadius: 10, background: colourToCss(car.colour), border: '1px solid rgba(255,255,255,0.1)', flexShrink: 0 }} />
                         <div>
                           <div style={{ fontSize: 14, color: '#E8E8E8', fontWeight: 300 }}>{car.year} {car.make} {car.model}</div>
                           <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', marginTop: 2, textTransform: 'capitalize' }}>{car.colour}</div>
@@ -460,7 +478,7 @@ export default function AccountPage() {
                           onClick={() => router.push('/account/car')}
                           style={{ fontSize: 11, color: '#CBA65C', background: 'rgba(203,166,92,0.07)', border: '1px solid rgba(203,166,92,0.25)', borderRadius: 8, padding: '7px 16px', cursor: 'pointer', letterSpacing: '0.06em', whiteSpace: 'nowrap' }}
                         >
-                          + Add another car
+                          Edit car
                         </motion.button>
                         <motion.button
                           whileHover={{ scale: 1.05 }}
@@ -545,7 +563,7 @@ export default function AccountPage() {
                 <div style={{ padding: '24px 28px' }}>
                   <p style={{ fontSize: 10, color: '#CBA65C', letterSpacing: '0.24em', textTransform: 'uppercase', fontWeight: 500, marginBottom: 10 }}>Refer a Mate</p>
                   <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.32)', lineHeight: 1.75, marginBottom: 16 }}>
-                    Earn <span style={{ color: '#CBA65C' }}>50 bonus points</span> when your mate books using your referral.
+                    You both earn <span style={{ color: '#CBA65C' }}>50 bonus points</span> once your mate books with your link and completes their first detail.
                   </p>
                   <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: 12, padding: '14px 16px', marginBottom: 14 }}>
                     <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.28)', lineHeight: 1.8, fontStyle: 'italic' }}>
