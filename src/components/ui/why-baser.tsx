@@ -284,6 +284,9 @@ export function WhyBaserSection() {
         </div>
       </div>
 
+      {/* Scroll target — nav "Why us?" lands here so animation is already done */}
+      <div id="services-end" className="absolute bottom-32 left-0 w-0 h-0 pointer-events-none" />
+
       {/* Bottom divider */}
       <div className="absolute bottom-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-white/8 to-transparent" />
     </section>

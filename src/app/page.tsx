@@ -12,11 +12,10 @@ import { PricingSection } from "@/components/ui/pricing-section";
 import { BeforeAfterSection } from "@/components/ui/before-after-slider";
 import { GoodToKnowSection } from "@/components/ui/good-to-know";
 import { TestimonialsSection } from "@/components/ui/testimonials-section";
-import { SectionNav } from "@/components/ui/section-nav";
 
 const navItems = [
   { name: "Home", url: "#", icon: HomeIcon },
-  { name: "Why us?", url: "#services", icon: Sparkles },
+  { name: "Why us?", url: "#services-end", icon: Sparkles },
   { name: "Levels", url: "#packages", icon: Wrench },
   { name: "Contact", url: "#contact", icon: Phone },
 ];
@@ -34,7 +33,6 @@ export default function Home() {
 
   return (
     <main className="min-h-screen bg-background">
-      <SectionNav />
       <NavBar items={navItems} />
 
       {/* PLACEHOLDER COPY — swap in real Baser Detailing wording later */}
