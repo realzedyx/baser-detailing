@@ -17,7 +17,7 @@ import { SectionNav } from "@/components/ui/section-nav";
 const navItems = [
   { name: "Home", url: "#", icon: HomeIcon },
   { name: "Services", url: "#services", icon: Sparkles },
-  { name: "Packages", url: "#packages", icon: Wrench },
+  { name: "Levels", url: "#packages", icon: Wrench },
   { name: "Contact", url: "#contact", icon: Phone },
 ];
 

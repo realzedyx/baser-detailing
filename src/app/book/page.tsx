@@ -591,7 +591,7 @@ function SuccessScreen({ name, service }: { name: string; service: string }) {
         className="text-sm leading-relaxed max-w-xs mb-8"
         style={{ color: "rgba(232,232,232,0.45)" }}
       >
-        Thanks {name}. I&apos;ll come back to you shortly to confirm your {service.toLowerCase()} and send through the PayID details.
+        Thanks {name}. I&apos;ll come back to you shortly to confirm your {service.toLowerCase()}. The balance is payable on the day by card, PayID, or cash.
       </motion.p>
       <motion.div
         initial={{ opacity: 0 }}

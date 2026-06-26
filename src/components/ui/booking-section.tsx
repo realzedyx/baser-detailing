@@ -1,8 +1,10 @@
 "use client";
 
 import { motion, useInView, useMotionValue, useSpring } from "framer-motion";
-import React, { useRef } from "react";
+import React, { useRef, useEffect, useState } from "react";
+import Link from "next/link";
 import { TextReveal } from "@/components/ui/text-reveal";
+import { supabase } from "@/lib/supabase";
 
 const GOLD = "#CBA65C";
 const CHROME = "#E4C883";
@@ -10,6 +12,25 @@ const CHROME = "#E4C883";
 export function BookingSection() {
   const ref = useRef<HTMLDivElement>(null);
   const inView = useInView(ref, { once: true, margin: "-60px" });
+  const [spotsLeft, setSpotsLeft] = useState<number | null>(null);
+
+  useEffect(() => {
+    const today = new Date();
+    const day = today.getDay();
+    const monday = new Date(today);
+    monday.setDate(today.getDate() - ((day + 6) % 7));
+    const sunday = new Date(monday);
+    sunday.setDate(monday.getDate() + 6);
+    const fmt = (d: Date) => d.toISOString().slice(0, 10);
+
+    supabase
+      .from("availability")
+      .select("date", { count: "exact", head: false })
+      .eq("status", "open")
+      .gte("date", fmt(monday))
+      .lte("date", fmt(sunday))
+      .then(({ count }) => setSpotsLeft(count ?? 0));
+  }, []);
 
   const anim = (delay = 0) => ({
     initial: { opacity: 0, y: 28 },
@@ -84,7 +105,7 @@ export function BookingSection() {
             <motion.p {...anim(0.18)} className="text-[#E8E8E8]/55 text-sm sm:text-base leading-relaxed max-w-sm mb-10">
               Call or text for the quickest reply, or send your details and I&apos;ll come back
               with a time. A 20% deposit locks in your spot, with the balance paid on the day
-              by PayID or cash.
+              by card, PayID, or cash.
             </motion.p>
 
             {/* Phone number */}
@@ -122,8 +143,8 @@ export function BookingSection() {
               <ContactRow
                 icon={<IconEmail />}
                 label="EMAIL"
-                value="hello@baserdetailing.com.au"
-                href="mailto:hello@baserdetailing.com.au"
+                value="support@baserdetailing.com"
+                href="mailto:support@baserdetailing.com"
               />
             </motion.div>
 
@@ -177,17 +198,25 @@ export function BookingSection() {
                   <div className="relative flex-shrink-0">
                     <div
                       className="w-2 h-2 rounded-full"
-                      style={{ background: "#4ade80" }}
+                      style={{ background: spotsLeft === null ? "#888" : spotsLeft > 0 ? "#4ade80" : "#f87171" }}
                     />
-                    <motion.div
-                      className="absolute inset-0 rounded-full"
-                      animate={{ scale: [1, 2.2, 1], opacity: [0.7, 0, 0.7] }}
-                      transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
-                      style={{ background: "#4ade80" }}
-                    />
+                    {(spotsLeft === null || spotsLeft > 0) && (
+                      <motion.div
+                        className="absolute inset-0 rounded-full"
+                        animate={{ scale: [1, 2.2, 1], opacity: [0.7, 0, 0.7] }}
+                        transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+                        style={{ background: spotsLeft === null ? "#888" : "#4ade80" }}
+                      />
+                    )}
                   </div>
                   <p className="text-[12px] font-semibold" style={{ color: "rgba(232,232,232,0.55)" }}>
-                    <span style={{ color: "#E4C883" }}>3 spots</span> left this week
+                    {spotsLeft === null ? (
+                      <span style={{ color: "rgba(232,232,232,0.3)" }}>Checking availability…</span>
+                    ) : spotsLeft > 0 ? (
+                      <><span style={{ color: "#E4C883" }}>{spotsLeft} {spotsLeft === 1 ? "spot" : "spots"}</span> left this week</>
+                    ) : (
+                      <span style={{ color: "#f87171" }}>No spots left this week</span>
+                    )}
                   </p>
                 </div>
 
@@ -236,7 +265,7 @@ export function BookingSection() {
 
                 {/* Footer note */}
                 <p className="text-[#E8E8E8]/30 text-[11px] leading-relaxed">
-                  A 20% deposit secures your spot. Balance paid on the day by PayID or cash.{" "}
+                  A 20% deposit secures your spot. Balance paid on the day by card, PayID, or cash.{" "}
                   <span className="text-[#E8E8E8]/20">
                     Need to reschedule? Just give me 24 hours&apos; notice.
                   </span>
@@ -249,6 +278,20 @@ export function BookingSection() {
 
       {/* Bottom footer strip */}
       <div className="absolute bottom-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-white/6 to-transparent" />
+
+      {/* Footer bar */}
+      <div className="relative z-10 mt-16 border-t flex items-center justify-between px-5 md:px-8 pt-6 max-w-6xl mx-auto" style={{ borderColor: "rgba(255,255,255,0.06)" }}>
+        <p className="text-[11px]" style={{ color: "rgba(232,232,232,0.2)" }}>
+          © {new Date().getFullYear()} Baser Detailing. ABN 00 000 000 000.
+        </p>
+        <Link
+          href="/terms"
+          className="text-[11px] transition-colors duration-200 hover:text-[#CBA65C]"
+          style={{ color: "rgba(232,232,232,0.3)" }}
+        >
+          Terms &amp; Conditions
+        </Link>
+      </div>
     </section>
   );
 }
