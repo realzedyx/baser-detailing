@@ -142,6 +142,7 @@ type Car = { make: string; model: string; year: number; colour: string };
 
 export default function AccountPage() {
   const router = useRouter();
+  const [userId, setUserId] = useState('');
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [memberSince, setMemberSince] = useState('');
@@ -163,15 +164,28 @@ export default function AccountPage() {
         return;
       }
       const u = data.session.user;
+      setUserId(u.id);
       setName(u.user_metadata?.full_name || u.email?.split('@')[0] || 'there');
       setEmail(u.email || '');
       setMemberSince(formatMemberSince(u.created_at));
 
       const [{ data: profile }, { data: carData }, { data: bookingsData }] = await Promise.all([
-        supabase.from('profiles').select('points').eq('id', u.id).single(),
+        supabase.from('profiles').select('points,referral_credited').eq('id', u.id).single(),
         supabase.from('cars').select('make,model,year,colour').eq('owner_id', u.id).maybeSingle(),
         supabase.from('bookings').select('id,date,time,service,amount,status,pending_points,name,phone,suburb,car_make,car_model,notes').eq('user_id', u.id).order('created_at', { ascending: false }),
       ]);
+
+      // Credit referral points on first account load after signup via a referral link.
+      const referrerId = u.user_metadata?.referrer_id;
+      if (referrerId && !profile?.referral_credited) {
+        fetch('/api/referral', {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${data.session.access_token}` },
+        }).then(r => r.json()).then(res => {
+          // If freshly credited, bump the displayed points by 50.
+          if (res.ok && !res.already) setPoints(p => p + 50);
+        }).catch(() => {});
+      }
 
       const appliedPts = profile?.points ?? 0;
       setPoints(appliedPts);
@@ -226,7 +240,7 @@ export default function AccountPage() {
   const nextTier = tier === 'VIP' ? null : TIERS[TIERS.findIndex(t => t.name === (tier || 'Regular')) + (tier ? 1 : 0)];
   // Carry the referrer's name in the link so the booking it produces records who
   // referred it (see /book) and the owner can credit both accounts.
-  const referralMsg = `Hey! I use Baser Detailing — results are incredible. Book through my link and we both get 50 bonus points: baserdetailing.com.au/book?ref=${encodeURIComponent(name)}`;
+  const referralMsg = `Hey! I use Baser Detailing — results are incredible. Sign up through my link and we both get 50 bonus points: baserdetailing.com/signup?ref=${encodeURIComponent(userId || name)}`;
 
   return (
     <div className="min-h-screen w-screen relative overflow-x-hidden" style={{ backgroundColor: '#0a0a0a' }}>

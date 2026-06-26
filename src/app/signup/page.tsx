@@ -1,7 +1,7 @@
 'use client'
-import React, { useState } from 'react';
+import React, { Suspense, useState } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ShadowOverlay } from '@/components/ui/shadow-overlay';
 import { Mail, Lock, Eye, EyeClosed, ArrowRight, User, Home, Phone, MapPin } from 'lucide-react';
@@ -24,8 +24,10 @@ function Input({ className, type, ...props }: React.ComponentProps<"input">) {
   )
 }
 
-export default function SignUpPage() {
+function SignUpPageInner() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const refParam = (searchParams.get('ref') || '').trim().slice(0, 64);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [name, setName] = useState("");
@@ -50,7 +52,7 @@ export default function SignUpPage() {
       email,
       password,
       options: {
-        data: { full_name: name, phone, suburb },
+        data: { full_name: name, phone, suburb, ...(refParam ? { referrer_id: refParam } : {}) },
         emailRedirectTo: `${window.location.origin}/account`,
       },
     });
@@ -531,5 +533,13 @@ export default function SignUpPage() {
         </div>
       </motion.div>
     </div>
+  );
+}
+
+export default function SignUpPage() {
+  return (
+    <Suspense>
+      <SignUpPageInner />
+    </Suspense>
   );
 }
