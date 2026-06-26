@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Phone, MessageCircle, Check, X, ChevronLeft, ChevronRight, Clock, Calendar, Users, Briefcase, BarChart2, BookOpen } from 'lucide-react';
+import { Phone, MessageCircle, Check, X, ChevronLeft, ChevronRight, Calendar, Users, Briefcase, BookOpen } from 'lucide-react';
 
 // ─── PIN ────────────────────────────────────────────────────────────────────
 const ADMIN_PIN = '1234'; // TODO: move to env / Supabase
