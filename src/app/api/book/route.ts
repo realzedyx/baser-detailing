@@ -32,6 +32,14 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
+  // Block the date immediately so no one else can book it while pending
+  if (date) {
+    await supabase.from("availability").upsert(
+      { date, status: "booked", updated_at: new Date().toISOString() },
+      { onConflict: "date" }
+    );
+  }
+
   const ntfyTopic = process.env.NTFY_TOPIC ?? "baserdetailing";
   try {
     await fetch(`https://ntfy.sh/${ntfyTopic}`, {
