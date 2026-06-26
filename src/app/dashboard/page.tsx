@@ -153,8 +153,21 @@ function RevenueChart({ jobs }: { jobs: Job[] }) {
 }
 
 // ─── Jobs Tab ─────────────────────────────────────────────────────────────────
-function JobsTab({ jobs, onRefresh }: { jobs: Job[]; onRefresh: () => void }) {
+type JobFormPrefill = { date?: string; make?: string; model?: string; suburb?: string; service?: string; notes?: string };
+
+function JobsTab({ jobs, onRefresh, prefill }: { jobs: Job[]; onRefresh: () => void; prefill?: JobFormPrefill | null }) {
   const [form, setForm] = useState({ date: '', make: '', model: '', year: '', colour: '', suburb: '', service: 'Interior', amount: '', payment: 'PayID', notes: '' });
+
+  useEffect(() => {
+    if (!prefill) return;
+    const svc = (() => {
+      const s = (prefill.service || '').toLowerCase();
+      if (s.includes('full')) return 'Full Detail';
+      if (s.includes('exterior')) return 'Exterior';
+      return 'Interior';
+    })();
+    setForm(f => ({ ...f, date: prefill.date ?? f.date, make: prefill.make ?? f.make, model: prefill.model ?? f.model, suburb: prefill.suburb ?? f.suburb, service: svc, notes: prefill.notes ?? f.notes }));
+  }, [prefill]);
   const [focused, setFocused] = useState('');
   const [saving, setSaving] = useState(false);
   const [filterService, setFilterService] = useState('All');
@@ -281,7 +294,7 @@ function JobsTab({ jobs, onRefresh }: { jobs: Job[]; onRefresh: () => void }) {
 }
 
 // ─── Bookings Tab ─────────────────────────────────────────────────────────────
-function BookingsTab({ bookings, onRefresh }: { bookings: Booking[]; onRefresh: () => void }) {
+function BookingsTab({ bookings, onRefresh, onLogJob }: { bookings: Booking[]; onRefresh: () => void; onLogJob: (b: Booking) => void }) {
   const [updating, setUpdating] = useState<string | null>(null);
 
   const updateStatus = async (id: string, status: string, date?: string) => {
@@ -297,24 +310,12 @@ function BookingsTab({ bookings, onRefresh }: { bookings: Booking[]; onRefresh: 
     onRefresh();
   };
 
-  const svcPrice = (s: string) => {
-    const sl = (s || '').toLowerCase();
-    if (sl.includes('full')) return 219;
-    if (sl.includes('interior')) return 149;
-    return 129;
-  };
-
   const markDone = async (b: Booking) => {
     setUpdating(b.id);
     await supabase.from('bookings').update({ status: 'done' }).eq('id', b.id);
-    await supabase.from('jobs').insert({
-      date: b.date || new Date().toISOString().split('T')[0],
-      make: b.car_make, model: b.car_model, year: '', colour: '',
-      suburb: b.suburb, service: b.service,
-      amount: svcPrice(b.service), payment: 'PayID', notes: b.notes || '',
-    });
     setUpdating(null);
     onRefresh();
+    onLogJob(b);
   };
 
   const textConfirm = (b: Booking) => {
@@ -718,6 +719,12 @@ function Dashboard() {
   const [availability, setAvailability] = useState<Record<string, DayStatus>>({});
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [loading, setLoading] = useState(true);
+  const [prefillJob, setPrefillJob] = useState<JobFormPrefill | null>(null);
+
+  const handleLogJob = (b: Booking) => {
+    setPrefillJob({ date: b.date, make: b.car_make, model: b.car_model, suburb: b.suburb, service: b.service, notes: b.notes || '' });
+    setTab('Jobs');
+  };
 
   const loadData = useCallback(async () => {
     const [jobsRes, bookingsRes, availRes, profilesRes] = await Promise.all([
@@ -793,8 +800,8 @@ function Dashboard() {
         {/* Tab content */}
         <AnimatePresence mode="wait">
           <motion.div key={tab} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }} transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}>
-            {tab === 'Jobs' && <JobsTab jobs={jobs} onRefresh={loadData} />}
-            {tab === 'Bookings' && <BookingsTab bookings={bookings} onRefresh={loadData} />}
+            {tab === 'Jobs' && <JobsTab jobs={jobs} onRefresh={loadData} prefill={prefillJob} />}
+            {tab === 'Bookings' && <BookingsTab bookings={bookings} onRefresh={loadData} onLogJob={handleLogJob} />}
             {tab === 'Availability' && <AvailabilityTab availability={availability} confirmedDates={confirmedDates} onRefresh={loadData} />}
             {tab === 'Customers' && <CustomersTab profiles={profiles} bookings={bookings} />}
           </motion.div>
