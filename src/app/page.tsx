@@ -57,6 +57,14 @@ export default function Home() {
       <GoodToKnowSection />
       <TestimonialsSection />
       <BookingSection />
+
+      {/* Spacer so the bottom-fixed mobile navbar never overlaps the footer.
+          Collapses to 0 once the navbar moves to the top at the sm breakpoint. */}
+      <div
+        className="sm:hidden"
+        style={{ height: "calc(72px + env(safe-area-inset-bottom, 0px))" }}
+        aria-hidden
+      />
     </main>
   );
 }

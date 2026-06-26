@@ -58,8 +58,47 @@
   * {
     @apply border-border;
   }
+  html {
+    /* Prevent iOS/Android from auto-inflating text on rotation, and stop the
+       page from scrolling sideways when full-bleed w-screen sections render a
+       scrollbar-less viewport. */
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+  }
+  html,
   body {
     @apply bg-background text-foreground;
+    overflow-x: hidden;
+    max-width: 100%;
+  }
+  /* On touch devices the custom cursor + hover-only affordances are useless;
+     keep tap highlights subtle so taps still feel responsive. */
+  @media (hover: none) {
+    * {
+      -webkit-tap-highlight-color: transparent;
+    }
+  }
+  /* iOS zooms any focused field whose font-size is < 16px. Force the visual
+     text to 16px on small screens while keeping the designed look on desktop. */
+  @media (max-width: 640px) {
+    input,
+    select,
+    textarea {
+      font-size: 16px !important;
+    }
+  }
+}
+
+@layer utilities {
+  /* Safe-area aware spacing for fixed bottom UI (nav bar, sticky CTAs). */
+  .pb-safe {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  .mb-safe {
+    margin-bottom: calc(env(safe-area-inset-bottom, 0px) + 1.5rem);
+  }
+  .bottom-safe {
+    bottom: calc(env(safe-area-inset-bottom, 0px));
   }
 }
 

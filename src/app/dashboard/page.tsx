@@ -110,7 +110,7 @@ function PinGate({ onUnlock }: { onUnlock: () => void }) {
 // ─── Stat Chip ────────────────────────────────────────────────────────────────
 function StatChip({ label, revenue, count, delay }: { label: string; revenue: number; count: number; delay: number }) {
   return (
-    <motion.div {...a(delay)} style={{ flex: 1, minWidth: 0, background: 'rgba(255,255,255,0.025)', border: '1px solid rgba(203,166,92,0.15)', borderRadius: 16, padding: '20px 22px' }}>
+    <motion.div {...a(delay)} style={{ flex: '1 1 140px', minWidth: 140, background: 'rgba(255,255,255,0.025)', border: '1px solid rgba(203,166,92,0.15)', borderRadius: 16, padding: '20px 22px' }}>
       <p style={{ fontSize: 9, color: 'rgba(203,166,92,0.6)', letterSpacing: '0.22em', textTransform: 'uppercase', marginBottom: 10 }}>{label}</p>
       <p style={{ fontSize: 26, fontWeight: 200, color: '#E8E8E8', letterSpacing: '-0.03em', margin: 0 }}>${revenue.toLocaleString()}</p>
       {count > 0 && <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', marginTop: 4 }}>{count} job{count !== 1 ? 's' : ''}</p>}
@@ -233,7 +233,7 @@ function JobsTab({ jobs, onRefresh, prefill }: { jobs: Job[]; onRefresh: () => v
   const selStyle = (f: boolean): React.CSSProperties => ({ ...inp(f), appearance: 'none', WebkitAppearance: 'none' } as React.CSSProperties);
 
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: '400px 1fr', gap: 24, alignItems: 'start' }}>
+    <div className="grid grid-cols-1 lg:grid-cols-[400px_1fr] gap-6 items-start">
       {/* Log form */}
       <motion.div {...a(0)} style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 18, padding: '28px 24px' }}>
         <p style={{ fontSize: 9, color: 'rgba(203,166,92,0.6)', letterSpacing: '0.22em', textTransform: 'uppercase', marginBottom: 20 }}>Log a Job</p>
@@ -581,7 +581,7 @@ function AvailabilityTab({
   };
 
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: '1fr 300px', gap: 24, alignItems: 'start' }}>
+    <div className="grid grid-cols-1 lg:grid-cols-[1fr_300px] gap-6 items-start">
       <motion.div {...a(0)} style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 18, padding: '28px' }}>
 
         {/* Mode selector */}
@@ -888,12 +888,18 @@ function Dashboard() {
 
   return (
     <div style={{ minHeight: '100vh', backgroundColor: BG, color: '#E8E8E8' }}>
+      <style>{`
+        .dash-shell { padding: 24px 16px; }
+        @media (min-width: 768px) { .dash-shell { padding: 40px 32px; } }
+        .dash-tabs { overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
+        .dash-tabs::-webkit-scrollbar { display: none; }
+      `}</style>
       <div style={{ position: 'fixed', inset: 0, pointerEvents: 'none', zIndex: 0 }}>
         <div style={{ position: 'absolute', width: 800, height: 400, top: 0, left: '50%', transform: 'translateX(-50%)', background: 'radial-gradient(ellipse, rgba(203,166,92,0.04) 0%, transparent 70%)', filter: 'blur(60px)' }} />
       </div>
       <div style={{ position: 'fixed', inset: 0, pointerEvents: 'none', zIndex: 0, backgroundImage: 'linear-gradient(rgba(255,255,255,0.015) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.015) 1px, transparent 1px)', backgroundSize: '40px 40px', opacity: 0.5 }} />
 
-      <div style={{ position: 'relative', zIndex: 1, maxWidth: 1280, margin: '0 auto', padding: '40px 32px' }}>
+      <div className="dash-shell" style={{ position: 'relative', zIndex: 1, maxWidth: 1280, margin: '0 auto' }}>
         {/* Header */}
         <motion.div {...a(0)} style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 36 }}>
           <div>
@@ -912,10 +918,10 @@ function Dashboard() {
         </div>
 
         {/* Tabs */}
-        <motion.div {...a(5)} style={{ display: 'flex', gap: 6, marginBottom: 28 }}>
+        <motion.div {...a(5)} className="dash-tabs" style={{ display: 'flex', gap: 6, marginBottom: 28, paddingBottom: 2 }}>
           {TABS.map(({ id, icon }) => (
             <button key={id} onClick={() => setTab(id)}
-              style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '9px 18px', fontSize: 10, fontWeight: 500, letterSpacing: '0.12em', textTransform: 'uppercase', borderRadius: 10, cursor: 'pointer', border: `1px solid ${tab === id ? GOLD : 'rgba(255,255,255,0.08)'}`, background: tab === id ? 'rgba(203,166,92,0.1)' : 'rgba(255,255,255,0.02)', color: tab === id ? GOLD : 'rgba(255,255,255,0.4)', transition: 'all 0.2s' }}>
+              style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: 7, padding: '11px 18px', minHeight: 44, fontSize: 10, fontWeight: 500, letterSpacing: '0.12em', textTransform: 'uppercase', borderRadius: 10, cursor: 'pointer', border: `1px solid ${tab === id ? GOLD : 'rgba(255,255,255,0.08)'}`, background: tab === id ? 'rgba(203,166,92,0.1)' : 'rgba(255,255,255,0.02)', color: tab === id ? GOLD : 'rgba(255,255,255,0.4)', transition: 'all 0.2s' }}>
               {icon}{id}
             </button>
           ))}

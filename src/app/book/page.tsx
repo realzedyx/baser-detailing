@@ -610,6 +610,8 @@ function Field({
   onChange,
   required,
   placeholder,
+  inputMode,
+  autoComplete,
 }: {
   label: string;
   name: string;
@@ -618,6 +620,8 @@ function Field({
   onChange: (v: string) => void;
   required?: boolean;
   placeholder?: string;
+  inputMode?: React.HTMLAttributes<HTMLInputElement>["inputMode"];
+  autoComplete?: string;
 }) {
   return (
     <div className="flex flex-col gap-1.5">
@@ -631,7 +635,9 @@ function Field({
         onChange={e => onChange(e.target.value)}
         required={required}
         placeholder={placeholder}
-        className="w-full bg-transparent rounded-xl px-4 py-3 text-sm font-medium outline-none transition-all duration-200 focus:ring-0 placeholder:text-white/20"
+        inputMode={inputMode}
+        autoComplete={autoComplete}
+        className="w-full bg-transparent rounded-xl px-4 py-3 text-base sm:text-sm font-medium outline-none transition-all duration-200 focus:ring-0 placeholder:text-white/20"
         style={{
           background: "rgba(255,255,255,0.035)",
           border: "1px solid rgba(255,255,255,0.09)",
@@ -1263,18 +1269,18 @@ function BookPageInner() {
                 }}
               >
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 mb-5">
-                  <Field label="Full name" name="name" value={form.name} onChange={setField("name")} required placeholder="Yusuf Baser" />
-                  <Field label="Phone" name="phone" type="tel" value={form.phone} onChange={setField("phone")} required placeholder="0400 000 000" />
+                  <Field label="Full name" name="name" value={form.name} onChange={setField("name")} required placeholder="Yusuf Baser" autoComplete="name" />
+                  <Field label="Phone" name="phone" type="tel" value={form.phone} onChange={setField("phone")} required placeholder="0400 000 000" inputMode="tel" autoComplete="tel" />
                 </div>
                 <div className="mb-5">
-                  <Field label="Suburb" name="suburb" value={form.suburb} onChange={setField("suburb")} placeholder="Fitzroy, Richmond..." />
+                  <Field label="Suburb" name="suburb" value={form.suburb} onChange={setField("suburb")} placeholder="Fitzroy, Richmond..." autoComplete="address-level2" />
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 mb-5">
                   <Field label="Car make" name="carMake" value={form.carMake} onChange={setField("carMake")} required placeholder="Toyota" />
                   <Field label="Car model" name="carModel" value={form.carModel} onChange={setField("carModel")} required placeholder="Corolla" />
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 mb-5">
-                  <Field label="Year" name="carYear" value={form.carYear} onChange={setField("carYear")} placeholder="2021" />
+                  <Field label="Year" name="carYear" value={form.carYear} onChange={setField("carYear")} placeholder="2021" inputMode="numeric" />
                   <Field label="Colour" name="carColour" value={form.carColour} onChange={setField("carColour")} placeholder="Black" />
                 </div>
                 <div className="flex flex-col gap-1.5">
@@ -1286,7 +1292,7 @@ function BookPageInner() {
                     onChange={e => setField("notes")(e.target.value)}
                     rows={3}
                     placeholder="Stubborn stains, pet hair, light scratches..."
-                    className="w-full bg-transparent rounded-xl px-4 py-3 text-sm font-medium outline-none resize-none transition-all duration-200 placeholder:text-white/20"
+                    className="w-full bg-transparent rounded-xl px-4 py-3 text-base sm:text-sm font-medium outline-none resize-none transition-all duration-200 placeholder:text-white/20"
                     style={{
                       background: "rgba(255,255,255,0.035)",
                       border: "1px solid rgba(255,255,255,0.09)",

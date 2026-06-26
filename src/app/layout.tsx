@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import localFont from "next/font/local";
 import "./globals.css";
 import { CursorTracker } from "@/components/cursor-tracker";
@@ -19,6 +19,15 @@ export const metadata: Metadata = {
   title: "Baser Detailing | Mobile Car Detailing in Melbourne",
   description:
     "Premium mobile car detailing in Melbourne. We come to you. Showroom-quality results at your home or workplace.",
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  // Allow the page to extend under the iOS notch / home indicator so our
+  // safe-area-inset padding (see globals.css) can position content correctly.
+  viewportFit: "cover",
+  themeColor: "#0a0a0a",
 };
 
 export default function RootLayout({

@@ -184,8 +184,11 @@ function Slider() {
       className="relative w-full overflow-hidden select-none"
       data-drag-zone="true"
       style={{
-        height: "clamp(320px, 62vw, 680px)",
+        height: "clamp(300px, 62vw, 680px)",
         cursor: isDragging ? "col-resize" : "ew-resize",
+        // Stop the browser from claiming the gesture for vertical scroll while
+        // the user drags the comparison handle horizontally.
+        touchAction: "pan-y",
       }}
       onMouseDown={onContainerMouseDown}
       onTouchStart={onTouchStart}

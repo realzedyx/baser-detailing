@@ -552,7 +552,7 @@ export default function AccountPage() {
         </div>
       </div>
 
-      <div className="fixed bottom-0 left-0 right-0 z-50" style={{ padding: '20px 24px 36px', background: 'linear-gradient(to top, rgba(10,10,10,0.98) 55%, transparent)' }}>
+      <div className="fixed bottom-0 left-0 right-0 z-50" style={{ padding: '20px 24px calc(36px + env(safe-area-inset-bottom, 0px))', background: 'linear-gradient(to top, rgba(10,10,10,0.98) 55%, transparent)' }}>
         <div style={{ maxWidth: 980, margin: '0 auto' }}>
           <motion.div whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.99 }}>
             <Link href="/book" className="block text-center rounded-2xl font-medium relative overflow-hidden" style={{ background: 'linear-gradient(120deg, #BF9A50, #CBA65C 35%, #E4C883 60%, #CBA65C)', color: '#0a0a0a', textDecoration: 'none', padding: '15px', letterSpacing: '0.12em', textTransform: 'uppercase', fontSize: 12, fontWeight: 500 }}>

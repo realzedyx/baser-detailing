@@ -489,7 +489,7 @@ export function CinematicHero({
               </p>
               <a
                 href={ctaHref}
-                className="hidden md:inline-flex self-center lg:self-start items-center gap-2.5 mt-6 rounded-xl px-6 py-3 text-sm font-semibold tracking-tight transition-transform duration-200 hover:-translate-y-0.5 active:translate-y-0 group relative overflow-hidden"
+                className="inline-flex md:inline-flex self-center lg:self-start items-center gap-2.5 mt-5 md:mt-6 rounded-xl px-6 py-3 min-h-[44px] text-sm font-semibold tracking-tight transition-transform duration-200 hover:-translate-y-0.5 active:translate-y-0 group relative overflow-hidden"
                 style={{
                   background: "linear-gradient(135deg, #E4C883 0%, #CBA65C 55%, #A8862E 100%)",
                   color: "#0a0a0a",

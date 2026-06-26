@@ -80,7 +80,7 @@ export function NavBar({ items, className }: NavBarProps) {
   return (
     <div
       className={cn(
-        "fixed bottom-0 sm:top-0 left-1/2 -translate-x-1/2 z-50 mb-6 sm:pt-6 pointer-events-none",
+        "fixed bottom-0 sm:top-0 left-1/2 -translate-x-1/2 z-50 mb-safe sm:mb-0 sm:pt-6 pointer-events-none",
         className,
       )}
     >
@@ -95,7 +95,7 @@ export function NavBar({ items, className }: NavBarProps) {
               href={item.url}
               onClick={(e) => handleNav(e, item)}
               className={cn(
-                "relative cursor-pointer text-sm font-semibold px-6 py-2 rounded-full transition-colors",
+                "relative cursor-pointer text-sm font-semibold px-5 sm:px-6 py-2.5 sm:py-2 rounded-full transition-colors flex items-center justify-center min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0",
                 "text-foreground/80 hover:text-primary",
                 isActive && "bg-muted text-primary",
               )}
@@ -133,7 +133,7 @@ export function NavBar({ items, className }: NavBarProps) {
         <Link
           href={isSignedIn ? "/account" : "/signin"}
           aria-label="My account"
-          className="relative cursor-pointer flex items-center justify-center w-9 h-9 rounded-full transition-colors text-foreground/60 hover:text-[#CBA65C]"
+          className="relative cursor-pointer flex items-center justify-center w-11 h-11 sm:w-9 sm:h-9 rounded-full transition-colors text-foreground/60 hover:text-[#CBA65C]"
           style={{ background: "rgba(203,166,92,0.07)", border: "1px solid rgba(203,166,92,0.18)" }}
         >
           <User size={16} strokeWidth={2} />
