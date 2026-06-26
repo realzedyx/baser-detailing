@@ -33,12 +33,36 @@ export default function AddCarPage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const set = (k: string) => (e: React.ChangeEvent<HTMLInputElement>) =>
-    setForm(f => ({ ...f, [k]: e.target.value }));
+  const FILTERS: Record<string, RegExp> = {
+    make:   /[^a-zA-Z\s]/g,
+    model:  /[^a-zA-Z0-9\s]/g,
+    year:   /[^0-9]/g,
+    colour: /[^a-zA-Z\s]/g,
+  };
+
+  const set = (k: string) => (e: React.ChangeEvent<HTMLInputElement>) => {
+    const filtered = e.target.value.replace(FILTERS[k], '');
+    setForm(f => ({ ...f, [k]: filtered }));
+  };
+
+  const validate = (): string | null => {
+    if (!form.make.trim()) return 'Make is required.';
+    if (!/^[a-zA-Z\s]+$/.test(form.make.trim())) return 'Make must contain letters only.';
+    if (!form.model.trim()) return 'Model is required.';
+    if (!/^[a-zA-Z0-9\s]+$/.test(form.model.trim())) return 'Model must contain letters and numbers only.';
+    if (!form.year.trim()) return 'Year is required.';
+    const yr = parseInt(form.year);
+    if (isNaN(yr) || yr < 1900 || yr > new Date().getFullYear() + 1) return `Year must be a number between 1900 and ${new Date().getFullYear() + 1}.`;
+    if (!form.colour.trim()) return 'Colour is required.';
+    if (!/^[a-zA-Z\s]+$/.test(form.colour.trim())) return 'Colour must contain letters only.';
+    return null;
+  };
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+    const validationError = validate();
+    if (validationError) { setError(validationError); return; }
     setSaving(true);
     try {
       const { data: { session } } = await supabase.auth.getSession();
@@ -73,11 +97,11 @@ export default function AddCarPage() {
     }
   };
 
-  const fields: { key: keyof typeof form; label: string; type?: string; placeholder: string }[] = [
-    { key: 'make',   label: 'Make',   placeholder: 'e.g. Toyota' },
-    { key: 'model',  label: 'Model',  placeholder: 'e.g. Camry' },
-    { key: 'year',   label: 'Year',   placeholder: 'e.g. 2021' },
-    { key: 'colour', label: 'Colour', placeholder: 'e.g. Midnight Black' },
+  const fields: { key: keyof typeof form; label: string; placeholder: string; inputMode?: React.HTMLAttributes<HTMLInputElement>['inputMode']; maxLength?: number }[] = [
+    { key: 'make',   label: 'Make',   placeholder: 'e.g. Toyota',        inputMode: 'text',    maxLength: 40 },
+    { key: 'model',  label: 'Model',  placeholder: 'e.g. Camry',         inputMode: 'text',    maxLength: 40 },
+    { key: 'year',   label: 'Year',   placeholder: 'e.g. 2021',          inputMode: 'numeric', maxLength: 4  },
+    { key: 'colour', label: 'Colour', placeholder: 'e.g. Midnight Black', inputMode: 'text',    maxLength: 40 },
   ];
 
   return (
@@ -115,11 +139,13 @@ export default function AddCarPage() {
             <div className="absolute inset-0 opacity-[0.025] pointer-events-none" style={{ backgroundImage: 'linear-gradient(135deg, white 0.5px, transparent 0.5px), linear-gradient(45deg, white 0.5px, transparent 0.5px)', backgroundSize: '24px 24px' }} />
             <form onSubmit={handleSave} className="relative z-10" style={{ padding: '32px 28px' }}>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-                {fields.map(({ key, label, type, placeholder }, i) => (
+                {fields.map(({ key, label, placeholder, inputMode, maxLength }, i) => (
                   <motion.div key={key} {...s(i + 2)}>
                     <label style={{ display: 'block', fontSize: 10, color: '#CBA65C', letterSpacing: '0.22em', textTransform: 'uppercase', fontWeight: 500, marginBottom: 8 }}>{label}</label>
                     <input
-                      type={type ?? 'text'}
+                      type="text"
+                      inputMode={inputMode}
+                      maxLength={maxLength}
                       value={form[key]}
                       onChange={set(key)}
                       onFocus={() => setFocused(key)}

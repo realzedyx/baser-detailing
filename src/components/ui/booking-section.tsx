@@ -282,7 +282,7 @@ export function BookingSection() {
       {/* Footer bar */}
       <div className="relative z-10 mt-16 border-t flex items-center justify-between px-5 md:px-8 pt-6 max-w-6xl mx-auto" style={{ borderColor: "rgba(255,255,255,0.06)" }}>
         <p className="text-[11px]" style={{ color: "rgba(232,232,232,0.2)" }}>
-          © {new Date().getFullYear()} Baser Detailing. ABN 00 000 000 000.
+          © {new Date().getFullYear()} Baser Detailing. ABN 29 765 538 947.
         </p>
         <Link
           href="/terms"

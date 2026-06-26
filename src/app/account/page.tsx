@@ -280,15 +280,25 @@ export default function AccountPage() {
                           <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', marginTop: 2, textTransform: 'capitalize' }}>{car.colour}</div>
                         </div>
                       </div>
-                      <motion.button
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 0.95 }}
-                        onClick={handleRemoveCar}
-                        disabled={removingCar}
-                        style={{ fontSize: 11, color: 'rgba(192,57,43,0.7)', background: 'none', border: '1px solid rgba(192,57,43,0.2)', borderRadius: 8, padding: '7px 16px', cursor: removingCar ? 'wait' : 'pointer', letterSpacing: '0.06em', opacity: removingCar ? 0.5 : 1 }}
-                      >
-                        {removingCar ? 'Removing…' : 'Remove'}
-                      </motion.button>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, alignItems: 'flex-end' }}>
+                        <motion.button
+                          whileHover={{ scale: 1.03 }}
+                          whileTap={{ scale: 0.97 }}
+                          onClick={() => router.push('/account/car')}
+                          style={{ fontSize: 11, color: '#CBA65C', background: 'rgba(203,166,92,0.07)', border: '1px solid rgba(203,166,92,0.25)', borderRadius: 8, padding: '7px 16px', cursor: 'pointer', letterSpacing: '0.06em', whiteSpace: 'nowrap' }}
+                        >
+                          + Add another car
+                        </motion.button>
+                        <motion.button
+                          whileHover={{ scale: 1.05 }}
+                          whileTap={{ scale: 0.95 }}
+                          onClick={handleRemoveCar}
+                          disabled={removingCar}
+                          style={{ fontSize: 11, color: 'rgba(192,57,43,0.7)', background: 'none', border: '1px solid rgba(192,57,43,0.2)', borderRadius: 8, padding: '7px 16px', cursor: removingCar ? 'wait' : 'pointer', letterSpacing: '0.06em', opacity: removingCar ? 0.5 : 1 }}
+                        >
+                          {removingCar ? 'Removing…' : 'Remove'}
+                        </motion.button>
+                      </div>
                     </div>
                   )}
                 </div>

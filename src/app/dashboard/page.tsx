@@ -1,79 +1,45 @@
 'use client';
 
-import { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Phone, MessageCircle, Check, X, ChevronLeft, ChevronRight, Calendar, Users, Briefcase, BookOpen } from 'lucide-react';
+import {
+  Phone, MessageCircle, Check, X,
+  ChevronLeft, ChevronRight, Calendar, Users, Briefcase, BookOpen,
+} from 'lucide-react';
+import { supabase } from '@/lib/supabase';
 
-// ─── PIN ────────────────────────────────────────────────────────────────────
-const ADMIN_PIN = '1234'; // TODO: move to env / Supabase
+// ─── Constants ────────────────────────────────────────────────────────────────
+const ADMIN_PIN = '1234';
+const GOLD = '#CBA65C';
+const BG = '#0a0a0a';
+const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
-// ─── Types ───────────────────────────────────────────────────────────────────
-type Service = 'Interior' | 'Exterior' | 'Full Detail';
-type Payment = 'PayID' | 'Cash';
-type BookingStatus = 'PENDING' | 'CONFIRMED' | 'DONE' | 'DECLINED';
+// ─── Types ────────────────────────────────────────────────────────────────────
 type DayStatus = 'open' | 'booked' | 'blocked';
 
 interface Job {
   id: string; date: string; make: string; model: string; year: string;
-  colour: string; suburb: string; service: Service; amount: number;
-  payment: Payment; notes: string;
+  colour: string; suburb: string; service: string; amount: number;
+  payment: string; notes: string; created_at?: string;
 }
 interface Booking {
-  id: string; carName: string; service: Service; price: number; suburb: string;
-  customerName: string; phone: string; contactMethod: string;
-  dateTime: string; status: BookingStatus;
+  id: string; service: string; date: string; time: string | null;
+  name: string; phone: string; suburb: string;
+  car_make: string; car_model: string; notes: string;
+  status: string; created_at: string;
 }
-interface Customer {
-  id: string; name: string; phone: string; suburb: string;
-  type: 'member' | 'guest'; jobCount: number; totalSpent: number;
-  lastBooking: string; totalRequests: number;
+interface Profile {
+  id: string; email: string; created_at?: string; rewards_points?: number;
 }
-
-// ─── Mock data ────────────────────────────────────────────────────────────────
-const MOCK_JOBS: Job[] = [
-  { id:'j1', date:'2026-06-20', make:'Toyota', model:'Camry', year:'2021', colour:'Silver', suburb:'Parramatta', service:'Full Detail', amount:320, payment:'PayID', notes:'' },
-  { id:'j2', date:'2026-06-18', make:'BMW', model:'3 Series', year:'2022', colour:'Black', suburb:'Chatswood', service:'Interior', amount:180, payment:'Cash', notes:'Pet hair removal' },
-  { id:'j3', date:'2026-06-15', make:'Mazda', model:'CX-5', year:'2020', colour:'White', suburb:'Hornsby', service:'Exterior', amount:150, payment:'PayID', notes:'' },
-  { id:'j4', date:'2026-05-28', make:'Hyundai', model:'Tucson', year:'2023', colour:'Blue', suburb:'Penrith', service:'Full Detail', amount:300, payment:'Cash', notes:'' },
-  { id:'j5', date:'2026-05-14', make:'Ford', model:'Ranger', year:'2019', colour:'Grey', suburb:'Blacktown', service:'Exterior', amount:170, payment:'PayID', notes:'Heavy mud' },
-];
-
-const MOCK_BOOKINGS: Booking[] = [
-  { id:'b1', carName:'Tesla Model 3', service:'Full Detail', price:320, suburb:'North Sydney', customerName:'Alex Chen', phone:'0412 345 678', contactMethod:'SMS', dateTime:'2026-06-28 9:00am', status:'PENDING' },
-  { id:'b2', carName:'Audi Q5', service:'Interior', price:180, suburb:'Mosman', customerName:'Sarah Williams', phone:'0423 456 789', contactMethod:'Phone', dateTime:'2026-06-29 11:00am', status:'CONFIRMED' },
-  { id:'b3', carName:'Kia Sportage', service:'Exterior', price:150, suburb:'Ryde', customerName:'James Park', phone:'0434 567 890', contactMethod:'SMS', dateTime:'2026-07-01 10:00am', status:'PENDING' },
-  { id:'b4', carName:'Mercedes C-Class', service:'Full Detail', price:350, suburb:'Manly', customerName:'Emma Davis', phone:'0445 678 901', contactMethod:'Email', dateTime:'2026-07-02 9:00am', status:'CONFIRMED' },
-];
-
-const MOCK_CUSTOMERS: Customer[] = [
-  { id:'c1', name:'Alex Chen', phone:'0412 345 678', suburb:'North Sydney', type:'member', jobCount:4, totalSpent:980, lastBooking:'2026-06-28', totalRequests:5 },
-  { id:'c2', name:'Sarah Williams', phone:'0423 456 789', suburb:'Mosman', type:'member', jobCount:2, totalSpent:500, lastBooking:'2026-06-29', totalRequests:3 },
-  { id:'c3', name:'James Park', phone:'0434 567 890', suburb:'Ryde', type:'guest', jobCount:1, totalSpent:150, lastBooking:'2026-07-01', totalRequests:1 },
-  { id:'c4', name:'Emma Davis', phone:'0445 678 901', suburb:'Manly', type:'member', jobCount:6, totalSpent:1750, lastBooking:'2026-07-02', totalRequests:7 },
-  { id:'c5', name:'Tom Brown', phone:'0456 789 012', suburb:'Penrith', type:'guest', jobCount:1, totalSpent:300, lastBooking:'2026-05-28', totalRequests:1 },
-];
-
-const MONTHLY_REVENUE = [
-  { month:'Jan', revenue:1200, jobs:5 },
-  { month:'Feb', revenue:980, jobs:4 },
-  { month:'Mar', revenue:1540, jobs:7 },
-  { month:'Apr', revenue:1100, jobs:5 },
-  { month:'May', revenue:1870, jobs:8 },
-  { month:'Jun', revenue:920, jobs:4 },
-];
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
-const s = (i: number, extra?: object) => ({
+const a = (i: number) => ({
   initial: { opacity: 0, y: 16, filter: 'blur(3px)' },
   animate: { opacity: 1, y: 0, filter: 'blur(0px)' },
-  transition: { duration: 0.5, ease: [0.22, 1, 0.36, 1] as [number,number,number,number], delay: i * 0.06 },
-  ...extra,
+  transition: { duration: 0.5, ease: [0.22, 1, 0.36, 1] as [number, number, number, number], delay: i * 0.06 },
 });
 
-const GOLD = '#CBA65C';
-const BG = '#0a0a0a';
-
-const inputStyle = (focused: boolean): React.CSSProperties => ({
+const inp = (focused: boolean): React.CSSProperties => ({
   width: '100%', boxSizing: 'border-box',
   background: focused ? 'rgba(203,166,92,0.04)' : 'rgba(255,255,255,0.025)',
   border: `1px solid ${focused ? 'rgba(203,166,92,0.45)' : 'rgba(255,255,255,0.08)'}`,
@@ -81,6 +47,11 @@ const inputStyle = (focused: boolean): React.CSSProperties => ({
   color: '#E8E8E8', outline: 'none', transition: 'all 0.2s',
   fontWeight: 300, letterSpacing: '0.01em',
 });
+
+const lbl: React.CSSProperties = {
+  display: 'block', fontSize: 9, color: GOLD,
+  letterSpacing: '0.22em', textTransform: 'uppercase', fontWeight: 500, marginBottom: 6,
+};
 
 // ─── PIN Gate ─────────────────────────────────────────────────────────────────
 function PinGate({ onUnlock }: { onUnlock: () => void }) {
@@ -106,29 +77,27 @@ function PinGate({ onUnlock }: { onUnlock: () => void }) {
   return (
     <div className="min-h-screen w-screen flex items-center justify-center" style={{ backgroundColor: BG }}>
       <div className="absolute inset-0 pointer-events-none">
-        <div style={{ position:'absolute', width:600, height:600, top:'10%', left:'50%', transform:'translateX(-50%)', background:'radial-gradient(circle, rgba(203,166,92,0.045) 0%, transparent 65%)', filter:'blur(60px)' }} />
+        <div style={{ position: 'absolute', width: 600, height: 600, top: '10%', left: '50%', transform: 'translateX(-50%)', background: 'radial-gradient(circle, rgba(203,166,92,0.045) 0%, transparent 65%)', filter: 'blur(60px)' }} />
       </div>
-      <motion.div initial={{ opacity:0, scale:0.95 }} animate={{ opacity:1, scale:1 }} transition={{ duration:0.5, ease:[0.22,1,0.36,1] }} style={{ width:320 }}>
-        <div style={{ textAlign:'center', marginBottom:36 }}>
-          <p style={{ fontSize:9, color:'rgba(203,166,92,0.6)', letterSpacing:'0.28em', textTransform:'uppercase', marginBottom:10 }}>Admin Access</p>
-          <h1 style={{ fontSize:32, fontWeight:200, color:'#E8E8E8', letterSpacing:'-0.03em', margin:0 }}>Enter PIN</h1>
+      <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }} style={{ width: 320 }}>
+        <div style={{ textAlign: 'center', marginBottom: 36 }}>
+          <p style={{ fontSize: 9, color: 'rgba(203,166,92,0.6)', letterSpacing: '0.28em', textTransform: 'uppercase', marginBottom: 10 }}>Admin Access</p>
+          <h1 style={{ fontSize: 32, fontWeight: 200, color: '#E8E8E8', letterSpacing: '-0.03em', margin: 0 }}>Enter PIN</h1>
         </div>
-
-        {/* Dots */}
-        <motion.div animate={shake ? { x:[-8,8,-6,6,-4,4,0] } : { x:0 }} transition={{ duration:0.5 }} style={{ display:'flex', justifyContent:'center', gap:16, marginBottom:40 }}>
-          {[0,1,2,3].map(i => (
-            <div key={i} style={{ width:14, height:14, borderRadius:'50%', border:`1px solid ${error ? 'rgba(239,68,68,0.6)' : 'rgba(203,166,92,0.4)'}`, background: i < digits.length ? (error ? 'rgba(239,68,68,0.8)' : GOLD) : 'transparent', transition:'all 0.15s' }} />
+        <motion.div animate={shake ? { x: [-8, 8, -6, 6, -4, 4, 0] } : { x: 0 }} transition={{ duration: 0.5 }}
+          style={{ display: 'flex', justifyContent: 'center', gap: 16, marginBottom: 40 }}>
+          {[0, 1, 2, 3].map(i => (
+            <div key={i} style={{ width: 14, height: 14, borderRadius: '50%', border: `1px solid ${error ? 'rgba(239,68,68,0.6)' : 'rgba(203,166,92,0.4)'}`, background: i < digits.length ? (error ? 'rgba(239,68,68,0.8)' : GOLD) : 'transparent', transition: 'all 0.15s' }} />
           ))}
         </motion.div>
-
-        {/* Numpad */}
-        <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:10 }}>
-          {['1','2','3','4','5','6','7','8','9','','0','⌫'].map((k, i) => (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 10 }}>
+          {['1', '2', '3', '4', '5', '6', '7', '8', '9', '', '0', '⌫'].map((k, i) => (
             k === '' ? <div key={i} /> :
-            <motion.button key={i} whileHover={{ scale:1.05 }} whileTap={{ scale:0.93 }}
-              onClick={() => k === '⌫' ? del() : press(k)}
-              style={{ padding:'18px 0', fontSize: k === '⌫' ? 18 : 22, fontWeight:200, color: k === '⌫' ? 'rgba(255,255,255,0.35)' : '#E8E8E8', background:'rgba(255,255,255,0.03)', border:'1px solid rgba(255,255,255,0.06)', borderRadius:12, cursor:'pointer', letterSpacing:'-0.02em' }}
-            >{k}</motion.button>
+              <motion.button key={i} whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.93 }}
+                onClick={() => k === '⌫' ? del() : press(k)}
+                style={{ padding: '18px 0', fontSize: k === '⌫' ? 18 : 22, fontWeight: 200, color: k === '⌫' ? 'rgba(255,255,255,0.35)' : '#E8E8E8', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 12, cursor: 'pointer', letterSpacing: '-0.02em' }}>
+                {k}
+              </motion.button>
           ))}
         </div>
       </motion.div>
@@ -137,33 +106,44 @@ function PinGate({ onUnlock }: { onUnlock: () => void }) {
 }
 
 // ─── Stat Chip ────────────────────────────────────────────────────────────────
-function StatChip({ label, revenue, jobs, delay }: { label:string; revenue:number; jobs:number; delay:number }) {
+function StatChip({ label, revenue, count, delay }: { label: string; revenue: number; count: number; delay: number }) {
   return (
-    <motion.div {...s(delay)} style={{ flex:1, minWidth:0, background:'rgba(255,255,255,0.025)', border:'1px solid rgba(203,166,92,0.15)', borderRadius:16, padding:'20px 22px' }}>
-      <p style={{ fontSize:9, color:'rgba(203,166,92,0.6)', letterSpacing:'0.22em', textTransform:'uppercase', marginBottom:10 }}>{label}</p>
-      <p style={{ fontSize:26, fontWeight:200, color:'#E8E8E8', letterSpacing:'-0.03em', margin:0 }}>${revenue.toLocaleString()}</p>
-      <p style={{ fontSize:11, color:'rgba(255,255,255,0.3)', marginTop:4 }}>{jobs} job{jobs !== 1 ? 's' : ''}</p>
+    <motion.div {...a(delay)} style={{ flex: 1, minWidth: 0, background: 'rgba(255,255,255,0.025)', border: '1px solid rgba(203,166,92,0.15)', borderRadius: 16, padding: '20px 22px' }}>
+      <p style={{ fontSize: 9, color: 'rgba(203,166,92,0.6)', letterSpacing: '0.22em', textTransform: 'uppercase', marginBottom: 10 }}>{label}</p>
+      <p style={{ fontSize: 26, fontWeight: 200, color: '#E8E8E8', letterSpacing: '-0.03em', margin: 0 }}>${revenue.toLocaleString()}</p>
+      {count > 0 && <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', marginTop: 4 }}>{count} job{count !== 1 ? 's' : ''}</p>}
     </motion.div>
   );
 }
 
-// ─── Revenue Bar Chart ────────────────────────────────────────────────────────
-function RevenueChart() {
-  const max = Math.max(...MONTHLY_REVENUE.map(m => m.revenue));
+// ─── Revenue Chart ────────────────────────────────────────────────────────────
+function RevenueChart({ jobs }: { jobs: Job[] }) {
+  const now = new Date();
+  const months = Array.from({ length: 6 }, (_, i) => {
+    const d = new Date(now.getFullYear(), now.getMonth() - (5 - i), 1);
+    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+    return {
+      label: d.toLocaleString('default', { month: 'short' }),
+      revenue: jobs.filter(j => j.date?.startsWith(key)).reduce((acc, j) => acc + (j.amount || 0), 0),
+      count: jobs.filter(j => j.date?.startsWith(key)).length,
+    };
+  });
+  const max = Math.max(...months.map(m => m.revenue), 1);
+
   return (
-    <div style={{ padding:'20px 0' }}>
-      <p style={{ fontSize:9, color:'rgba(203,166,92,0.6)', letterSpacing:'0.22em', textTransform:'uppercase', marginBottom:16 }}>Revenue — Last 6 Months</p>
-      <svg width="100%" viewBox="0 0 420 120" preserveAspectRatio="none" style={{ overflow:'visible' }}>
-        {MONTHLY_REVENUE.map((m, i) => {
-          const h = (m.revenue / max) * 90;
+    <div style={{ padding: '20px 0' }}>
+      <p style={{ fontSize: 9, color: 'rgba(203,166,92,0.6)', letterSpacing: '0.22em', textTransform: 'uppercase', marginBottom: 16 }}>Revenue — Last 6 Months</p>
+      <svg width="100%" viewBox="0 0 420 120" preserveAspectRatio="none" style={{ overflow: 'visible' }}>
+        {months.map((m, i) => {
+          const h = Math.max((m.revenue / max) * 90, m.revenue > 0 ? 6 : 0);
           const x = i * 70 + 10;
           return (
             <g key={i}>
-              <title>${m.revenue} — {m.jobs} jobs</title>
+              <title>${m.revenue} — {m.count} job{m.count !== 1 ? 's' : ''}</title>
               <rect x={x} y={110 - h} width={50} height={h} rx={6} fill="rgba(203,166,92,0.15)" stroke="rgba(203,166,92,0.3)" strokeWidth={1} />
-              <rect x={x} y={110 - h} width={50} height={4} rx={2} fill={GOLD} opacity={0.9} />
-              <text x={x + 25} y={120} textAnchor="middle" fill="rgba(255,255,255,0.35)" fontSize={9} fontFamily="inherit">{m.month}</text>
-              <text x={x + 25} y={105 - h} textAnchor="middle" fill="rgba(203,166,92,0.7)" fontSize={8} fontFamily="inherit">${m.revenue}</text>
+              {h > 0 && <rect x={x} y={110 - h} width={50} height={4} rx={2} fill={GOLD} opacity={0.9} />}
+              <text x={x + 25} y={120} textAnchor="middle" fill="rgba(255,255,255,0.35)" fontSize={9} fontFamily="inherit">{m.label}</text>
+              {m.revenue > 0 && <text x={x + 25} y={104 - h} textAnchor="middle" fill="rgba(203,166,92,0.7)" fontSize={8} fontFamily="inherit">${m.revenue}</text>}
             </g>
           );
         })}
@@ -173,10 +153,10 @@ function RevenueChart() {
 }
 
 // ─── Jobs Tab ─────────────────────────────────────────────────────────────────
-function JobsTab() {
-  const [jobs, setJobs] = useState<Job[]>(MOCK_JOBS);
-  const [form, setForm] = useState({ date:'', make:'', model:'', year:'', colour:'', suburb:'', service:'Interior' as Service, amount:'', payment:'PayID' as Payment, notes:'' });
+function JobsTab({ jobs, onRefresh }: { jobs: Job[]; onRefresh: () => void }) {
+  const [form, setForm] = useState({ date: '', make: '', model: '', year: '', colour: '', suburb: '', service: 'Interior', amount: '', payment: 'PayID', notes: '' });
   const [focused, setFocused] = useState('');
+  const [saving, setSaving] = useState(false);
   const [filterService, setFilterService] = useState('All');
   const [filterPayment, setFilterPayment] = useState('All');
   const [search, setSearch] = useState('');
@@ -185,11 +165,19 @@ function JobsTab() {
   const set = (k: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) =>
     setForm(f => ({ ...f, [k]: e.target.value }));
 
-  const handleSave = (e: React.FormEvent) => {
+  const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    const job: Job = { ...form, id: Date.now().toString(), amount: parseFloat(form.amount) || 0, service: form.service as Service, payment: form.payment as Payment };
-    setJobs(j => [job, ...j]);
-    setForm({ date:'', make:'', model:'', year:'', colour:'', suburb:'', service:'Interior', amount:'', payment:'PayID', notes:'' });
+    setSaving(true);
+    const { error } = await supabase.from('jobs').insert({
+      date: form.date, make: form.make, model: form.model, year: form.year,
+      colour: form.colour, suburb: form.suburb, service: form.service,
+      amount: parseFloat(form.amount) || 0, payment: form.payment, notes: form.notes,
+    });
+    setSaving(false);
+    if (!error) {
+      setForm({ date: '', make: '', model: '', year: '', colour: '', suburb: '', service: 'Interior', amount: '', payment: 'PayID', notes: '' });
+      onRefresh();
+    }
   };
 
   const filtered = jobs.filter(j => {
@@ -199,79 +187,89 @@ function JobsTab() {
     return true;
   });
 
-  const labelStyle: React.CSSProperties = { display:'block', fontSize:9, color:GOLD, letterSpacing:'0.22em', textTransform:'uppercase', fontWeight:500, marginBottom:6 };
-  const selStyle = (focused: boolean): React.CSSProperties => ({ ...inputStyle(focused), appearance:'none', WebkitAppearance:'none' });
+  const selStyle = (f: boolean): React.CSSProperties => ({ ...inp(f), appearance: 'none', WebkitAppearance: 'none' } as React.CSSProperties);
 
   return (
-    <div style={{ display:'grid', gridTemplateColumns:'400px 1fr', gap:24, alignItems:'start' }}>
+    <div style={{ display: 'grid', gridTemplateColumns: '400px 1fr', gap: 24, alignItems: 'start' }}>
       {/* Log form */}
-      <motion.div {...s(0)} style={{ background:'rgba(255,255,255,0.02)', border:'1px solid rgba(255,255,255,0.06)', borderRadius:18, padding:'28px 24px' }}>
-        <p style={{ fontSize:9, color:'rgba(203,166,92,0.6)', letterSpacing:'0.22em', textTransform:'uppercase', marginBottom:20 }}>Log a Job</p>
-        <form onSubmit={handleSave} style={{ display:'flex', flexDirection:'column', gap:16 }}>
-          {([['date','Date','','date'],['make','Make','e.g. Toyota',''],['model','Model','e.g. Camry',''],['year','Year','e.g. 2021',''],['colour','Colour','e.g. Black',''],['suburb','Suburb','e.g. Parramatta',''],['amount','Amount ($)','e.g. 320','']] as [string,string,string,string][]).map(([k,l,ph,t]) => (
+      <motion.div {...a(0)} style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 18, padding: '28px 24px' }}>
+        <p style={{ fontSize: 9, color: 'rgba(203,166,92,0.6)', letterSpacing: '0.22em', textTransform: 'uppercase', marginBottom: 20 }}>Log a Job</p>
+        <form onSubmit={handleSave} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          {([
+            ['date', 'Date', '', 'date'],
+            ['make', 'Make', 'e.g. Toyota', ''],
+            ['model', 'Model', 'e.g. Camry', ''],
+            ['year', 'Year', 'e.g. 2021', ''],
+            ['colour', 'Colour', 'e.g. Black', ''],
+            ['suburb', 'Suburb', 'e.g. Parramatta', ''],
+            ['amount', 'Amount ($)', 'e.g. 320', ''],
+          ] as [string, string, string, string][]).map(([k, l, ph, t]) => (
             <div key={k}>
-              <label style={labelStyle}>{l}</label>
-              <input type={t || 'text'} placeholder={ph} value={(form as Record<string,string>)[k]} onChange={set(k)} onFocus={() => setFocused(k)} onBlur={() => setFocused('')} required={k !== 'notes'} style={inputStyle(focused === k)} />
+              <label style={lbl}>{l}</label>
+              <input type={t || 'text'} placeholder={ph} value={(form as Record<string, string>)[k]} onChange={set(k)}
+                onFocus={() => setFocused(k)} onBlur={() => setFocused('')}
+                required={k !== 'notes'} style={inp(focused === k)} />
             </div>
           ))}
           <div>
-            <label style={labelStyle}>Service</label>
+            <label style={lbl}>Service</label>
             <select value={form.service} onChange={set('service')} onFocus={() => setFocused('service')} onBlur={() => setFocused('')} style={selStyle(focused === 'service')}>
-              {['Interior','Exterior','Full Detail'].map(s => <option key={s} value={s}>{s}</option>)}
+              {['Interior', 'Exterior', 'Full Detail'].map(s => <option key={s} value={s}>{s}</option>)}
             </select>
           </div>
           <div>
-            <label style={labelStyle}>Payment</label>
+            <label style={lbl}>Payment</label>
             <select value={form.payment} onChange={set('payment')} onFocus={() => setFocused('payment')} onBlur={() => setFocused('')} style={selStyle(focused === 'payment')}>
-              {['PayID','Cash'].map(p => <option key={p} value={p}>{p}</option>)}
+              {['PayID', 'Cash'].map(p => <option key={p} value={p}>{p}</option>)}
             </select>
           </div>
           <div>
-            <label style={labelStyle}>Notes</label>
-            <textarea value={form.notes} onChange={set('notes')} placeholder="Optional notes..." rows={3} onFocus={() => setFocused('notes')} onBlur={() => setFocused('')}
-              style={{ ...inputStyle(focused === 'notes'), resize:'vertical', fontFamily:'inherit' }} />
+            <label style={lbl}>Notes</label>
+            <textarea value={form.notes} onChange={set('notes')} placeholder="Optional..." rows={3}
+              onFocus={() => setFocused('notes')} onBlur={() => setFocused('')}
+              style={{ ...inp(focused === 'notes'), resize: 'vertical', fontFamily: 'inherit' }} />
           </div>
-          <motion.button type="submit" whileHover={{ scale:1.02 }} whileTap={{ scale:0.97 }}
-            style={{ marginTop:4, background:`linear-gradient(120deg, #BF9A50, ${GOLD} 40%, #E4C883 65%, ${GOLD})`, color:BG, border:'none', borderRadius:12, padding:'13px', fontSize:11, fontWeight:500, letterSpacing:'0.14em', textTransform:'uppercase', cursor:'pointer', position:'relative', overflow:'hidden' }}>
-            <motion.div style={{ position:'absolute', inset:0, background:'linear-gradient(90deg, transparent, rgba(255,255,255,0.25), transparent)' }} animate={{ x:['-100%','100%'] }} transition={{ duration:2.5, ease:'easeInOut', repeat:Infinity, repeatDelay:4 }} />
-            <span style={{ position:'relative', zIndex:1 }}>Save Job →</span>
+          <motion.button type="submit" disabled={saving} whileHover={saving ? {} : { scale: 1.02 }} whileTap={saving ? {} : { scale: 0.97 }}
+            style={{ marginTop: 4, background: `linear-gradient(120deg, #BF9A50, ${GOLD} 40%, #E4C883 65%, ${GOLD})`, color: BG, border: 'none', borderRadius: 12, padding: '13px', fontSize: 11, fontWeight: 500, letterSpacing: '0.14em', textTransform: 'uppercase', cursor: saving ? 'wait' : 'pointer', opacity: saving ? 0.7 : 1, position: 'relative', overflow: 'hidden' }}>
+            <motion.div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.25), transparent)' }} animate={{ x: ['-100%', '100%'] }} transition={{ duration: 2.5, ease: 'easeInOut', repeat: Infinity, repeatDelay: 4 }} />
+            <span style={{ position: 'relative', zIndex: 1 }}>{saving ? 'Saving…' : 'Save Job →'}</span>
           </motion.button>
         </form>
       </motion.div>
 
       {/* Right panel */}
-      <div style={{ display:'flex', flexDirection:'column', gap:20 }}>
-        <motion.div {...s(1)} style={{ background:'rgba(255,255,255,0.02)', border:'1px solid rgba(255,255,255,0.06)', borderRadius:18, padding:'24px' }}>
-          <RevenueChart />
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+        <motion.div {...a(1)} style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 18, padding: '24px' }}>
+          <RevenueChart jobs={jobs} />
         </motion.div>
 
-        <motion.div {...s(2)} style={{ background:'rgba(255,255,255,0.02)', border:'1px solid rgba(255,255,255,0.06)', borderRadius:18, padding:'24px' }}>
-          {/* Filters */}
-          <div style={{ display:'flex', gap:10, marginBottom:18, flexWrap:'wrap' }}>
-            {(['All','Interior','Exterior','Full Detail'] as string[]).map(s => (
-              <button key={s} onClick={() => setFilterService(s)}
-                style={{ padding:'6px 14px', fontSize:10, fontWeight:500, letterSpacing:'0.1em', textTransform:'uppercase', borderRadius:8, cursor:'pointer', border:`1px solid ${filterService === s ? GOLD : 'rgba(255,255,255,0.08)'}`, background: filterService === s ? 'rgba(203,166,92,0.12)' : 'transparent', color: filterService === s ? GOLD : 'rgba(255,255,255,0.4)', transition:'all 0.15s' }}>{s}</button>
+        <motion.div {...a(2)} style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 18, padding: '24px' }}>
+          <div style={{ display: 'flex', gap: 10, marginBottom: 18, flexWrap: 'wrap' }}>
+            {(['All', 'Interior', 'Exterior', 'Full Detail'] as string[]).map(sv => (
+              <button key={sv} onClick={() => setFilterService(sv)}
+                style={{ padding: '6px 14px', fontSize: 10, fontWeight: 500, letterSpacing: '0.1em', textTransform: 'uppercase', borderRadius: 8, cursor: 'pointer', border: `1px solid ${filterService === sv ? GOLD : 'rgba(255,255,255,0.08)'}`, background: filterService === sv ? 'rgba(203,166,92,0.12)' : 'transparent', color: filterService === sv ? GOLD : 'rgba(255,255,255,0.4)', transition: 'all 0.15s' }}>{sv}</button>
             ))}
-            <div style={{ marginLeft:'auto', display:'flex', gap:8 }}>
-              {(['All','PayID','Cash'] as string[]).map(p => (
+            <div style={{ marginLeft: 'auto', display: 'flex', gap: 8 }}>
+              {(['All', 'PayID', 'Cash'] as string[]).map(p => (
                 <button key={p} onClick={() => setFilterPayment(p)}
-                  style={{ padding:'6px 12px', fontSize:10, fontWeight:500, letterSpacing:'0.1em', textTransform:'uppercase', borderRadius:8, cursor:'pointer', border:`1px solid ${filterPayment === p ? GOLD : 'rgba(255,255,255,0.08)'}`, background: filterPayment === p ? 'rgba(203,166,92,0.12)' : 'transparent', color: filterPayment === p ? GOLD : 'rgba(255,255,255,0.4)', transition:'all 0.15s' }}>{p}</button>
+                  style={{ padding: '6px 12px', fontSize: 10, fontWeight: 500, letterSpacing: '0.1em', textTransform: 'uppercase', borderRadius: 8, cursor: 'pointer', border: `1px solid ${filterPayment === p ? GOLD : 'rgba(255,255,255,0.08)'}`, background: filterPayment === p ? 'rgba(203,166,92,0.12)' : 'transparent', color: filterPayment === p ? GOLD : 'rgba(255,255,255,0.4)', transition: 'all 0.15s' }}>{p}</button>
               ))}
             </div>
           </div>
-          <input placeholder="Search by car or suburb..." value={search} onChange={e => setSearch(e.target.value)} onFocus={() => setFSearch(true)} onBlur={() => setFSearch(false)} style={{ ...inputStyle(fSearch), marginBottom:16 }} />
-
-          <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
-            {filtered.length === 0 && <p style={{ color:'rgba(255,255,255,0.25)', fontSize:12, textAlign:'center', padding:'20px 0' }}>No jobs found</p>}
+          <input placeholder="Search by car or suburb…" value={search} onChange={e => setSearch(e.target.value)}
+            onFocus={() => setFSearch(true)} onBlur={() => setFSearch(false)}
+            style={{ ...inp(fSearch), marginBottom: 16 }} />
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {filtered.length === 0 && <p style={{ color: 'rgba(255,255,255,0.25)', fontSize: 12, textAlign: 'center', padding: '20px 0' }}>No jobs logged yet</p>}
             {filtered.map(j => (
-              <div key={j.id} style={{ display:'flex', alignItems:'center', gap:12, padding:'12px 16px', background:'rgba(255,255,255,0.02)', border:'1px solid rgba(255,255,255,0.05)', borderRadius:12 }}>
-                <div style={{ flex:1, minWidth:0 }}>
-                  <p style={{ margin:0, fontSize:13, color:'#E8E8E8', fontWeight:300 }}>{j.make} {j.model} <span style={{ color:'rgba(255,255,255,0.35)', fontSize:11 }}>· {j.colour}</span></p>
-                  <p style={{ margin:'3px 0 0', fontSize:11, color:'rgba(255,255,255,0.3)' }}>{j.suburb} · {j.service} · {j.date}</p>
+              <div key={j.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: 12 }}>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <p style={{ margin: 0, fontSize: 13, color: '#E8E8E8', fontWeight: 300 }}>{j.make} {j.model} <span style={{ color: 'rgba(255,255,255,0.35)', fontSize: 11 }}>· {j.colour}</span></p>
+                  <p style={{ margin: '3px 0 0', fontSize: 11, color: 'rgba(255,255,255,0.3)' }}>{j.suburb} · {j.service} · {j.date}</p>
                 </div>
-                <div style={{ textAlign:'right' }}>
-                  <p style={{ margin:0, fontSize:15, fontWeight:300, color:GOLD }}>${j.amount}</p>
-                  <p style={{ margin:'3px 0 0', fontSize:10, color: j.payment === 'Cash' ? 'rgba(255,255,255,0.35)' : 'rgba(203,166,92,0.5)', letterSpacing:'0.1em' }}>{j.payment}</p>
+                <div style={{ textAlign: 'right' }}>
+                  <p style={{ margin: 0, fontSize: 15, fontWeight: 300, color: GOLD }}>${j.amount}</p>
+                  <p style={{ margin: '3px 0 0', fontSize: 10, color: j.payment === 'Cash' ? 'rgba(255,255,255,0.35)' : 'rgba(203,166,92,0.5)', letterSpacing: '0.1em' }}>{j.payment}</p>
                 </div>
               </div>
             ))}
@@ -283,55 +281,99 @@ function JobsTab() {
 }
 
 // ─── Bookings Tab ─────────────────────────────────────────────────────────────
-function BookingsTab() {
-  const [bookings, setBookings] = useState<Booking[]>(MOCK_BOOKINGS);
+function BookingsTab({ bookings, onRefresh }: { bookings: Booking[]; onRefresh: () => void }) {
+  const [updating, setUpdating] = useState<string | null>(null);
 
-  const statusColor = (s: BookingStatus) => s === 'PENDING' ? 'rgba(251,191,36,0.9)' : s === 'CONFIRMED' ? 'rgba(34,197,94,0.9)' : s === 'DONE' ? 'rgba(203,166,92,0.6)' : 'rgba(239,68,68,0.7)';
-  const statusBg = (s: BookingStatus) => s === 'PENDING' ? 'rgba(251,191,36,0.1)' : s === 'CONFIRMED' ? 'rgba(34,197,94,0.1)' : s === 'DONE' ? 'rgba(203,166,92,0.1)' : 'rgba(239,68,68,0.1)';
+  const updateStatus = async (id: string, status: string, date?: string) => {
+    setUpdating(id);
+    await supabase.from('bookings').update({ status }).eq('id', id);
+    if (status === 'confirmed' && date) {
+      await supabase.from('availability').upsert(
+        { date, status: 'booked', updated_at: new Date().toISOString() },
+        { onConflict: 'date' }
+      );
+    }
+    setUpdating(null);
+    onRefresh();
+  };
 
-  const act = (id: string, newStatus: BookingStatus) =>
-    setBookings(bs => bs.map(b => b.id === id ? { ...b, status: newStatus } : b));
+  const svcPrice = (s: string) => {
+    const sl = (s || '').toLowerCase();
+    if (sl.includes('full')) return 219;
+    if (sl.includes('interior')) return 149;
+    return 129;
+  };
+
+  const markDone = async (b: Booking) => {
+    setUpdating(b.id);
+    await supabase.from('bookings').update({ status: 'done' }).eq('id', b.id);
+    await supabase.from('jobs').insert({
+      date: b.date || new Date().toISOString().split('T')[0],
+      make: b.car_make, model: b.car_model, year: '', colour: '',
+      suburb: b.suburb, service: b.service,
+      amount: svcPrice(b.service), payment: 'PayID', notes: b.notes || '',
+    });
+    setUpdating(null);
+    onRefresh();
+  };
+
+  const textConfirm = (b: Booking) => {
+    const msg = encodeURIComponent(
+      `Hi ${b.name}, your ${(b.service || 'detail').toLowerCase()} is confirmed for ${b.date}. I'll be there at the agreed time. Any questions, reply here. — Yusuf, Baser Detailing`
+    );
+    window.open(`sms:${b.phone}?body=${msg}`);
+  };
+
+  const statusColor = (s: string) =>
+    s === 'pending' ? 'rgba(251,191,36,0.9)' : s === 'confirmed' ? 'rgba(34,197,94,0.9)' : s === 'done' ? 'rgba(203,166,92,0.6)' : 'rgba(239,68,68,0.7)';
+  const statusBg = (s: string) =>
+    s === 'pending' ? 'rgba(251,191,36,0.1)' : s === 'confirmed' ? 'rgba(34,197,94,0.1)' : s === 'done' ? 'rgba(203,166,92,0.1)' : 'rgba(239,68,68,0.1)';
 
   const btnStyle = (color: string, bg: string): React.CSSProperties => ({
-    padding:'6px 12px', fontSize:10, fontWeight:500, letterSpacing:'0.08em', textTransform:'uppercase',
-    borderRadius:8, cursor:'pointer', border:`1px solid ${color}`, background: bg, color, transition:'all 0.15s',
+    padding: '6px 12px', fontSize: 10, fontWeight: 500, letterSpacing: '0.08em',
+    textTransform: 'uppercase', borderRadius: 8, cursor: 'pointer',
+    border: `1px solid ${color}`, background: bg, color, transition: 'all 0.15s',
   });
 
   return (
-    <div style={{ display:'flex', flexDirection:'column', gap:14 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+      {bookings.length === 0 && (
+        <div style={{ textAlign: 'center', padding: '60px 0', color: 'rgba(255,255,255,0.2)', fontSize: 13 }}>No booking requests yet</div>
+      )}
       {bookings.map((b, i) => (
-        <motion.div key={b.id} {...s(i)} style={{ background:'rgba(255,255,255,0.02)', border:'1px solid rgba(255,255,255,0.06)', borderRadius:18, padding:'22px 24px' }}>
-          <div style={{ display:'flex', gap:20, flexWrap:'wrap', alignItems:'flex-start' }}>
-            <div style={{ flex:1, minWidth:200 }}>
-              <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:8 }}>
-                <p style={{ margin:0, fontSize:15, fontWeight:300, color:'#E8E8E8' }}>{b.carName}</p>
-                <span style={{ fontSize:9, fontWeight:700, letterSpacing:'0.18em', padding:'3px 8px', borderRadius:6, color: statusColor(b.status), background: statusBg(b.status), border:`1px solid ${statusColor(b.status)}30` }}>{b.status}</span>
+        <motion.div key={b.id} {...a(i)} style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 18, padding: '22px 24px' }}>
+          <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap', alignItems: 'flex-start' }}>
+            <div style={{ flex: 1, minWidth: 200 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
+                <p style={{ margin: 0, fontSize: 15, fontWeight: 300, color: '#E8E8E8' }}>{b.car_make} {b.car_model}</p>
+                <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.18em', padding: '3px 8px', borderRadius: 6, textTransform: 'uppercase', color: statusColor(b.status), background: statusBg(b.status), border: `1px solid ${statusColor(b.status)}30` }}>{b.status}</span>
               </div>
-              <p style={{ margin:0, fontSize:12, color:'rgba(255,255,255,0.4)' }}>{b.service} · ${b.price} · {b.suburb}</p>
+              <p style={{ margin: 0, fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>{b.service} · {b.suburb}</p>
+              {b.date && <p style={{ margin: '4px 0 0', fontSize: 11, color: 'rgba(255,255,255,0.25)' }}>{b.date}{b.time ? ` at ${b.time}` : ''}</p>}
             </div>
-            <div style={{ flex:1, minWidth:180 }}>
-              <p style={{ margin:0, fontSize:13, color:'#E8E8E8' }}>{b.customerName}</p>
-              <p style={{ margin:'3px 0', fontSize:12, color:GOLD }}>{b.phone}</p>
-              <p style={{ margin:0, fontSize:11, color:'rgba(255,255,255,0.3)' }}>via {b.contactMethod} · {b.dateTime}</p>
+            <div style={{ flex: 1, minWidth: 180 }}>
+              <p style={{ margin: 0, fontSize: 13, color: '#E8E8E8' }}>{b.name}</p>
+              <p style={{ margin: '3px 0', fontSize: 12, color: GOLD }}>{b.phone}</p>
+              {b.notes && <p style={{ margin: '4px 0 0', fontSize: 11, color: 'rgba(255,255,255,0.25)', fontStyle: 'italic' }}>{b.notes}</p>}
             </div>
-            <div style={{ display:'flex', gap:8, flexWrap:'wrap', alignItems:'center' }}>
-              {b.status === 'PENDING' && <>
-                <button style={btnStyle('rgba(34,197,94,0.8)','rgba(34,197,94,0.1)')} onClick={() => act(b.id,'CONFIRMED')}>
-                  <Check size={10} style={{ display:'inline', verticalAlign:'middle', marginRight:4 }} />Confirm &amp; Lock Day
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center', opacity: updating === b.id ? 0.5 : 1 }}>
+              {b.status === 'pending' && <>
+                <button style={btnStyle('rgba(34,197,94,0.8)', 'rgba(34,197,94,0.1)')} onClick={() => updateStatus(b.id, 'confirmed', b.date)} disabled={!!updating}>
+                  <Check size={10} style={{ display: 'inline', verticalAlign: 'middle', marginRight: 4 }} />Confirm &amp; Lock Day
                 </button>
-                <button style={btnStyle('rgba(239,68,68,0.7)','rgba(239,68,68,0.08)')} onClick={() => act(b.id,'DECLINED')}>
-                  <X size={10} style={{ display:'inline', verticalAlign:'middle', marginRight:4 }} />Decline
+                <button style={btnStyle('rgba(239,68,68,0.7)', 'rgba(239,68,68,0.08)')} onClick={() => updateStatus(b.id, 'declined')} disabled={!!updating}>
+                  <X size={10} style={{ display: 'inline', verticalAlign: 'middle', marginRight: 4 }} />Decline
                 </button>
               </>}
-              {b.status === 'CONFIRMED' && <>
-                <button style={btnStyle('rgba(203,166,92,0.7)','rgba(203,166,92,0.08)')} onClick={() => alert(`Texting ${b.customerName}...`)}>Text Confirmation</button>
-                <button style={btnStyle('rgba(34,197,94,0.8)','rgba(34,197,94,0.1)')} onClick={() => act(b.id,'DONE')}>Mark Done → Log Job</button>
-                <button style={btnStyle('rgba(239,68,68,0.7)','rgba(239,68,68,0.08)')} onClick={() => act(b.id,'DECLINED')}>
-                  <X size={10} style={{ display:'inline', verticalAlign:'middle', marginRight:4 }} />Cancel
+              {b.status === 'confirmed' && <>
+                <button style={btnStyle('rgba(203,166,92,0.7)', 'rgba(203,166,92,0.08)')} onClick={() => textConfirm(b)}>Text Confirmation</button>
+                <button style={btnStyle('rgba(34,197,94,0.8)', 'rgba(34,197,94,0.1)')} onClick={() => markDone(b)} disabled={!!updating}>Mark Done → Log Job</button>
+                <button style={btnStyle('rgba(239,68,68,0.7)', 'rgba(239,68,68,0.08)')} onClick={() => updateStatus(b.id, 'declined')} disabled={!!updating}>
+                  <X size={10} style={{ display: 'inline', verticalAlign: 'middle', marginRight: 4 }} />Cancel
                 </button>
               </>}
-              {(b.status === 'DONE' || b.status === 'DECLINED') && (
-                <span style={{ fontSize:11, color:'rgba(255,255,255,0.25)', fontStyle:'italic' }}>{b.status === 'DONE' ? 'Completed' : 'Declined'}</span>
+              {(b.status === 'done' || b.status === 'declined') && (
+                <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.25)', fontStyle: 'italic' }}>{b.status === 'done' ? 'Completed' : 'Declined'}</span>
               )}
             </div>
           </div>
@@ -342,71 +384,145 @@ function BookingsTab() {
 }
 
 // ─── Availability Tab ─────────────────────────────────────────────────────────
-function AvailabilityTab() {
-  const today = new Date(2026, 5, 26);
+function AvailabilityTab({
+  availability,
+  confirmedDates,
+  onRefresh,
+}: {
+  availability: Record<string, DayStatus>;
+  confirmedDates: Set<string>;
+  onRefresh: () => void;
+}) {
+  const today = new Date();
   const [viewYear, setViewYear] = useState(today.getFullYear());
   const [viewMonth, setViewMonth] = useState(today.getMonth());
-  const [dayStatuses, setDayStatuses] = useState<Record<string, DayStatus>>({
-    '2026-06-28': 'booked', '2026-06-29': 'booked', '2026-07-01': 'booked',
-    '2026-07-02': 'booked', '2026-06-27': 'blocked', '2026-07-04': 'blocked',
-  });
-  const [selected, setSelected] = useState<string | null>(null);
+  const [mode, setMode] = useState<DayStatus>('blocked');
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [applying, setApplying] = useState(false);
   const [startTime, setStartTime] = useState('8:00 AM');
   const [bookingWindow, setBookingWindow] = useState('4');
-  const [offDays, setOffDays] = useState<number[]>([0]); // Sunday
+  const [offDays, setOffDays] = useState<number[]>([0]);
 
   const firstDay = new Date(viewYear, viewMonth, 1).getDay();
   const daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate();
   const monthName = new Date(viewYear, viewMonth).toLocaleString('default', { month: 'long', year: 'numeric' });
 
-  const dayKey = (d: number) => `${viewYear}-${String(viewMonth + 1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
-  const statusOf = (d: number): DayStatus => dayStatuses[dayKey(d)] ?? 'open';
+  const dayKey = (d: number) =>
+    `${viewYear}-${String(viewMonth + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
 
-  const dayColor = (s: DayStatus) => s === 'open' ? 'rgba(34,197,94,0.7)' : s === 'booked' ? GOLD : 'rgba(239,68,68,0.6)';
-  const dayBg = (s: DayStatus, active: boolean) => active ? (s === 'open' ? 'rgba(34,197,94,0.15)' : s === 'booked' ? 'rgba(203,166,92,0.15)' : 'rgba(239,68,68,0.12)') : 'rgba(255,255,255,0.02)';
-
-  const cycleStatus = (d: number) => {
+  const statusOf = (d: number): DayStatus => {
     const k = dayKey(d);
-    setDayStatuses(ds => {
-      const cur = ds[k] ?? 'open';
-      const next: DayStatus = cur === 'open' ? 'blocked' : cur === 'blocked' ? 'booked' : 'open';
-      return { ...ds, [k]: next };
-    });
-    setSelected(k);
+    if (confirmedDates.has(k)) return 'booked';
+    return availability[k] ?? 'open';
   };
 
-  const toggleOffDay = (d: number) => setOffDays(ds => ds.includes(d) ? ds.filter(x => x !== d) : [...ds, d]);
-  const dayNames = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  const toggleDate = (d: number) => {
+    const k = dayKey(d);
+    setSelected(s => {
+      const next = new Set(s);
+      if (next.has(k)) { next.delete(k); } else { next.add(k); }
+      return next;
+    });
+  };
+
+  const applyStatus = async () => {
+    if (selected.size === 0) return;
+    setApplying(true);
+    const rows = Array.from(selected).map(date => ({ date, status: mode, updated_at: new Date().toISOString() }));
+    const { error } = await supabase.from('availability').upsert(rows, { onConflict: 'date' });
+    if (!error) {
+      setSelected(new Set());
+      onRefresh();
+    }
+    setApplying(false);
+  };
+
+  const modeColors: Record<DayStatus, string> = {
+    open: 'rgba(34,197,94,0.85)',
+    booked: GOLD,
+    blocked: 'rgba(239,68,68,0.75)',
+  };
+  const statusColor = (s: DayStatus) =>
+    s === 'open' ? 'rgba(34,197,94,0.7)' : s === 'booked' ? GOLD : 'rgba(239,68,68,0.65)';
+
+  const prevMonth = () => {
+    if (viewMonth === 0) { setViewMonth(11); setViewYear(y => y - 1); }
+    else setViewMonth(m => m - 1);
+  };
+  const nextMonth = () => {
+    if (viewMonth === 11) { setViewMonth(0); setViewYear(y => y + 1); }
+    else setViewMonth(m => m + 1);
+  };
 
   return (
-    <div style={{ display:'grid', gridTemplateColumns:'1fr 300px', gap:24, alignItems:'start' }}>
-      <motion.div {...s(0)} style={{ background:'rgba(255,255,255,0.02)', border:'1px solid rgba(255,255,255,0.06)', borderRadius:18, padding:'28px' }}>
+    <div style={{ display: 'grid', gridTemplateColumns: '1fr 300px', gap: 24, alignItems: 'start' }}>
+      <motion.div {...a(0)} style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 18, padding: '28px' }}>
+
+        {/* Mode selector */}
+        <div style={{ marginBottom: 20 }}>
+          <p style={{ fontSize: 9, color: 'rgba(203,166,92,0.6)', letterSpacing: '0.22em', textTransform: 'uppercase', marginBottom: 10 }}>Set selected dates as</p>
+          <div style={{ display: 'flex', gap: 8 }}>
+            {(['open', 'booked', 'blocked'] as DayStatus[]).map(m => (
+              <button key={m} onClick={() => setMode(m)}
+                style={{ flex: 1, padding: '9px 0', fontSize: 10, fontWeight: 600, letterSpacing: '0.1em', textTransform: 'uppercase', borderRadius: 10, cursor: 'pointer', border: `1px solid ${mode === m ? modeColors[m] : 'rgba(255,255,255,0.08)'}`, background: mode === m ? `${modeColors[m]}22` : 'transparent', color: mode === m ? modeColors[m] : 'rgba(255,255,255,0.35)', transition: 'all 0.15s' }}>
+                {m === 'open' ? '✓ Open' : m === 'booked' ? '◉ Booked' : '✕ Blocked'}
+              </button>
+            ))}
+          </div>
+        </div>
+
         {/* Month nav */}
-        <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:24 }}>
-          <button onClick={() => { if (viewMonth === 0) { setViewMonth(11); setViewYear(y => y-1); } else setViewMonth(m => m-1); }}
-            style={{ background:'none', border:'1px solid rgba(255,255,255,0.08)', borderRadius:8, padding:'6px 10px', color:'rgba(255,255,255,0.5)', cursor:'pointer' }}><ChevronLeft size={14} /></button>
-          <p style={{ margin:0, fontSize:14, fontWeight:300, color:'#E8E8E8', letterSpacing:'0.05em' }}>{monthName}</p>
-          <button onClick={() => { if (viewMonth === 11) { setViewMonth(0); setViewYear(y => y+1); } else setViewMonth(m => m+1); }}
-            style={{ background:'none', border:'1px solid rgba(255,255,255,0.08)', borderRadius:8, padding:'6px 10px', color:'rgba(255,255,255,0.5)', cursor:'pointer' }}><ChevronRight size={14} /></button>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
+          <button onClick={prevMonth} style={{ background: 'none', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 8, padding: '6px 10px', color: 'rgba(255,255,255,0.5)', cursor: 'pointer' }}>
+            <ChevronLeft size={14} />
+          </button>
+          <p style={{ margin: 0, fontSize: 14, fontWeight: 300, color: '#E8E8E8', letterSpacing: '0.05em' }}>{monthName}</p>
+          <button onClick={nextMonth} style={{ background: 'none', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 8, padding: '6px 10px', color: 'rgba(255,255,255,0.5)', cursor: 'pointer' }}>
+            <ChevronRight size={14} />
+          </button>
         </div>
 
         {/* Day headers */}
-        <div style={{ display:'grid', gridTemplateColumns:'repeat(7,1fr)', gap:4, marginBottom:6 }}>
-          {dayNames.map(d => <p key={d} style={{ margin:0, fontSize:9, color:'rgba(255,255,255,0.25)', textAlign:'center', letterSpacing:'0.1em' }}>{d}</p>)}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7,1fr)', gap: 4, marginBottom: 6 }}>
+          {DAY_NAMES.map(d => (
+            <p key={d} style={{ margin: 0, fontSize: 9, color: 'rgba(255,255,255,0.25)', textAlign: 'center', letterSpacing: '0.1em' }}>{d}</p>
+          ))}
         </div>
 
         {/* Calendar grid */}
-        <div style={{ display:'grid', gridTemplateColumns:'repeat(7,1fr)', gap:4 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7,1fr)', gap: 4 }}>
           {Array.from({ length: firstDay }).map((_, i) => <div key={`e${i}`} />)}
           {Array.from({ length: daysInMonth }).map((_, i) => {
             const d = i + 1;
             const k = dayKey(d);
             const st = statusOf(d);
+            const isSelected = selected.has(k);
             const isToday = viewYear === today.getFullYear() && viewMonth === today.getMonth() && d === today.getDate();
+
             return (
-              <motion.button key={d} onClick={() => cycleStatus(d)} whileHover={{ scale:1.08 }} whileTap={{ scale:0.94 }}
-                style={{ aspectRatio:'1', borderRadius:10, border:`1px solid ${selected === k ? dayColor(st) : 'rgba(255,255,255,0.06)'}`, background: dayBg(st, selected === k || st !== 'open'), color: st === 'open' ? (isToday ? '#E8E8E8' : 'rgba(255,255,255,0.55)') : dayColor(st), fontSize:12, fontWeight: isToday ? 500 : 300, cursor:'pointer', position:'relative', display:'flex', alignItems:'center', justifyContent:'center', transition:'border-color 0.15s' }}>
-                {isToday && <div style={{ position:'absolute', bottom:3, left:'50%', transform:'translateX(-50%)', width:3, height:3, borderRadius:'50%', background:GOLD }} />}
+              <motion.button key={d} onClick={() => toggleDate(d)} whileHover={{ scale: 1.08 }} whileTap={{ scale: 0.94 }}
+                style={{
+                  aspectRatio: '1', borderRadius: 10, cursor: 'pointer', position: 'relative',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontSize: 12, fontWeight: isToday ? 500 : 300,
+                  border: isSelected
+                    ? `2px solid ${modeColors[mode]}`
+                    : st !== 'open'
+                      ? `1px solid ${statusColor(st)}55`
+                      : '1px solid rgba(255,255,255,0.06)',
+                  background: isSelected
+                    ? `${modeColors[mode]}18`
+                    : st !== 'open'
+                      ? `${statusColor(st)}0f`
+                      : 'rgba(255,255,255,0.02)',
+                  color: st === 'open'
+                    ? (isToday ? '#E8E8E8' : 'rgba(255,255,255,0.55)')
+                    : statusColor(st),
+                  transition: 'border-color 0.12s, background 0.12s',
+                }}>
+                {isToday && (
+                  <div style={{ position: 'absolute', bottom: 3, left: '50%', transform: 'translateX(-50%)', width: 3, height: 3, borderRadius: '50%', background: GOLD }} />
+                )}
                 {d}
               </motion.button>
             );
@@ -414,39 +530,61 @@ function AvailabilityTab() {
         </div>
 
         {/* Legend */}
-        <div style={{ display:'flex', gap:20, marginTop:20 }}>
-          {([['open','Open'],['booked','Booked'],['blocked','Blocked']] as [DayStatus,string][]).map(([st,label]) => (
-            <div key={st} style={{ display:'flex', alignItems:'center', gap:6 }}>
-              <div style={{ width:8, height:8, borderRadius:'50%', background: dayColor(st) }} />
-              <span style={{ fontSize:10, color:'rgba(255,255,255,0.35)', letterSpacing:'0.08em' }}>{label}</span>
+        <div style={{ display: 'flex', gap: 20, marginTop: 20 }}>
+          {(['open', 'booked', 'blocked'] as DayStatus[]).map(st => (
+            <div key={st} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <div style={{ width: 8, height: 8, borderRadius: '50%', background: statusColor(st) }} />
+              <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.35)', letterSpacing: '0.08em', textTransform: 'capitalize' }}>{st}</span>
             </div>
           ))}
-          <span style={{ fontSize:10, color:'rgba(255,255,255,0.25)', marginLeft:'auto', fontStyle:'italic' }}>Click a day to cycle status</span>
+          <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.2)', marginLeft: 'auto', fontStyle: 'italic' }}>Click dates to select, then apply</span>
         </div>
+
+        {/* Apply bar */}
+        <AnimatePresence>
+          {selected.size > 0 && (
+            <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 8 }}
+              style={{ marginTop: 16, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', background: `${modeColors[mode]}12`, border: `1px solid ${modeColors[mode]}35`, borderRadius: 12 }}>
+              <span style={{ fontSize: 12, color: modeColors[mode] }}>{selected.size} date{selected.size !== 1 ? 's' : ''} selected</span>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <button onClick={() => setSelected(new Set())}
+                  style={{ fontSize: 10, color: 'rgba(255,255,255,0.35)', background: 'none', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 6, padding: '5px 10px', cursor: 'pointer' }}>
+                  Clear
+                </button>
+                <motion.button onClick={applyStatus} disabled={applying} whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
+                  style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.1em', textTransform: 'uppercase', color: BG, background: modeColors[mode], border: 'none', borderRadius: 6, padding: '5px 16px', cursor: applying ? 'wait' : 'pointer', opacity: applying ? 0.7 : 1 }}>
+                  {applying ? 'Saving…' : `Mark ${mode} →`}
+                </motion.button>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </motion.div>
 
       {/* Settings */}
-      <motion.div {...s(1)} style={{ background:'rgba(255,255,255,0.02)', border:'1px solid rgba(255,255,255,0.06)', borderRadius:18, padding:'24px', display:'flex', flexDirection:'column', gap:20 }}>
-        <p style={{ margin:0, fontSize:9, color:'rgba(203,166,92,0.6)', letterSpacing:'0.22em', textTransform:'uppercase' }}>Settings</p>
+      <motion.div {...a(1)} style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 18, padding: '24px', display: 'flex', flexDirection: 'column', gap: 20 }}>
+        <p style={{ margin: 0, fontSize: 9, color: 'rgba(203,166,92,0.6)', letterSpacing: '0.22em', textTransform: 'uppercase' }}>Settings</p>
         <div>
-          <label style={{ display:'block', fontSize:9, color:GOLD, letterSpacing:'0.2em', textTransform:'uppercase', marginBottom:8 }}>Default Start Time</label>
-          <input value={startTime} onChange={e => setStartTime(e.target.value)} style={inputStyle(false)} />
+          <label style={lbl}>Default Start Time</label>
+          <input value={startTime} onChange={e => setStartTime(e.target.value)} style={inp(false)} />
         </div>
         <div>
-          <label style={{ display:'block', fontSize:9, color:GOLD, letterSpacing:'0.2em', textTransform:'uppercase', marginBottom:8 }}>Booking Window (weeks ahead)</label>
-          <input value={bookingWindow} onChange={e => setBookingWindow(e.target.value)} style={inputStyle(false)} />
+          <label style={lbl}>Booking Window (weeks ahead)</label>
+          <input value={bookingWindow} onChange={e => setBookingWindow(e.target.value)} style={inp(false)} />
         </div>
         <div>
-          <label style={{ display:'block', fontSize:9, color:GOLD, letterSpacing:'0.2em', textTransform:'uppercase', marginBottom:12 }}>Default Off Days</label>
-          <div style={{ display:'flex', flexWrap:'wrap', gap:6 }}>
-            {dayNames.map((d, i) => (
-              <button key={i} onClick={() => toggleOffDay(i)}
-                style={{ padding:'6px 10px', fontSize:10, borderRadius:8, cursor:'pointer', border:`1px solid ${offDays.includes(i) ? 'rgba(239,68,68,0.5)' : 'rgba(255,255,255,0.08)'}`, background: offDays.includes(i) ? 'rgba(239,68,68,0.1)' : 'transparent', color: offDays.includes(i) ? 'rgba(239,68,68,0.8)' : 'rgba(255,255,255,0.35)', transition:'all 0.15s' }}>{d}</button>
+          <label style={lbl}>Default Off Days</label>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+            {DAY_NAMES.map((d, i) => (
+              <button key={i} onClick={() => setOffDays(ds => ds.includes(i) ? ds.filter(x => x !== i) : [...ds, i])}
+                style={{ padding: '6px 10px', fontSize: 10, borderRadius: 8, cursor: 'pointer', border: `1px solid ${offDays.includes(i) ? 'rgba(239,68,68,0.5)' : 'rgba(255,255,255,0.08)'}`, background: offDays.includes(i) ? 'rgba(239,68,68,0.1)' : 'transparent', color: offDays.includes(i) ? 'rgba(239,68,68,0.8)' : 'rgba(255,255,255,0.35)', transition: 'all 0.15s' }}>
+                {d}
+              </button>
             ))}
           </div>
         </div>
-        <motion.button whileHover={{ scale:1.02 }} whileTap={{ scale:0.97 }}
-          style={{ marginTop:4, background:`linear-gradient(120deg, #BF9A50, ${GOLD} 40%, #E4C883 65%, ${GOLD})`, color:BG, border:'none', borderRadius:12, padding:'12px', fontSize:11, fontWeight:500, letterSpacing:'0.14em', textTransform:'uppercase', cursor:'pointer' }}>
+        <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }}
+          style={{ marginTop: 4, background: `linear-gradient(120deg, #BF9A50, ${GOLD} 40%, #E4C883 65%, ${GOLD})`, color: BG, border: 'none', borderRadius: 12, padding: '12px', fontSize: 11, fontWeight: 500, letterSpacing: '0.14em', textTransform: 'uppercase', cursor: 'pointer' }}>
           Save Settings
         </motion.button>
       </motion.div>
@@ -455,53 +593,94 @@ function AvailabilityTab() {
 }
 
 // ─── Customers Tab ────────────────────────────────────────────────────────────
-function CustomersTab() {
+function CustomersTab({ profiles, bookings }: { profiles: Profile[]; bookings: Booking[] }) {
   const [subTab, setSubTab] = useState<'member' | 'guest'>('member');
-  const customers = MOCK_CUSTOMERS.filter(c => c.type === subTab);
+
+  const guestMap = new Map<string, { name: string; phone: string; suburb: string; count: number; lastDate: string }>();
+  bookings.forEach(b => {
+    const k = `${b.name}|${b.phone}`;
+    const ex = guestMap.get(k);
+    if (!ex) {
+      guestMap.set(k, { name: b.name, phone: b.phone, suburb: b.suburb || '', count: 1, lastDate: b.date || '' });
+    } else {
+      ex.count += 1;
+      if ((b.date || '') > ex.lastDate) ex.lastDate = b.date;
+    }
+  });
+  const guests = Array.from(guestMap.values()).sort((x, y) => y.lastDate.localeCompare(x.lastDate));
+
+  const actionBtn = (icon: React.ReactNode, href: string) => (
+    <motion.button whileHover={{ scale: 1.06 }} whileTap={{ scale: 0.94 }}
+      onClick={() => window.open(href)}
+      style={{ width: 36, height: 36, borderRadius: '50%', border: '1px solid rgba(203,166,92,0.3)', background: 'rgba(203,166,92,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: GOLD }}>
+      {icon}
+    </motion.button>
+  );
 
   return (
     <div>
-      <div style={{ display:'flex', gap:8, marginBottom:20 }}>
-        {(['member','guest'] as const).map(t => (
+      <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
+        {(['member', 'guest'] as const).map(t => (
           <button key={t} onClick={() => setSubTab(t)}
-            style={{ padding:'8px 20px', fontSize:10, fontWeight:500, letterSpacing:'0.14em', textTransform:'uppercase', borderRadius:10, cursor:'pointer', border:`1px solid ${subTab === t ? GOLD : 'rgba(255,255,255,0.08)'}`, background: subTab === t ? 'rgba(203,166,92,0.1)' : 'transparent', color: subTab === t ? GOLD : 'rgba(255,255,255,0.4)', transition:'all 0.15s' }}>
-            {t === 'member' ? 'Members' : 'Guests'}
+            style={{ padding: '8px 20px', fontSize: 10, fontWeight: 500, letterSpacing: '0.14em', textTransform: 'uppercase', borderRadius: 10, cursor: 'pointer', border: `1px solid ${subTab === t ? GOLD : 'rgba(255,255,255,0.08)'}`, background: subTab === t ? 'rgba(203,166,92,0.1)' : 'transparent', color: subTab === t ? GOLD : 'rgba(255,255,255,0.4)', transition: 'all 0.15s' }}>
+            {t === 'member' ? `Members (${profiles.length})` : `Guests (${guests.length})`}
           </button>
         ))}
       </div>
-      <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
         <AnimatePresence mode="wait">
-          {customers.map((c, i) => (
-            <motion.div key={c.id} {...s(i)} style={{ display:'flex', alignItems:'center', gap:16, padding:'18px 22px', background:'rgba(255,255,255,0.02)', border:'1px solid rgba(255,255,255,0.06)', borderRadius:16, flexWrap:'wrap' }}>
-              <div style={{ flex:'0 0 40px', height:40, borderRadius:'50%', background:'rgba(203,166,92,0.12)', border:'1px solid rgba(203,166,92,0.2)', display:'flex', alignItems:'center', justifyContent:'center' }}>
-                <span style={{ fontSize:14, fontWeight:300, color:GOLD }}>{c.name[0]}</span>
-              </div>
-              <div style={{ flex:1, minWidth:160 }}>
-                <p style={{ margin:0, fontSize:13, fontWeight:300, color:'#E8E8E8' }}>{c.name}</p>
-                <p style={{ margin:'3px 0 0', fontSize:11, color:'rgba(255,255,255,0.35)' }}>{c.phone} · {c.suburb}</p>
-              </div>
-              <div style={{ display:'grid', gridTemplateColumns:'repeat(4,auto)', gap:'4px 24px', alignItems:'center' }}>
-                {[['Jobs',c.jobCount],['Spent','$'+c.totalSpent.toLocaleString()],['Last',c.lastBooking],['Requests',c.totalRequests]].map(([l,v]) => (
-                  <div key={String(l)} style={{ textAlign:'center' }}>
-                    <p style={{ margin:0, fontSize:9, color:'rgba(203,166,92,0.5)', letterSpacing:'0.15em', textTransform:'uppercase' }}>{l}</p>
-                    <p style={{ margin:'3px 0 0', fontSize:12, color:'rgba(255,255,255,0.7)' }}>{v}</p>
+          {subTab === 'member' && (
+            profiles.length === 0
+              ? <motion.div key="no-members" initial={{ opacity: 0 }} animate={{ opacity: 1 }} style={{ textAlign: 'center', padding: '60px 0', color: 'rgba(255,255,255,0.2)', fontSize: 13 }}>No accounts yet</motion.div>
+              : profiles.map((p, i) => (
+                <motion.div key={p.id} {...a(i)} style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '18px 22px', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 16, flexWrap: 'wrap' }}>
+                  <div style={{ flex: '0 0 40px', height: 40, borderRadius: '50%', background: 'rgba(203,166,92,0.12)', border: '1px solid rgba(203,166,92,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <span style={{ fontSize: 14, fontWeight: 300, color: GOLD }}>{(p.email?.[0] ?? '?').toUpperCase()}</span>
                   </div>
-                ))}
-              </div>
-              <div style={{ display:'flex', gap:8 }}>
-                <motion.button whileHover={{ scale:1.06 }} whileTap={{ scale:0.94 }}
-                  onClick={() => window.open(`tel:${c.phone}`)}
-                  style={{ width:36, height:36, borderRadius:'50%', border:'1px solid rgba(203,166,92,0.3)', background:'rgba(203,166,92,0.08)', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', color:GOLD }}>
-                  <Phone size={14} strokeWidth={1.8} />
-                </motion.button>
-                <motion.button whileHover={{ scale:1.06 }} whileTap={{ scale:0.94 }}
-                  onClick={() => window.open(`sms:${c.phone}`)}
-                  style={{ width:36, height:36, borderRadius:'50%', border:'1px solid rgba(203,166,92,0.3)', background:'rgba(203,166,92,0.08)', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', color:GOLD }}>
-                  <MessageCircle size={14} strokeWidth={1.8} />
-                </motion.button>
-              </div>
-            </motion.div>
-          ))}
+                  <div style={{ flex: 1, minWidth: 160 }}>
+                    <p style={{ margin: 0, fontSize: 13, fontWeight: 300, color: '#E8E8E8' }}>{p.email}</p>
+                    <p style={{ margin: '3px 0 0', fontSize: 11, color: 'rgba(255,255,255,0.35)' }}>
+                      Joined {p.created_at ? new Date(p.created_at).toLocaleDateString('en-AU') : '—'}
+                    </p>
+                  </div>
+                  {p.rewards_points != null && (
+                    <div style={{ textAlign: 'right', marginRight: 8 }}>
+                      <p style={{ margin: 0, fontSize: 9, color: 'rgba(203,166,92,0.5)', letterSpacing: '0.15em', textTransform: 'uppercase' }}>Points</p>
+                      <p style={{ margin: '2px 0 0', fontSize: 15, color: GOLD, fontWeight: 300 }}>{p.rewards_points}</p>
+                    </div>
+                  )}
+                </motion.div>
+              ))
+          )}
+
+          {subTab === 'guest' && (
+            guests.length === 0
+              ? <motion.div key="no-guests" initial={{ opacity: 0 }} animate={{ opacity: 1 }} style={{ textAlign: 'center', padding: '60px 0', color: 'rgba(255,255,255,0.2)', fontSize: 13 }}>No guest bookings yet</motion.div>
+              : guests.map((g, i) => (
+                <motion.div key={`${g.name}|${g.phone}`} {...a(i)} style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '18px 22px', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 16, flexWrap: 'wrap' }}>
+                  <div style={{ flex: '0 0 40px', height: 40, borderRadius: '50%', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <span style={{ fontSize: 14, fontWeight: 300, color: 'rgba(255,255,255,0.4)' }}>{(g.name[0] ?? '?').toUpperCase()}</span>
+                  </div>
+                  <div style={{ flex: 1, minWidth: 160 }}>
+                    <p style={{ margin: 0, fontSize: 13, fontWeight: 300, color: '#E8E8E8' }}>{g.name}</p>
+                    <p style={{ margin: '3px 0 0', fontSize: 11, color: 'rgba(255,255,255,0.35)' }}>{g.phone}{g.suburb ? ` · ${g.suburb}` : ''}</p>
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,auto)', gap: '4px 24px', alignItems: 'center', marginRight: 8 }}>
+                    {([['Bookings', g.count], ['Last', g.lastDate || '—']] as [string, string | number][]).map(([l, v]) => (
+                      <div key={String(l)} style={{ textAlign: 'center' }}>
+                        <p style={{ margin: 0, fontSize: 9, color: 'rgba(203,166,92,0.5)', letterSpacing: '0.15em', textTransform: 'uppercase' }}>{l}</p>
+                        <p style={{ margin: '3px 0 0', fontSize: 12, color: 'rgba(255,255,255,0.7)' }}>{v}</p>
+                      </div>
+                    ))}
+                  </div>
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    {actionBtn(<Phone size={14} strokeWidth={1.8} />, `tel:${g.phone}`)}
+                    {actionBtn(<MessageCircle size={14} strokeWidth={1.8} />, `sms:${g.phone}`)}
+                  </div>
+                </motion.div>
+              ))
+          )}
         </AnimatePresence>
       </div>
     </div>
@@ -511,50 +690,86 @@ function CustomersTab() {
 // ─── Dashboard ────────────────────────────────────────────────────────────────
 type Tab = 'Jobs' | 'Bookings' | 'Availability' | 'Customers';
 const TABS: { id: Tab; icon: React.ReactNode }[] = [
-  { id:'Jobs', icon:<Briefcase size={13} strokeWidth={1.8} /> },
-  { id:'Bookings', icon:<BookOpen size={13} strokeWidth={1.8} /> },
-  { id:'Availability', icon:<Calendar size={13} strokeWidth={1.8} /> },
-  { id:'Customers', icon:<Users size={13} strokeWidth={1.8} /> },
+  { id: 'Jobs', icon: <Briefcase size={13} strokeWidth={1.8} /> },
+  { id: 'Bookings', icon: <BookOpen size={13} strokeWidth={1.8} /> },
+  { id: 'Availability', icon: <Calendar size={13} strokeWidth={1.8} /> },
+  { id: 'Customers', icon: <Users size={13} strokeWidth={1.8} /> },
 ];
 
 function Dashboard() {
   const [tab, setTab] = useState<Tab>('Jobs');
+  const [jobs, setJobs] = useState<Job[]>([]);
+  const [bookings, setBookings] = useState<Booking[]>([]);
+  const [availability, setAvailability] = useState<Record<string, DayStatus>>({});
+  const [profiles, setProfiles] = useState<Profile[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const thisMonth = MOCK_JOBS.filter(j => j.date.startsWith('2026-06')).reduce((a, j) => a + j.amount, 0);
-  const allTime = MOCK_JOBS.reduce((a, j) => a + j.amount, 0);
-  const avgPerJob = Math.round(allTime / (MOCK_JOBS.length || 1));
-  const thisWeek = MOCK_JOBS.filter(j => new Date(j.date) >= new Date('2026-06-22')).reduce((a, j) => a + j.amount, 0);
-  const thisWeekJobs = MOCK_JOBS.filter(j => new Date(j.date) >= new Date('2026-06-22')).length;
+  const loadData = useCallback(async () => {
+    const [jobsRes, bookingsRes, availRes, profilesRes] = await Promise.all([
+      supabase.from('jobs').select('*').order('date', { ascending: false }),
+      supabase.from('bookings').select('*').order('created_at', { ascending: false }),
+      supabase.from('availability').select('*'),
+      supabase.from('profiles').select('*').order('created_at', { ascending: false }),
+    ]);
+
+    if (jobsRes.data) setJobs(jobsRes.data as Job[]);
+    if (bookingsRes.data) setBookings(bookingsRes.data as Booking[]);
+    if (availRes.data) {
+      const map: Record<string, DayStatus> = {};
+      (availRes.data as { date: string; status: DayStatus }[]).forEach(r => { map[r.date] = r.status; });
+      setAvailability(map);
+    }
+    if (profilesRes.data) setProfiles(profilesRes.data as Profile[]);
+    setLoading(false);
+  }, []);
+
+  useEffect(() => { loadData(); }, [loadData]);
+
+  // Computed stats from real job data
+  const now = new Date();
+  const thisMonthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+  const weekAgo = new Date(now);
+  weekAgo.setDate(weekAgo.getDate() - 7);
+
+  const thisMonthJobs = jobs.filter(j => j.date?.startsWith(thisMonthKey));
+  const weekJobs = jobs.filter(j => j.date && new Date(j.date) >= weekAgo);
+  const allTimeRev = jobs.reduce((acc, j) => acc + (j.amount || 0), 0);
+
+  // Dates blocked by confirmed bookings
+  const confirmedDates = new Set(
+    bookings.filter(b => b.status === 'confirmed').map(b => b.date).filter(Boolean)
+  );
 
   return (
-    <div style={{ minHeight:'100vh', backgroundColor: BG, color:'#E8E8E8' }}>
-      {/* Ambient glow */}
-      <div style={{ position:'fixed', inset:0, pointerEvents:'none', zIndex:0 }}>
-        <div style={{ position:'absolute', width:800, height:400, top:0, left:'50%', transform:'translateX(-50%)', background:'radial-gradient(ellipse, rgba(203,166,92,0.04) 0%, transparent 70%)', filter:'blur(60px)' }} />
+    <div style={{ minHeight: '100vh', backgroundColor: BG, color: '#E8E8E8' }}>
+      <div style={{ position: 'fixed', inset: 0, pointerEvents: 'none', zIndex: 0 }}>
+        <div style={{ position: 'absolute', width: 800, height: 400, top: 0, left: '50%', transform: 'translateX(-50%)', background: 'radial-gradient(ellipse, rgba(203,166,92,0.04) 0%, transparent 70%)', filter: 'blur(60px)' }} />
       </div>
-      {/* Grid texture */}
-      <div style={{ position:'fixed', inset:0, pointerEvents:'none', zIndex:0, backgroundImage:'linear-gradient(rgba(255,255,255,0.015) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.015) 1px, transparent 1px)', backgroundSize:'40px 40px', opacity:0.5 }} />
+      <div style={{ position: 'fixed', inset: 0, pointerEvents: 'none', zIndex: 0, backgroundImage: 'linear-gradient(rgba(255,255,255,0.015) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.015) 1px, transparent 1px)', backgroundSize: '40px 40px', opacity: 0.5 }} />
 
-      <div style={{ position:'relative', zIndex:1, maxWidth:1280, margin:'0 auto', padding:'40px 32px' }}>
+      <div style={{ position: 'relative', zIndex: 1, maxWidth: 1280, margin: '0 auto', padding: '40px 32px' }}>
         {/* Header */}
-        <motion.div {...s(0)} style={{ marginBottom:36 }}>
-          <p style={{ margin:0, fontSize:9, color:'rgba(203,166,92,0.6)', letterSpacing:'0.28em', textTransform:'uppercase', marginBottom:8 }}>Baser Detailing</p>
-          <h1 style={{ margin:0, fontSize:'clamp(28px,3vw,40px)', fontWeight:200, color:'#E8E8E8', letterSpacing:'-0.03em' }}>Command Centre</h1>
+        <motion.div {...a(0)} style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 36 }}>
+          <div>
+            <p style={{ margin: 0, fontSize: 9, color: 'rgba(203,166,92,0.6)', letterSpacing: '0.28em', textTransform: 'uppercase', marginBottom: 8 }}>Baser Detailing</p>
+            <h1 style={{ margin: 0, fontSize: 'clamp(28px,3vw,40px)', fontWeight: 200, color: '#E8E8E8', letterSpacing: '-0.03em' }}>Command Centre</h1>
+          </div>
+          {loading && <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.25)', paddingTop: 14, margin: 0 }}>Loading…</p>}
         </motion.div>
 
         {/* Stat chips */}
-        <div style={{ display:'flex', gap:14, marginBottom:32, flexWrap:'wrap' }}>
-          <StatChip label="This Month" revenue={thisMonth} jobs={MOCK_JOBS.filter(j => j.date.startsWith('2026-06')).length} delay={1} />
-          <StatChip label="All Time" revenue={allTime} jobs={MOCK_JOBS.length} delay={2} />
-          <StatChip label="Avg Per Job" revenue={avgPerJob} jobs={0} delay={3} />
-          <StatChip label="This Week" revenue={thisWeek} jobs={thisWeekJobs} delay={4} />
+        <div style={{ display: 'flex', gap: 14, marginBottom: 32, flexWrap: 'wrap' }}>
+          <StatChip label="This Month" revenue={thisMonthJobs.reduce((acc, j) => acc + j.amount, 0)} count={thisMonthJobs.length} delay={1} />
+          <StatChip label="All Time" revenue={allTimeRev} count={jobs.length} delay={2} />
+          <StatChip label="Avg Per Job" revenue={jobs.length ? Math.round(allTimeRev / jobs.length) : 0} count={0} delay={3} />
+          <StatChip label="This Week" revenue={weekJobs.reduce((acc, j) => acc + j.amount, 0)} count={weekJobs.length} delay={4} />
         </div>
 
         {/* Tabs */}
-        <motion.div {...s(5)} style={{ display:'flex', gap:6, marginBottom:28 }}>
+        <motion.div {...a(5)} style={{ display: 'flex', gap: 6, marginBottom: 28 }}>
           {TABS.map(({ id, icon }) => (
             <button key={id} onClick={() => setTab(id)}
-              style={{ display:'flex', alignItems:'center', gap:7, padding:'9px 18px', fontSize:10, fontWeight:500, letterSpacing:'0.12em', textTransform:'uppercase', borderRadius:10, cursor:'pointer', border:`1px solid ${tab === id ? GOLD : 'rgba(255,255,255,0.08)'}`, background: tab === id ? 'rgba(203,166,92,0.1)' : 'rgba(255,255,255,0.02)', color: tab === id ? GOLD : 'rgba(255,255,255,0.4)', transition:'all 0.2s' }}>
+              style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '9px 18px', fontSize: 10, fontWeight: 500, letterSpacing: '0.12em', textTransform: 'uppercase', borderRadius: 10, cursor: 'pointer', border: `1px solid ${tab === id ? GOLD : 'rgba(255,255,255,0.08)'}`, background: tab === id ? 'rgba(203,166,92,0.1)' : 'rgba(255,255,255,0.02)', color: tab === id ? GOLD : 'rgba(255,255,255,0.4)', transition: 'all 0.2s' }}>
               {icon}{id}
             </button>
           ))}
@@ -562,11 +777,11 @@ function Dashboard() {
 
         {/* Tab content */}
         <AnimatePresence mode="wait">
-          <motion.div key={tab} initial={{ opacity:0, y:10 }} animate={{ opacity:1, y:0 }} exit={{ opacity:0, y:-6 }} transition={{ duration:0.25, ease:[0.22,1,0.36,1] }}>
-            {tab === 'Jobs' && <JobsTab />}
-            {tab === 'Bookings' && <BookingsTab />}
-            {tab === 'Availability' && <AvailabilityTab />}
-            {tab === 'Customers' && <CustomersTab />}
+          <motion.div key={tab} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }} transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}>
+            {tab === 'Jobs' && <JobsTab jobs={jobs} onRefresh={loadData} />}
+            {tab === 'Bookings' && <BookingsTab bookings={bookings} onRefresh={loadData} />}
+            {tab === 'Availability' && <AvailabilityTab availability={availability} confirmedDates={confirmedDates} onRefresh={loadData} />}
+            {tab === 'Customers' && <CustomersTab profiles={profiles} bookings={bookings} />}
           </motion.div>
         </AnimatePresence>
       </div>

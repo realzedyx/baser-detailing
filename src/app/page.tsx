@@ -15,7 +15,7 @@ import { TestimonialsSection } from "@/components/ui/testimonials-section";
 
 const navItems = [
   { name: "Home", url: "#", icon: HomeIcon },
-  { name: "Why us?", url: "#services-end", icon: Sparkles },
+  { name: "Why us?", url: "#services", icon: Sparkles },
   { name: "Levels", url: "#packages", icon: Wrench },
   { name: "Contact", url: "#contact", icon: Phone },
 ];

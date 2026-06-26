@@ -17,7 +17,7 @@ const SERVICES = [
     id: "exterior",
     label: "Exterior Detail",
     price: "from $129",
-    duration: "2–3 hrs",
+    duration: "1–2 hrs",
     highlights: ["Hand wash & dry", "Wheel & tyre clean", "Glass polish", "Trim dressed"],
     icon: (
       <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
@@ -33,7 +33,7 @@ const SERVICES = [
     id: "interior",
     label: "Interior Detail",
     price: "from $149",
-    duration: "3–4 hrs",
+    duration: "2–4 hrs",
     highlights: ["Deep vacuum", "Steam clean seats", "Dashboard & console", "Glass inside"],
     icon: (
       <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
