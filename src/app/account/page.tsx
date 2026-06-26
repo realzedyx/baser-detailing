@@ -105,7 +105,7 @@ const s = (i: number) => ({
   transition: { duration: 0.65, ease: [0.22, 1, 0.36, 1] as [number, number, number, number], delay: i * 0.07 },
 });
 
-type Booking = { id: string; date: string; service: string; amount: number; status: string; pending_points?: number };
+type Booking = { id: string; date: string; service: string; amount: number; status: string; pending_points?: number; time?: string; name?: string; phone?: string; suburb?: string; car_make?: string; car_model?: string; notes?: string };
 type Car = { make: string; model: string; year: number; colour: string };
 
 export default function AccountPage() {
@@ -120,6 +120,7 @@ export default function AccountPage() {
   const [loading, setLoading] = useState(true);
   const [removingCar, setRemovingCar] = useState(false);
   const [milestonePopup, setMilestonePopup] = useState<{ label: string; perk: string } | null>(null);
+  const [showAllBookings, setShowAllBookings] = useState(false);
 
   useEffect(() => {
     supabase.auth.getSession().then(async ({ data }) => {
@@ -135,7 +136,7 @@ export default function AccountPage() {
       const [{ data: profile }, { data: carData }, { data: bookingsData }] = await Promise.all([
         supabase.from('profiles').select('points').eq('id', u.id).single(),
         supabase.from('cars').select('make,model,year,colour').eq('owner_id', u.id).maybeSingle(),
-        supabase.from('bookings').select('id,date,service,amount,status,pending_points').eq('user_id', u.id).order('created_at', { ascending: false }),
+        supabase.from('bookings').select('id,date,time,service,amount,status,pending_points,name,phone,suburb,car_make,car_model,notes').eq('user_id', u.id).order('created_at', { ascending: false }),
       ]);
 
       const appliedPts = profile?.points ?? 0;
@@ -436,20 +437,44 @@ export default function AccountPage() {
                       <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.1)' }}>Book your first detail and it&apos;ll show up here</p>
                     </div>
                   ) : (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                      {bookings.map(b => (
-                        <div key={b.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 14px', background: 'rgba(255,255,255,0.02)', borderRadius: 12, border: '1px solid rgba(255,255,255,0.05)' }}>
-                          <div>
-                            <div style={{ fontSize: 13, color: '#E8E8E8' }}>{b.service}</div>
-                            <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', marginTop: 2 }}>{b.date}</div>
-                          </div>
-                          <div style={{ textAlign: 'right' }}>
-                            <div style={{ fontSize: 14, color: '#CBA65C' }}>{b.amount != null ? `$${b.amount}` : '—'}</div>
-                            <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.2)', textTransform: 'uppercase', letterSpacing: '0.1em', marginTop: 2 }}>{b.status}</div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
+                    <>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                        {(showAllBookings ? bookings : bookings.slice(0, 3)).map(b => {
+                          const statusColour = b.status === 'confirmed' ? '#4ade80' : b.status === 'completed' ? 'rgba(255,255,255,0.25)' : b.status === 'cancelled' ? 'rgba(192,57,43,0.6)' : '#CBA65C';
+                          return (
+                            <div key={b.id} style={{ padding: '12px 14px', background: 'rgba(255,255,255,0.02)', borderRadius: 12, border: '1px solid rgba(255,255,255,0.05)' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                  <span style={{ fontSize: 9, color: statusColour, letterSpacing: '0.18em', textTransform: 'uppercase', border: `1px solid ${statusColour}`, borderRadius: 6, padding: '2px 7px', opacity: 0.85 }}>{b.status}</span>
+                                  <span style={{ fontSize: 13, color: '#E8E8E8' }}>{b.service}</span>
+                                </div>
+                              </div>
+                              <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', marginBottom: 10 }}>{b.date}{b.time ? ` · ${b.time}` : ''}</div>
+                              {(b.status === 'pending' || b.status === 'confirmed') && (
+                                <motion.button
+                                  whileHover={{ scale: 1.02 }}
+                                  whileTap={{ scale: 0.97 }}
+                                  onClick={() => router.push(`/account/booking/${b.id}`)}
+                                  style={{ fontSize: 11, color: '#CBA65C', background: 'rgba(203,166,92,0.07)', border: '1px solid rgba(203,166,92,0.2)', borderRadius: 8, padding: '6px 14px', cursor: 'pointer', letterSpacing: '0.06em' }}
+                                >
+                                  Manage booking
+                                </motion.button>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                      {bookings.length > 3 && (
+                        <motion.button
+                          whileHover={{ scale: 1.01 }}
+                          whileTap={{ scale: 0.98 }}
+                          onClick={() => setShowAllBookings(v => !v)}
+                          style={{ marginTop: 12, width: '100%', fontSize: 11, color: 'rgba(255,255,255,0.3)', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 10, padding: '9px', cursor: 'pointer', letterSpacing: '0.1em', textTransform: 'uppercase' }}
+                        >
+                          {showAllBookings ? 'Show less' : `View all ${bookings.length} bookings`}
+                        </motion.button>
+                      )}
+                    </>
                   )}
                 </div>
               </GlassCard>
