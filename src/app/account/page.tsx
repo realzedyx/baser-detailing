@@ -115,6 +115,7 @@ export default function AccountPage() {
   const [memberSince, setMemberSince] = useState('');
   const [points, setPoints] = useState(0);
   const [pendingPoints, setPendingPoints] = useState(0);
+  const [pendingHover, setPendingHover] = useState(false);
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [car, setCar] = useState<Car | null>(null);
   const [loading, setLoading] = useState(true);
@@ -341,13 +342,39 @@ export default function AccountPage() {
                         initial={{ opacity: 0, y: 6 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: 1.5 }}
+                        onMouseEnter={() => setPendingHover(true)}
+                        onMouseLeave={() => setPendingHover(false)}
+                        className="relative"
                         style={{
                           marginTop: 12, padding: '6px 14px', borderRadius: 20,
                           background: 'rgba(251,191,36,0.07)', border: '1px solid rgba(251,191,36,0.2)',
                           fontSize: 11, color: 'rgba(251,191,36,0.7)', letterSpacing: '0.1em',
+                          cursor: 'help', display: 'flex', alignItems: 'center', gap: 6,
                         }}
                       >
-                        +{pendingPoints} pts pending
+                        ~{pendingPoints}+ pts pending
+                        <span style={{ fontSize: 9, opacity: 0.55, letterSpacing: '0.06em' }}>est.</span>
+                        <AnimatePresence>
+                          {pendingHover && (
+                            <motion.div
+                              initial={{ opacity: 0, y: 4 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              exit={{ opacity: 0, y: 4 }}
+                              transition={{ duration: 0.16 }}
+                              className="absolute"
+                              style={{
+                                bottom: 'calc(100% + 8px)', left: '50%', transform: 'translateX(-50%)',
+                                width: 200, padding: '8px 12px', borderRadius: 10, zIndex: 30,
+                                background: 'rgba(10,10,10,0.96)', border: '1px solid rgba(251,191,36,0.25)',
+                                fontSize: 10, lineHeight: 1.5, color: 'rgba(255,255,255,0.7)',
+                                letterSpacing: '0.02em', textTransform: 'none', textAlign: 'center',
+                                boxShadow: '0 8px 24px rgba(0,0,0,0.6)',
+                              }}
+                            >
+                              Estimate based on the booking price. Final points are set from the actual amount paid — it may be higher.
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
                       </motion.div>
                     )}
                   </div>
