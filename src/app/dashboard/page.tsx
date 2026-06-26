@@ -7,6 +7,7 @@ import {
   ChevronLeft, ChevronRight, Calendar, Users, Briefcase, BookOpen,
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
+import { REWARDS } from '@/lib/rewards';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 const ADMIN_PIN = '1234';
@@ -345,10 +346,17 @@ function BookingsTab({ bookings, onRefresh, onLogJob }: { bookings: Booking[]; o
   const markDone = async (b: Booking) => {
     setUpdating(b.id);
     await supabase.from('bookings').update({ status: 'done' }).eq('id', b.id);
-    // Apply pending points to user profile
-    if (b.user_id && b.pending_points) {
+    if (b.user_id) {
       const { data: prof } = await supabase.from('profiles').select('points').eq('id', b.user_id).single();
-      await supabase.from('profiles').update({ points: (prof?.points ?? 0) + b.pending_points }).eq('id', b.user_id);
+      let pts = prof?.points ?? 0;
+      // Deduct the reward that was redeemed
+      if (b.reward_applied) {
+        const reward = REWARDS.find(r => r.id === b.reward_applied);
+        if (reward) pts = Math.max(0, pts - reward.pts);
+      }
+      // Add points earned from this job
+      if (b.pending_points) pts += b.pending_points;
+      await supabase.from('profiles').update({ points: pts }).eq('id', b.user_id);
     }
     setUpdating(null);
     onRefresh();
@@ -416,8 +424,17 @@ function BookingsTab({ bookings, onRefresh, onLogJob }: { bookings: Booking[]; o
                     <X size={10} style={{ display: 'inline', verticalAlign: 'middle', marginRight: 4 }} />Cancel
                   </button>
                 </>}
-                {(b.status === 'done' || b.status === 'declined') && (
-                  <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.25)', fontStyle: 'italic' }}>{b.status === 'done' ? 'Completed' : 'Declined'}</span>
+                {b.status === 'done' && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.25)', fontStyle: 'italic' }}>Completed</span>
+                    <button type="button" style={btnStyle('rgba(203,166,92,0.6)', 'rgba(203,166,92,0.07)')} onClick={() => onLogJob(b)}>Log Job</button>
+                  </div>
+                )}
+                {b.status === 'declined' && (
+                  <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.25)', fontStyle: 'italic' }}>Declined</span>
+                )}
+                {b.status === 'cancelled' && (
+                  <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.25)', fontStyle: 'italic' }}>Cancelled</span>
                 )}
               </div>
               {updateErrorId === b.id && updateError && (
