@@ -1,10 +1,11 @@
 "use client";
 
 import { motion, AnimatePresence } from "framer-motion";
-import { useState, useCallback, Suspense } from "react";
+import { useState, useCallback, useEffect, Suspense } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { ErrorToast } from "@/components/ui/error-toast";
+import { supabase } from "@/lib/supabase";
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
@@ -258,9 +259,11 @@ function ServiceCard({
 function Calendar({
   selectedDate,
   onSelectDate,
+  availability,
 }: {
   selectedDate: string | null;
   onSelectDate: (d: string) => void;
+  availability: Record<string, string>;
 }) {
   const today = new Date();
   const [viewYear, setViewYear] = useState(today.getFullYear());
@@ -286,6 +289,8 @@ function Calendar({
     new Date(viewYear, viewMonth, d) < new Date(today.getFullYear(), today.getMonth(), today.getDate());
   const dateStr = (d: number) =>
     `${viewYear}-${String(viewMonth + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+
+  const hasOpenDays = Object.values(availability).some(s => s === 'open');
 
   return (
     <div
@@ -337,32 +342,45 @@ function Calendar({
           const ds = dateStr(d);
           const sel = selectedDate === ds;
           const tod = isToday(d);
+          const status = availability[ds];
+          const isOpen = status === 'open';
+          const isUnavailable = status === 'booked' || status === 'blocked';
+          const disabled = past || isUnavailable || !isOpen;
 
           return (
             <button
               key={d}
-              disabled={past}
-              onClick={() => onSelectDate(ds)}
+              disabled={disabled}
+              onClick={() => !disabled && onSelectDate(ds)}
               className="relative aspect-square flex items-center justify-center rounded-xl text-[13px] font-semibold transition-all duration-200 focus:outline-none"
               style={{
-                color: past
-                  ? "rgba(232,232,232,0.12)"
+                color: disabled
+                  ? "rgba(232,232,232,0.15)"
                   : sel
                   ? "#0a0a0a"
+                  : isOpen
+                  ? "rgba(74,222,128,0.9)"
                   : tod
                   ? CHROME
                   : "rgba(232,232,232,0.45)",
                 background: sel
                   ? `linear-gradient(135deg, ${CHROME} 0%, ${GOLD} 100%)`
+                  : isOpen && !sel
+                  ? "rgba(34,197,94,0.1)"
                   : tod
                   ? "rgba(203,166,92,0.08)"
                   : "transparent",
                 border: sel
                   ? "none"
+                  : isOpen
+                  ? "1px solid rgba(34,197,94,0.3)"
+                  : isUnavailable
+                  ? "1px solid rgba(239,68,68,0.12)"
                   : tod
                   ? `1px solid rgba(203,166,92,0.3)`
                   : "1px solid transparent",
-                cursor: past ? "not-allowed" : "pointer",
+                cursor: disabled ? "not-allowed" : "pointer",
+                opacity: isUnavailable ? 0.35 : 1,
               }}
             >
               {d}
@@ -378,84 +396,74 @@ function Calendar({
         })}
       </div>
 
-      {/* No availability notice */}
-      <div
-        className="mt-6 rounded-xl px-4 py-4 flex items-start gap-3"
-        style={{
-          background: "rgba(255,255,255,0.025)",
-          border: "1px solid rgba(255,255,255,0.06)",
-        }}
-      >
-        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" className="shrink-0 mt-0.5">
-          <circle cx="8" cy="8" r="7" stroke="rgba(232,232,232,0.25)" strokeWidth="1.5"/>
-          <path d="M8 5v3.5M8 11h.01" stroke="rgba(232,232,232,0.35)" strokeWidth="1.5" strokeLinecap="round"/>
-        </svg>
-        <div>
-          <p className="text-[12px] font-semibold mb-1" style={{ color: "rgba(232,232,232,0.55)" }}>
-            No online availability right now
-          </p>
-          <p className="text-[11px] leading-relaxed" style={{ color: "rgba(232,232,232,0.3)" }}>
-            Call or text{" "}
-            <a href="tel:0410532042" className="underline underline-offset-2" style={{ color: GOLD }}>
-              0410 532 042
-            </a>{" "}
-            to lock in a time directly.
-          </p>
+      {/* Legend */}
+      <div className="flex items-center gap-5 mt-5">
+        <div className="flex items-center gap-1.5">
+          <div className="w-2 h-2 rounded-full" style={{ background: "rgba(34,197,94,0.7)" }} />
+          <span className="text-[10px] uppercase tracking-[0.12em]" style={{ color: "rgba(232,232,232,0.3)" }}>Available</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <div className="w-2 h-2 rounded-full" style={{ background: "rgba(232,232,232,0.15)" }} />
+          <span className="text-[10px] uppercase tracking-[0.12em]" style={{ color: "rgba(232,232,232,0.3)" }}>Unavailable</span>
         </div>
       </div>
+
+      {/* No availability notice */}
+      {!hasOpenDays && (
+        <div
+          className="mt-5 rounded-xl px-4 py-4 flex items-start gap-3"
+          style={{
+            background: "rgba(255,255,255,0.025)",
+            border: "1px solid rgba(255,255,255,0.06)",
+          }}
+        >
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" className="shrink-0 mt-0.5">
+            <circle cx="8" cy="8" r="7" stroke="rgba(232,232,232,0.25)" strokeWidth="1.5"/>
+            <path d="M8 5v3.5M8 11h.01" stroke="rgba(232,232,232,0.35)" strokeWidth="1.5" strokeLinecap="round"/>
+          </svg>
+          <div>
+            <p className="text-[12px] font-semibold mb-1" style={{ color: "rgba(232,232,232,0.55)" }}>
+              No online availability right now
+            </p>
+            <p className="text-[11px] leading-relaxed" style={{ color: "rgba(232,232,232,0.3)" }}>
+              Call or text{" "}
+              <a href="tel:0410532042" className="underline underline-offset-2" style={{ color: GOLD }}>
+                0410 532 042
+              </a>{" "}
+              to lock in a time directly.
+            </p>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
 
-// ─── Time slots ───────────────────────────────────────────────────────────────
+// ─── Date confirmation ────────────────────────────────────────────────────────
 
-function TimeSlots({ selectedDate }: { selectedDate: string }) {
+function DateConfirmation({ selectedDate }: { selectedDate: string }) {
   const fmt = new Date(selectedDate + "T00:00:00");
   const label = fmt.toLocaleDateString("en-AU", { weekday: "long", day: "numeric", month: "long" });
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 16 }}
+      initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
-      className="mt-4 rounded-2xl p-6"
+      transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+      className="mt-4 rounded-2xl px-5 py-4 flex items-center gap-4"
       style={{
-        background: "linear-gradient(145deg, rgba(18,16,12,0.98) 0%, rgba(10,10,10,0.99) 100%)",
-        border: "1px solid rgba(255,255,255,0.07)",
+        background: "rgba(34,197,94,0.07)",
+        border: "1px solid rgba(34,197,94,0.25)",
       }}
     >
-      <p className="text-xs uppercase tracking-[0.2em] font-semibold mb-1" style={{ color: GOLD }}>
-        Available times
-      </p>
-      <p className="text-sm font-bold mb-5" style={{ color: "rgba(232,232,232,0.7)" }}>{label}</p>
-
-      <div
-        className="rounded-xl px-5 py-5 text-center"
-        style={{
-          background: "rgba(255,255,255,0.02)",
-          border: "1px dashed rgba(255,255,255,0.08)",
-        }}
-      >
-        <p className="text-sm font-semibold mb-2" style={{ color: "rgba(232,232,232,0.45)" }}>
-          No slots available online
-        </p>
-        <p className="text-[12px] leading-relaxed mb-4" style={{ color: "rgba(232,232,232,0.25)" }}>
-          Contact me directly to arrange this date.
-        </p>
-        <a
-          href="tel:0410532042"
-          className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-[12px] font-bold transition-colors duration-200"
-          style={{
-            background: "rgba(203,166,92,0.1)",
-            border: `1px solid rgba(203,166,92,0.3)`,
-            color: GOLD,
-          }}
-        >
-          <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
-            <path d="M12 9.3v1.5a1 1 0 01-1.1 1A9.9 9.9 0 011 2.1 1 1 0 012.1 1h1.5a1 1 0 011 .85c.1.7.3 1.38.55 2.03a1 1 0 01-.23 1.06L4.1 5.8a8 8 0 003.1 3.1l.86-.82a1 1 0 011.06-.22c.65.25 1.33.44 2.03.55A1 1 0 0112 9.3z" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/>
-          </svg>
-          0410 532 042
-        </a>
+      <div className="w-8 h-8 rounded-full flex items-center justify-center shrink-0" style={{ background: "rgba(34,197,94,0.15)" }}>
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+          <path d="M2.5 7l3 3 6-6" stroke="rgba(74,222,128,0.9)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+        </svg>
+      </div>
+      <div>
+        <p className="text-[11px] uppercase tracking-[0.18em] font-semibold mb-0.5" style={{ color: "rgba(74,222,128,0.7)" }}>Date selected</p>
+        <p className="text-sm font-bold" style={{ color: "rgba(232,232,232,0.8)" }}>{label}</p>
       </div>
     </motion.div>
   );
@@ -626,6 +634,17 @@ function BookPageInner() {
   const [submitted, setSubmitted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [toastError, setToastError] = useState<string | null>(null);
+  const [availability, setAvailability] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    supabase.from('availability').select('date,status').then(({ data }) => {
+      if (data) {
+        const map: Record<string, string> = {};
+        data.forEach((r: { date: string; status: string }) => { map[r.date] = r.status; });
+        setAvailability(map);
+      }
+    });
+  }, []);
 
   const [form, setForm] = useState({
     name: "",
@@ -799,9 +818,9 @@ function BookPageInner() {
                 Pick a day that works for you.
               </p>
 
-              <Calendar selectedDate={selectedDate} onSelectDate={setSelectedDate} />
+              <Calendar selectedDate={selectedDate} onSelectDate={setSelectedDate} availability={availability} />
 
-              {selectedDate && <TimeSlots selectedDate={selectedDate} />}
+              {selectedDate && <DateConfirmation selectedDate={selectedDate} />}
 
               <div className="flex items-center justify-between mt-8">
                 <button

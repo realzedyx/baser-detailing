@@ -511,16 +511,16 @@ function AvailabilityTab({
                   fontSize: 12, fontWeight: isToday ? 500 : 300,
                   border: isSelected
                     ? `2px solid ${modeColors[mode]}`
-                    : st !== 'open'
-                      ? `1px solid ${statusColor(st)}55`
-                      : '1px solid rgba(255,255,255,0.06)',
+                    : st === 'open'
+                      ? '1px solid rgba(34,197,94,0.25)'
+                      : `1px solid ${statusColor(st)}55`,
                   background: isSelected
                     ? `${modeColors[mode]}18`
-                    : st !== 'open'
-                      ? `${statusColor(st)}0f`
-                      : 'rgba(255,255,255,0.02)',
+                    : st === 'open'
+                      ? 'rgba(34,197,94,0.07)'
+                      : `${statusColor(st)}0f`,
                   color: st === 'open'
-                    ? (isToday ? '#E8E8E8' : 'rgba(255,255,255,0.55)')
+                    ? (isToday ? '#E8E8E8' : 'rgba(34,197,94,0.75)')
                     : statusColor(st),
                   transition: 'border-color 0.12s, background 0.12s',
                 }}>
