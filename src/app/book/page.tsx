@@ -620,7 +620,7 @@ function BookPageInner() {
   const pkgParam = searchParams.get("package");
   const preselected = pkgParam && ["interior", "exterior", "full"].includes(pkgParam) ? pkgParam : null;
 
-  const [step, setStep] = useState(preselected ? 1 : 0);
+  const [step, setStep] = useState(0);
   const [selectedService, setSelectedService] = useState<string | null>(preselected);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [submitted, setSubmitted] = useState(false);
