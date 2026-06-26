@@ -42,6 +42,13 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
     { global: { headers: { Authorization: authHeader } } }
   );
 
+  // Grab the booked date before cancelling so we can reopen the day if it's far enough out
+  const { data: existing } = await supabase
+    .from('bookings')
+    .select('date')
+    .eq('id', params.id)
+    .single();
+
   const { error } = await supabase
     .from('bookings')
     .update({ status: 'cancelled' })
@@ -49,6 +56,17 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+
+  // Reopen the day if the booking is more than 24h away — short-notice cancels stay closed
+  if (existing?.date) {
+    const bookingTime = new Date(`${existing.date}T00:00:00`).getTime();
+    if (bookingTime - Date.now() > 24 * 60 * 60 * 1000) {
+      await supabase.from('availability').upsert(
+        { date: existing.date, status: 'open', updated_at: new Date().toISOString() },
+        { onConflict: 'date' }
+      );
+    }
   }
 
   return NextResponse.json({ success: true });

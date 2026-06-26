@@ -352,6 +352,17 @@ function BookingsTab({ bookings, onRefresh, onLogJob }: { bookings: Booking[]; o
       );
       if (avErr) setUpdateError(`availability upsert: ${avErr.message}`);
     }
+    // Declining/cancelling reopens the day if it's more than 24h out — short-notice stays closed
+    if ((status === 'declined' || status === 'cancelled') && date) {
+      const bookingTime = new Date(`${date}T00:00:00`).getTime();
+      if (bookingTime - Date.now() > 24 * 60 * 60 * 1000) {
+        const { error: avErr } = await supabase.from('availability').upsert(
+          { date, status: 'open', updated_at: new Date().toISOString() },
+          { onConflict: 'date' }
+        );
+        if (avErr) setUpdateError(`availability upsert: ${avErr.message}`);
+      }
+    }
     setUpdating(null);
     onRefresh();
   };
@@ -424,14 +435,14 @@ function BookingsTab({ bookings, onRefresh, onLogJob }: { bookings: Booking[]; o
                   <button type="button" style={btnStyle('rgba(34,197,94,0.8)', 'rgba(34,197,94,0.1)')} onClick={() => updateStatus(b.id, 'confirmed', b.date)} disabled={!!updating}>
                     {updating === b.id ? 'Saving…' : <><Check size={10} style={{ display: 'inline', verticalAlign: 'middle', marginRight: 4 }} />Confirm &amp; Lock Day</>}
                   </button>
-                  <button type="button" style={btnStyle('rgba(239,68,68,0.7)', 'rgba(239,68,68,0.08)')} onClick={() => updateStatus(b.id, 'declined')} disabled={!!updating}>
+                  <button type="button" style={btnStyle('rgba(239,68,68,0.7)', 'rgba(239,68,68,0.08)')} onClick={() => updateStatus(b.id, 'declined', b.date)} disabled={!!updating}>
                     <X size={10} style={{ display: 'inline', verticalAlign: 'middle', marginRight: 4 }} />Decline
                   </button>
                 </>}
                 {b.status === 'confirmed' && <>
                   <button type="button" style={btnStyle('rgba(203,166,92,0.7)', 'rgba(203,166,92,0.08)')} onClick={() => textConfirm(b)}>Text Confirmation</button>
                   <button type="button" style={btnStyle('rgba(34,197,94,0.8)', 'rgba(34,197,94,0.1)')} onClick={() => markDone(b)} disabled={!!updating}>Mark Done → Log Job</button>
-                  <button type="button" style={btnStyle('rgba(239,68,68,0.7)', 'rgba(239,68,68,0.08)')} onClick={() => updateStatus(b.id, 'declined')} disabled={!!updating}>
+                  <button type="button" style={btnStyle('rgba(239,68,68,0.7)', 'rgba(239,68,68,0.08)')} onClick={() => updateStatus(b.id, 'cancelled', b.date)} disabled={!!updating}>
                     <X size={10} style={{ display: 'inline', verticalAlign: 'middle', marginRight: 4 }} />Cancel
                   </button>
                 </>}
