@@ -985,7 +985,8 @@ function BookPageInner() {
     const originalPrice = selectedService ? (SERVICE_PRICE[selectedService] ?? 0) : 0;
     const appliedR = appliedReward ? REWARDS.find(r => r.id === appliedReward) ?? null : null;
     const finalAmount = appliedR ? Math.round(originalPrice * (1 - appliedR.discount)) : originalPrice;
-    const pendingPts = userId && selectedService ? originalPrice : 0;
+    // Estimate only — the real points are awarded from the actual amount entered when the job is logged
+    const pendingPts = userId && selectedService ? finalAmount : 0;
     const { data: { session: authSession } } = await supabase.auth.getSession();
     try {
       const res = await fetch("/api/book", {

@@ -155,10 +155,12 @@ function RevenueChart({ jobs }: { jobs: Job[] }) {
 }
 
 // ─── Jobs Tab ─────────────────────────────────────────────────────────────────
-type JobFormPrefill = { date?: string; make?: string; model?: string; year?: string; colour?: string; suburb?: string; service?: string; notes?: string };
+type JobFormPrefill = { date?: string; make?: string; model?: string; year?: string; colour?: string; suburb?: string; service?: string; notes?: string; userId?: string | null };
 
 function JobsTab({ jobs, onRefresh, prefill }: { jobs: Job[]; onRefresh: () => void; prefill?: JobFormPrefill | null }) {
   const [form, setForm] = useState({ date: '', make: '', model: '', year: '', colour: '', suburb: '', service: 'Interior', amount: '', payment: 'PayID', notes: '' });
+  // Member tied to a booking being logged — when set, saving the job awards them points = amount
+  const [linkedUserId, setLinkedUserId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!prefill) return;
@@ -169,6 +171,7 @@ function JobsTab({ jobs, onRefresh, prefill }: { jobs: Job[]; onRefresh: () => v
       return 'Interior';
     })();
     setForm(f => ({ ...f, date: prefill.date ?? f.date, make: prefill.make ?? f.make, model: prefill.model ?? f.model, year: prefill.year ?? f.year, colour: prefill.colour ?? f.colour, suburb: prefill.suburb ?? f.suburb, service: svc, notes: prefill.notes ?? f.notes }));
+    setLinkedUserId(prefill.userId ?? null);
   }, [prefill]);
   const [focused, setFocused] = useState('');
   const [saving, setSaving] = useState(false);
@@ -184,17 +187,27 @@ function JobsTab({ jobs, onRefresh, prefill }: { jobs: Job[]; onRefresh: () => v
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
+    const amountNum = parseFloat(form.amount) || 0;
     const { error } = await supabase.from('jobs').insert({
       date: form.date, make: form.make, model: form.model, year: form.year,
       colour: form.colour, suburb: form.suburb, service: form.service,
-      amount: parseFloat(form.amount) || 0, payment: form.payment, notes: form.notes,
+      amount: amountNum, payment: form.payment, notes: form.notes,
     });
-    setSaving(false);
     if (error) {
+      setSaving(false);
       setSaveResult({ ok: false, msg: error.message });
     } else {
+      // Award points = actual amount paid, but only when this job was logged from a member's booking
+      let pointsMsg = '';
+      if (linkedUserId && amountNum > 0) {
+        const { data: prof } = await supabase.from('profiles').select('points').eq('id', linkedUserId).single();
+        await supabase.from('profiles').update({ points: (prof?.points ?? 0) + Math.round(amountNum) }).eq('id', linkedUserId);
+        pointsMsg = ` (+${Math.round(amountNum)} pts awarded)`;
+      }
+      setSaving(false);
       setForm({ date: '', make: '', model: '', year: '', colour: '', suburb: '', service: 'Interior', amount: '', payment: 'PayID', notes: '' });
-      setSaveResult({ ok: true, msg: 'Job saved!' });
+      setLinkedUserId(null);
+      setSaveResult({ ok: true, msg: `Job saved!${pointsMsg}` });
       onRefresh();
     }
     setTimeout(() => setSaveResult(null), 4000);
@@ -346,17 +359,15 @@ function BookingsTab({ bookings, onRefresh, onLogJob }: { bookings: Booking[]; o
   const markDone = async (b: Booking) => {
     setUpdating(b.id);
     await supabase.from('bookings').update({ status: 'done' }).eq('id', b.id);
-    if (b.user_id) {
-      const { data: prof } = await supabase.from('profiles').select('points').eq('id', b.user_id).single();
-      let pts = prof?.points ?? 0;
-      // Deduct the reward that was redeemed
-      if (b.reward_applied) {
-        const reward = REWARDS.find(r => r.id === b.reward_applied);
-        if (reward) pts = Math.max(0, pts - reward.pts);
+    // Deduct the redeemed reward cost now. Earned points are added later, from the
+    // actual amount entered in the Log Job form (see JobsTab handleSave).
+    if (b.user_id && b.reward_applied) {
+      const reward = REWARDS.find(r => r.id === b.reward_applied);
+      if (reward) {
+        const { data: prof } = await supabase.from('profiles').select('points').eq('id', b.user_id).single();
+        const pts = Math.max(0, (prof?.points ?? 0) - reward.pts);
+        await supabase.from('profiles').update({ points: pts }).eq('id', b.user_id);
       }
-      // Add points earned from this job
-      if (b.pending_points) pts += b.pending_points;
-      await supabase.from('profiles').update({ points: pts }).eq('id', b.user_id);
     }
     setUpdating(null);
     onRefresh();
@@ -796,7 +807,7 @@ function Dashboard() {
   const [prefillJob, setPrefillJob] = useState<JobFormPrefill | null>(null);
 
   const handleLogJob = (b: Booking) => {
-    setPrefillJob({ date: b.date, make: b.car_make, model: b.car_model, year: b.car_year ?? '', colour: b.car_colour ?? '', suburb: b.suburb, service: b.service, notes: b.notes || '' });
+    setPrefillJob({ date: b.date, make: b.car_make, model: b.car_model, year: b.car_year ?? '', colour: b.car_colour ?? '', suburb: b.suburb, service: b.service, notes: b.notes || '', userId: b.user_id ?? null });
     setTab('Jobs');
   };
 
