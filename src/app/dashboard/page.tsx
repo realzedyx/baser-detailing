@@ -411,10 +411,10 @@ function AvailabilityTab({
   const dayKey = (d: number) =>
     `${viewYear}-${String(viewMonth + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
 
-  const statusOf = (d: number): DayStatus => {
+  const statusOf = (d: number): DayStatus | null => {
     const k = dayKey(d);
     if (confirmedDates.has(k)) return 'booked';
-    return availability[k] ?? 'open';
+    return (availability[k] as DayStatus) ?? null;
   };
 
   const toggleDate = (d: number) => {
@@ -511,17 +511,21 @@ function AvailabilityTab({
                   fontSize: 12, fontWeight: isToday ? 500 : 300,
                   border: isSelected
                     ? `2px solid ${modeColors[mode]}`
-                    : st === 'open'
-                      ? '1px solid rgba(34,197,94,0.25)'
-                      : `1px solid ${statusColor(st)}55`,
+                    : st === 'open' ? '1px solid rgba(34,197,94,0.25)'
+                    : st === 'booked' ? `1px solid rgba(203,166,92,0.35)`
+                    : st === 'blocked' ? '1px solid rgba(239,68,68,0.45)'
+                    : '1px solid rgba(255,255,255,0.07)',
                   background: isSelected
-                    ? `${modeColors[mode]}18`
-                    : st === 'open'
-                      ? 'rgba(34,197,94,0.07)'
-                      : `${statusColor(st)}0f`,
-                  color: st === 'open'
-                    ? (isToday ? '#E8E8E8' : 'rgba(34,197,94,0.75)')
-                    : statusColor(st),
+                    ? `${modeColors[mode]}22`
+                    : st === 'open' ? 'rgba(34,197,94,0.07)'
+                    : st === 'booked' ? 'rgba(203,166,92,0.08)'
+                    : st === 'blocked' ? 'rgba(239,68,68,0.13)'
+                    : 'transparent',
+                  color: isSelected ? modeColors[mode]
+                    : st === 'open' ? 'rgba(34,197,94,0.8)'
+                    : st === 'booked' ? GOLD
+                    : st === 'blocked' ? 'rgba(239,68,68,0.85)'
+                    : isToday ? '#E8E8E8' : 'rgba(255,255,255,0.35)',
                   transition: 'border-color 0.12s, background 0.12s',
                 }}>
                 {isToday && (
