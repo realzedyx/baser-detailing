@@ -28,6 +28,10 @@ export function TextReveal({
             overflow: "hidden",
             verticalAlign: "bottom",
             marginRight: i < words.length - 1 ? "0.26em" : 0,
+            // Extend the clip box below the baseline so descenders (g, y, p)
+            // aren't cut; negative margin keeps layout spacing unchanged.
+            paddingBottom: "0.18em",
+            marginBottom: "-0.18em",
           }}
         >
           <motion.span

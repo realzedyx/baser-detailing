@@ -321,7 +321,9 @@ export default function AccountPage() {
         </Link>
       </motion.div>
 
-      <div className="relative z-10 mx-auto pb-32" style={{ maxWidth: 980, padding: '0 24px' }}>
+      {/* Bottom padding must clear the fixed "Book a detail" bar — note the
+          inline `padding` shorthand would otherwise zero out a pb-* class. */}
+      <div className="relative z-10 mx-auto" style={{ maxWidth: 980, padding: '0 24px calc(150px + env(safe-area-inset-bottom, 0px))' }}>
 
         <motion.div {...s(0)} style={{ paddingTop: 72, marginBottom: 36 }}>
           <p style={{ fontSize: 11, color: 'rgba(203,166,92,0.65)', letterSpacing: '0.24em', textTransform: 'uppercase', marginBottom: 14 }}>
