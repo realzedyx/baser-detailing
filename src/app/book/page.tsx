@@ -1,8 +1,9 @@
 "use client";
 
 import { motion, AnimatePresence } from "framer-motion";
-import { useState, useCallback } from "react";
+import { useState, useCallback, Suspense } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { ErrorToast } from "@/components/ui/error-toast";
 
 // ─── Constants ───────────────────────────────────────────────────────────────
@@ -614,15 +615,13 @@ function SuccessScreen({ name, service }: { name: string; service: string }) {
 
 // ─── Main page ────────────────────────────────────────────────────────────────
 
-export default function BookPage() {
-  const [step, setStep] = useState(0);
-  const [selectedService, setSelectedService] = useState<string | null>(() => {
-    if (typeof window !== "undefined") {
-      const pkg = new URLSearchParams(window.location.search).get("package");
-      if (pkg && ["interior", "exterior", "full"].includes(pkg)) return pkg;
-    }
-    return null;
-  });
+function BookPageInner() {
+  const searchParams = useSearchParams();
+  const pkgParam = searchParams.get("package");
+  const preselected = pkgParam && ["interior", "exterior", "full"].includes(pkgParam) ? pkgParam : null;
+
+  const [step, setStep] = useState(preselected ? 1 : 0);
+  const [selectedService, setSelectedService] = useState<string | null>(preselected);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [submitted, setSubmitted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -977,5 +976,13 @@ export default function BookPage() {
       {/* Bottom fade */}
       <div className="fixed bottom-0 inset-x-0 h-24 pointer-events-none" style={{ background: "linear-gradient(to top, rgba(10,10,10,0.6), transparent)" }} />
     </div>
+  );
+}
+
+export default function BookPage() {
+  return (
+    <Suspense>
+      <BookPageInner />
+    </Suspense>
   );
 }
