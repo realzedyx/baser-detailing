@@ -982,11 +982,18 @@ function BookPageInner() {
     if (!form.name || !form.phone || !form.carMake || !form.carModel) return;
     setSubmitting(true);
     setToastError(null);
-    const pendingPts = userId && selectedService ? (SERVICE_PRICE[selectedService] ?? 0) : 0;
+    const originalPrice = selectedService ? (SERVICE_PRICE[selectedService] ?? 0) : 0;
+    const appliedR = appliedReward ? REWARDS.find(r => r.id === appliedReward) ?? null : null;
+    const finalAmount = appliedR ? Math.round(originalPrice * (1 - appliedR.discount)) : originalPrice;
+    const pendingPts = userId && selectedService ? originalPrice : 0;
+    const { data: { session: authSession } } = await supabase.auth.getSession();
     try {
       const res = await fetch("/api/book", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          ...(authSession?.access_token ? { "Authorization": `Bearer ${authSession.access_token}` } : {}),
+        },
         body: JSON.stringify({
           service: service?.label ?? selectedService,
           date: selectedDate ?? "TBD",
@@ -995,6 +1002,7 @@ function BookPageInner() {
           userId: userId ?? null,
           rewardApplied: appliedReward,
           pendingPoints: pendingPts,
+          amount: finalAmount,
         }),
       });
       if (!res.ok) {

@@ -150,9 +150,10 @@ export default function AccountPage() {
         .reduce((acc, b) => acc + (b.pending_points ?? 0), 0);
       setPendingPoints(pending);
 
-      // Milestone popup — show if user has reached a tier
+      // Milestone popup — only show if user has no active booking in progress
+      const hasActiveBooking = bkList.some(b => b.status === 'pending' || b.status === 'confirmed');
       const eligible = TIERS.filter(t => appliedPts >= t.pts);
-      if (eligible.length > 0) {
+      if (eligible.length > 0 && !hasActiveBooking) {
         const top = eligible[eligible.length - 1];
         setMilestonePopup({ label: top.name, perk: top.perk });
       }
@@ -443,7 +444,7 @@ export default function AccountPage() {
                             <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', marginTop: 2 }}>{b.date}</div>
                           </div>
                           <div style={{ textAlign: 'right' }}>
-                            <div style={{ fontSize: 14, color: '#CBA65C' }}>${b.amount}</div>
+                            <div style={{ fontSize: 14, color: '#CBA65C' }}>{b.amount != null ? `$${b.amount}` : '—'}</div>
                             <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.2)', textTransform: 'uppercase', letterSpacing: '0.1em', marginTop: 2 }}>{b.status}</div>
                           </div>
                         </div>

@@ -5,11 +5,15 @@ import { createClient } from "@supabase/supabase-js";
 
 export async function POST(req: NextRequest) {
   const body = await req.json();
-  const { service, date, time, name, phone, suburb, carMake, carModel, carYear, carColour, notes, userId, rewardApplied, pendingPoints } = body;
+  const { service, date, time, name, phone, suburb, carMake, carModel, carYear, carColour, notes, userId, rewardApplied, pendingPoints, amount } = body;
 
+  const authHeader = req.headers.get('Authorization');
+
+  // Use the user's JWT if available so auth.uid() works in RLS and user_id is stored correctly
   const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    authHeader ? { global: { headers: { Authorization: authHeader } } } : {}
   );
 
   const { error } = await supabase.from("bookings").insert([
@@ -25,6 +29,7 @@ export async function POST(req: NextRequest) {
       car_year: carYear || null,
       car_colour: carColour || null,
       notes,
+      amount: amount || null,
       status: "pending",
       created_at: new Date().toISOString(),
       user_id: userId || null,
@@ -39,7 +44,12 @@ export async function POST(req: NextRequest) {
 
   // Block the date immediately so no one else can book it while pending
   if (date) {
-    await supabase.from("availability").upsert(
+    // Use anon client (no auth) for availability upsert — anon INSERT policy covers this
+    const anonSupabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    );
+    await anonSupabase.from("availability").upsert(
       { date, status: "booked", updated_at: new Date().toISOString() },
       { onConflict: "date" }
     );
