@@ -12,6 +12,10 @@ export function CursorTracker() {
   const [mounted, setMounted]       = useState(false);
 
   useEffect(() => {
+    // Only on devices with a real mouse — skip touch/mobile entirely (no custom
+    // cursor, and no constant rAF loop running for nothing).
+    if (!window.matchMedia("(hover: hover) and (pointer: fine)").matches) return;
+
     const onMove = (e: MouseEvent) => {
       mousePos.current = { x: e.clientX, y: e.clientY };
       document.documentElement.style.setProperty("--mx", `${e.clientX}px`);
