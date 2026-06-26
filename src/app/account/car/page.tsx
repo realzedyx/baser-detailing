@@ -47,7 +47,7 @@ export default function AddCarPage() {
       const { data: existing } = await supabase
         .from('cars')
         .select('id')
-        .eq('user_id', session.user.id)
+        .eq('owner_id', session.user.id)
         .maybeSingle();
 
       const payload = {
@@ -59,9 +59,9 @@ export default function AddCarPage() {
 
       let err;
       if (existing) {
-        ({ error: err } = await supabase.from('cars').update(payload).eq('user_id', session.user.id));
+        ({ error: err } = await supabase.from('cars').update(payload).eq('owner_id', session.user.id));
       } else {
-        ({ error: err } = await supabase.from('cars').insert({ user_id: session.user.id, ...payload }));
+        ({ error: err } = await supabase.from('cars').insert({ owner_id: session.user.id, ...payload }));
       }
 
       if (err) throw new Error(err.message);

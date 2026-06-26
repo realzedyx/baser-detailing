@@ -131,7 +131,7 @@ export default function AccountPage() {
 
       const [{ data: profile }, { data: carData }, { data: bookingsData }] = await Promise.all([
         supabase.from('profiles').select('points').eq('id', u.id).single(),
-        supabase.from('cars').select('make,model,year,colour').eq('user_id', u.id).maybeSingle(),
+        supabase.from('cars').select('make,model,year,colour').eq('owner_id', u.id).maybeSingle(),
         supabase.from('bookings').select('id,date,service,amount,status').eq('user_id', u.id).order('created_at', { ascending: false }),
       ]);
 
