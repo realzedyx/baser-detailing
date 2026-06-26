@@ -3,66 +3,69 @@ export const runtime = 'edge';
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
+// Awards 50 referral points to BOTH the new (referred) user and their referrer,
+// exactly once, the first time the referred user reaches a logged-in state
+// (signup complete). Idempotency is tracked in the referred user's metadata so
+// this needs no DB schema changes.
 export async function POST(req: NextRequest) {
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!serviceKey) {
+    return NextResponse.json({ error: 'Server not configured' }, { status: 500 });
+  }
+
   const authHeader = req.headers.get('Authorization');
   if (!authHeader) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-
   const token = authHeader.replace(/^Bearer\s+/i, '');
 
-  // Service role client: can update any user's profile, bypasses RLS.
-  const admin = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
-  );
+  // Service-role client: required to bump the *referrer's* points and to edit
+  // the referred user's metadata — both bypass row-level security.
+  const admin = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, serviceKey);
 
-  // Verify the caller's JWT.
+  // Identity comes from the verified JWT, never the request body.
   const { data: userData } = await admin.auth.getUser(token);
-  if (!userData.user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  const user = userData.user;
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-  const userId = userData.user.id;
-  const referrerId = userData.user.user_metadata?.referrer_id as string | undefined;
-  if (!referrerId || referrerId === userId) {
+  const md = (user.user_metadata || {}) as Record<string, unknown>;
+  const referrerId = typeof md.referrer_id === 'string' ? md.referrer_id : null;
+
+  // Already credited, or no referrer, or self-referral — nothing to do.
+  if (md.referral_credited) return NextResponse.json({ ok: true, already: true });
+  if (!referrerId || referrerId === user.id) {
     return NextResponse.json({ error: 'No valid referrer' }, { status: 400 });
   }
 
-  // Idempotency: bail if already credited.
-  const { data: profile } = await admin
-    .from('profiles')
-    .select('referral_credited')
-    .eq('id', userId)
-    .single();
-  if (profile?.referral_credited) {
-    return NextResponse.json({ ok: true, already: true });
-  }
-
-  // Verify referrer exists.
-  const { data: referrerProfile } = await admin
+  // Referrer must be a real existing member.
+  const { data: referrer } = await admin
     .from('profiles')
     .select('id')
     .eq('id', referrerId)
     .single();
-  if (!referrerProfile) {
+  if (!referrer) {
+    // Bad/stale referrer — mark as handled so we don't keep retrying every load.
+    await admin.auth.admin.updateUserById(user.id, {
+      user_metadata: { ...md, referrer_id: null, referral_credited: true },
+    });
     return NextResponse.json({ error: 'Referrer not found' }, { status: 404 });
   }
 
-  // Award 50 pts to both. increment_points is SECURITY DEFINER so it bypasses RLS.
-  const [r1, r2] = await Promise.all([
-    admin.rpc('increment_points', { uid: userId, delta: 50 }),
-    admin.rpc('increment_points', { uid: referrerId, delta: 50 }),
-  ]);
+  // Mark credited FIRST so a double-fire (two rapid loads) can't double-award.
+  await admin.auth.admin.updateUserById(user.id, {
+    user_metadata: { ...md, referrer_id: null, referral_credited: true },
+  });
 
-  // Fallback to direct update if RPC not available.
-  if (r1.error) {
-    const { data: p } = await admin.from('profiles').select('points').eq('id', userId).single();
-    await admin.from('profiles').update({ points: (p?.points ?? 0) + 50 }).eq('id', userId);
-  }
-  if (r2.error) {
-    const { data: p } = await admin.from('profiles').select('points').eq('id', referrerId).single();
-    await admin.from('profiles').update({ points: (p?.points ?? 0) + 50 }).eq('id', referrerId);
-  }
-
-  // Mark as credited so this never runs twice.
-  await admin.from('profiles').update({ referral_credited: true }).eq('id', userId);
+  // Award 50 to each. Prefer the atomic RPC; fall back to read+write.
+  const award = async (uid: string) => {
+    const { error } = await admin.rpc('increment_points', { uid, delta: 50 });
+    if (error) {
+      const { data: p } = await admin.from('profiles').select('points').eq('id', uid).single();
+      await admin
+        .from('profiles')
+        .update({ points: ((p?.points as number) ?? 0) + 50 })
+        .eq('id', uid);
+    }
+  };
+  await Promise.all([award(user.id), award(referrerId)]);
 
   return NextResponse.json({ ok: true });
 }

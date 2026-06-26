@@ -170,19 +170,21 @@ export default function AccountPage() {
       setMemberSince(formatMemberSince(u.created_at));
 
       const [{ data: profile }, { data: carData }, { data: bookingsData }] = await Promise.all([
-        supabase.from('profiles').select('points,referral_credited').eq('id', u.id).single(),
+        supabase.from('profiles').select('points').eq('id', u.id).single(),
         supabase.from('cars').select('make,model,year,colour').eq('owner_id', u.id).maybeSingle(),
         supabase.from('bookings').select('id,date,time,service,amount,status,pending_points,name,phone,suburb,car_make,car_model,notes').eq('user_id', u.id).order('created_at', { ascending: false }),
       ]);
 
-      // Credit referral points on first account load after signup via a referral link.
-      const referrerId = u.user_metadata?.referrer_id;
-      if (referrerId && !profile?.referral_credited) {
+      // Credit referral points the first time a referred user reaches their account
+      // (i.e. signup is fully complete — email confirmed if required, session live).
+      // Idempotency lives in the user's metadata (referral_credited) so this needs
+      // no DB migration; the API clears referrer_id after awarding.
+      const md = u.user_metadata || {};
+      if (md.referrer_id && !md.referral_credited) {
         fetch('/api/referral', {
           method: 'POST',
           headers: { Authorization: `Bearer ${data.session.access_token}` },
         }).then(r => r.json()).then(res => {
-          // If freshly credited, bump the displayed points by 50.
           if (res.ok && !res.already) setPoints(p => p + 50);
         }).catch(() => {});
       }
