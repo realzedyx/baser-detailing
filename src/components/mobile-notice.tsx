@@ -59,7 +59,7 @@ export function MobileNotice() {
           className="w-full rounded-xl py-3 text-sm font-semibold tracking-wide transition-opacity hover:opacity-90"
           style={{ backgroundColor: "#D6342C", color: "#fff" }}
         >
-          Sorry, continue
+          Continue on here
         </button>
       </div>
     </div>
