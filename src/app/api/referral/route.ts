@@ -35,13 +35,11 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'No valid referrer' }, { status: 400 });
   }
 
-  // Referrer must be a real existing member.
-  const { data: referrer } = await admin
-    .from('profiles')
-    .select('id')
-    .eq('id', referrerId)
-    .single();
-  if (!referrer) {
+  // Referrer must be a real existing account. Validate against auth (not a
+  // profiles row, which may not exist yet) so a freshly-signed-up referrer
+  // still counts and a bad/non-UUID ref is rejected cleanly.
+  const { data: refUser } = await admin.auth.admin.getUserById(referrerId);
+  if (!refUser?.user) {
     // Bad/stale referrer — mark as handled so we don't keep retrying every load.
     await admin.auth.admin.updateUserById(user.id, {
       user_metadata: { ...md, referrer_id: null, referral_credited: true },
@@ -54,15 +52,16 @@ export async function POST(req: NextRequest) {
     user_metadata: { ...md, referrer_id: null, referral_credited: true },
   });
 
-  // Award 50 to each. Prefer the atomic RPC; fall back to read+write.
+  // Award 50 to each. Prefer the atomic RPC; fall back to read-modify-write,
+  // creating the profiles row if it doesn't exist yet (so points never no-op).
   const award = async (uid: string) => {
     const { error } = await admin.rpc('increment_points', { uid, delta: 50 });
-    if (error) {
-      const { data: p } = await admin.from('profiles').select('points').eq('id', uid).single();
-      await admin
-        .from('profiles')
-        .update({ points: ((p?.points as number) ?? 0) + 50 })
-        .eq('id', uid);
+    if (!error) return;
+    const { data: p } = await admin.from('profiles').select('points').eq('id', uid).maybeSingle();
+    if (p) {
+      await admin.from('profiles').update({ points: ((p.points as number) ?? 0) + 50 }).eq('id', uid);
+    } else {
+      await admin.from('profiles').insert({ id: uid, points: 50 });
     }
   };
   await Promise.all([award(user.id), award(referrerId)]);
