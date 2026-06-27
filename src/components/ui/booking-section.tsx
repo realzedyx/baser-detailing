@@ -132,7 +132,7 @@ export function BookingSection() {
                 icon={<IconSms />}
                 label="TEXT"
                 value="Send a message"
-                href="sms:0410532042"
+                href="sms:0410532042&body=Hi%20Yusuf%2C%20I%27d%20like%20to%20book%20a%20detail%20%E2%80%94%20"
               />
               <ContactRow
                 icon={<IconInstagram />}
