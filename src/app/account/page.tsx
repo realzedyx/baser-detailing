@@ -242,7 +242,7 @@ export default function AccountPage() {
   const nextTier = tier === 'VIP' ? null : TIERS[TIERS.findIndex(t => t.name === (tier || 'Regular')) + (tier ? 1 : 0)];
   // Carry the referrer's name in the link so the booking it produces records who
   // referred it (see /book) and the owner can credit both accounts.
-  const referralMsg = `Hey! I use Baser Detailing — results are incredible. Sign up through my link and we both get 50 bonus points: baserdetailing.com/signup?ref=${encodeURIComponent(userId || name)}`;
+  const referralMsg = `Hey! I use Baser Detailing — results are incredible. Sign up through my link and we both get 50 bonus reward points you can use toward your next booking: baserdetailing.com/signup?ref=${encodeURIComponent(userId || name)}`;
 
   return (
     <div className="min-h-screen w-screen relative overflow-x-hidden" style={{ backgroundColor: '#0a0a0a' }}>
@@ -579,7 +579,7 @@ export default function AccountPage() {
                 <div style={{ padding: '24px 28px' }}>
                   <p style={{ fontSize: 10, color: '#CBA65C', letterSpacing: '0.24em', textTransform: 'uppercase', fontWeight: 500, marginBottom: 10 }}>Refer a Mate</p>
                   <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.32)', lineHeight: 1.75, marginBottom: 16 }}>
-                    You both earn <span style={{ color: '#CBA65C' }}>50 bonus points</span> once your mate books with your link and completes their first detail.
+                    You both earn <span style={{ color: '#CBA65C' }}>50 reward points</span> redeemable toward your next booking, once your mate signs up through your link.
                   </p>
                   <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: 12, padding: '14px 16px', marginBottom: 14 }}>
                     <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.28)', lineHeight: 1.8, fontStyle: 'italic' }}>
