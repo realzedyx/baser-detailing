@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -32,6 +32,32 @@ export default function AddCarPage() {
   const [focused, setFocused] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // One car per account: if the user already has one, this page edits it.
+  // Prefill so "Edit car" doesn't open blank and silently overwrite.
+  const [isEdit, setIsEdit] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    (async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) { router.push('/signin'); return; }
+      const { data: car } = await supabase
+        .from('cars')
+        .select('make,model,year,colour')
+        .eq('owner_id', session.user.id)
+        .maybeSingle();
+      if (car) {
+        setForm({
+          make: car.make ?? '',
+          model: car.model ?? '',
+          year: car.year != null ? String(car.year) : '',
+          colour: car.colour ?? '',
+        });
+        setIsEdit(true);
+      }
+      setLoading(false);
+    })();
+  }, [router]);
 
   const FILTERS: Record<string, RegExp> = {
     make:   /[^a-zA-Z\s]/g,
@@ -128,7 +154,7 @@ export default function AddCarPage() {
         <motion.div {...s(0)} style={{ marginBottom: 28 }}>
           <p style={{ fontSize: 10, color: 'rgba(203,166,92,0.65)', letterSpacing: '0.24em', textTransform: 'uppercase', marginBottom: 10 }}>My Garage</p>
           <h1 style={{ fontSize: 'clamp(32px, 5vw, 46px)', fontWeight: 200, color: '#E8E8E8', letterSpacing: '-0.03em', lineHeight: 1.05, margin: 0, background: 'linear-gradient(135deg, #E8E8E8 60%, rgba(203,166,92,0.7))', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-            Add your car.
+            {loading ? 'Your car.' : isEdit ? 'Edit your car.' : 'Add your car.'}
           </h1>
         </motion.div>
 
@@ -174,14 +200,14 @@ export default function AddCarPage() {
               <motion.button
                 {...s(6)}
                 type="submit"
-                disabled={saving}
+                disabled={saving || loading}
                 whileHover={saving ? {} : { scale: 1.02 }}
                 whileTap={saving ? {} : { scale: 0.98 }}
                 className="relative overflow-hidden w-full"
                 style={{ marginTop: 32, background: 'linear-gradient(120deg, #BF9A50, #CBA65C 35%, #E4C883 60%, #CBA65C)', color: '#0a0a0a', border: 'none', borderRadius: 14, padding: '14px', fontSize: 12, fontWeight: 500, letterSpacing: '0.14em', textTransform: 'uppercase', cursor: saving ? 'wait' : 'pointer', opacity: saving ? 0.7 : 1 }}
               >
                 <motion.div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/25 to-transparent" animate={{ x: ['-100%', '100%'] }} transition={{ duration: 2.5, ease: 'easeInOut', repeat: Infinity, repeatDelay: 4 }} />
-                <span className="relative z-10">{saving ? 'Saving…' : 'Save car →'}</span>
+                <span className="relative z-10">{saving ? 'Saving…' : isEdit ? 'Update car →' : 'Save car →'}</span>
               </motion.button>
             </form>
           </div>
