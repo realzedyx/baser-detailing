@@ -3,6 +3,7 @@ import localFont from "next/font/local";
 import "./globals.css";
 import { CursorTracker } from "@/components/cursor-tracker";
 import { SmoothScroll } from "@/components/smooth-scroll";
+import { AuthRecoveryHandler } from "@/components/auth-recovery-handler";
 
 const geistSans = localFont({
   src: "./fonts/GeistVF.woff",
@@ -109,6 +110,7 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <SmoothScroll />
+        <AuthRecoveryHandler />
 <CursorTracker />
         {children}
       </body>

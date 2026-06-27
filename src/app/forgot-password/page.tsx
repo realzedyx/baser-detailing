@@ -21,6 +21,12 @@ export default function ForgotPasswordPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    // Arrive in reset mode if the global handler routed us here (?recovery=1)
+    // or the recovery token is still in the URL hash.
+    if (typeof window !== 'undefined') {
+      const flagged = new URLSearchParams(window.location.search).get('recovery') === '1';
+      if (flagged || window.location.hash.includes('type=recovery')) setMode('reset');
+    }
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
       if (event === 'PASSWORD_RECOVERY') setMode('reset');
     });
