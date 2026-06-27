@@ -1373,7 +1373,7 @@ function BookPageInner() {
               </div>
 
               <p className="text-center mt-6 text-[11px] leading-relaxed" style={{ color: "rgba(232,232,232,0.22)" }}>
-                20% deposit secures your spot. I&apos;ll send my PayID once confirmed — balance paid on the day by PayID or cash.
+                Once confirmed, I&apos;ll send my PayID to lock in your spot with a deposit — balance paid on the day by PayID or cash.
               </p>
             </motion.div>
           )}

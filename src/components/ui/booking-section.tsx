@@ -104,8 +104,7 @@ export function BookingSection() {
             {/* Subheading */}
             <motion.p {...anim(0.18)} className="text-[#E8E8E8]/55 text-sm sm:text-base leading-relaxed max-w-sm mb-10">
               Call or text for the quickest reply, or send your details and I&apos;ll come back
-              with a time. A 20% deposit locks in your spot, with the balance paid on the day
-              by card, PayID, or cash.
+              with a time. Once confirmed, I&apos;ll send my PayID to lock in your spot with a deposit — balance paid on the day.
             </motion.p>
 
             {/* Phone number */}
@@ -267,7 +266,7 @@ export function BookingSection() {
 
                 {/* Footer note */}
                 <p className="text-[#E8E8E8]/30 text-[11px] leading-relaxed">
-                  A 20% deposit secures your spot. Balance paid on the day by card, PayID, or cash.{" "}
+                  Once confirmed, I&apos;ll send my PayID to lock in your spot with a deposit. Balance paid on the day by PayID or cash.{" "}
                   <span className="text-[#E8E8E8]/20">
                     Need to reschedule? Just give me 24 hours&apos; notice.
                   </span>
