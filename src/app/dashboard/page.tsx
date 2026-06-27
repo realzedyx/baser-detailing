@@ -13,7 +13,7 @@ import { REWARDS } from '@/lib/rewards';
 // The PIN is a convenience lock only — the real protection for customer data is
 // Supabase Row-Level Security (see supabase/security.sql). Set NEXT_PUBLIC_ADMIN_PIN
 // to override the default.
-const ADMIN_PIN = process.env.NEXT_PUBLIC_ADMIN_PIN || '1234';
+const ADMIN_PIN = process.env.NEXT_PUBLIC_ADMIN_PIN || '1895';
 const GOLD = '#CBA65C';
 const BG = '#0a0a0a';
 const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
