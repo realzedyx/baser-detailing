@@ -13,6 +13,7 @@ import { REWARDS, SERVICE_PRICE, type Reward } from "@/lib/rewards";
 const GOLD = "#CBA65C";
 const CHROME = "#E4C883";
 const BG = "#0a0a0a";
+const BOOKING_DRAFT_KEY = "baser-booking-draft";
 
 const SERVICES = [
   {
@@ -853,7 +854,7 @@ function RewardsBar({
 
 // ─── Success screen ───────────────────────────────────────────────────────────
 
-function AuthPromptModal({ open, onClose, onGuest }: { open: boolean; onClose: () => void; onGuest: () => void }) {
+function AuthPromptModal({ open, onClose, onGuest, onCreateAccount }: { open: boolean; onClose: () => void; onGuest: () => void; onCreateAccount: () => void }) {
   const [confirming, setConfirming] = useState(false);
 
   const handleClose = () => {
@@ -900,6 +901,7 @@ function AuthPromptModal({ open, onClose, onGuest }: { open: boolean; onClose: (
                 <div className="flex flex-col gap-3">
                   <Link
                     href="/signup?from=booking"
+                    onClick={onCreateAccount}
                     className="w-full inline-flex items-center justify-center px-6 py-3.5 rounded-xl font-bold text-sm text-center"
                     style={{
                       background: `linear-gradient(135deg, ${CHROME} 0%, ${GOLD} 55%, #A8862E 100%)`,
@@ -928,6 +930,7 @@ function AuthPromptModal({ open, onClose, onGuest }: { open: boolean; onClose: (
                 <div className="flex flex-col gap-3">
                   <Link
                     href="/signup?from=booking"
+                    onClick={onCreateAccount}
                     className="w-full inline-flex items-center justify-center px-6 py-3.5 rounded-xl font-bold text-sm text-center"
                     style={{
                       background: `linear-gradient(135deg, ${CHROME} 0%, ${GOLD} 55%, #A8862E 100%)`,
@@ -1095,6 +1098,22 @@ function BookPageInner() {
         .limit(1);
       if (active && active.length > 0) setRewardLocked(true);
     });
+
+    // Restore an in-progress booking after a signup detour (see AuthPromptModal's onCreateAccount)
+    const draftRaw = sessionStorage.getItem(BOOKING_DRAFT_KEY);
+    if (draftRaw) {
+      sessionStorage.removeItem(BOOKING_DRAFT_KEY);
+      try {
+        const draft = JSON.parse(draftRaw);
+        if (draft.selectedService) setSelectedService(draft.selectedService);
+        if (draft.selectedDate) setSelectedDate(draft.selectedDate);
+        if (draft.selectedTime) setSelectedTime(draft.selectedTime);
+        if (draft.form) setForm(f => ({ ...f, ...draft.form }));
+        if (typeof draft.step === "number") setStep(draft.step);
+      } catch {
+        // ignore malformed draft
+      }
+    }
   }, []);
 
   const service = SERVICES.find(s => s.id === selectedService);
@@ -1163,6 +1182,12 @@ function BookPageInner() {
         open={showAuthPrompt}
         onClose={() => setShowAuthPrompt(false)}
         onGuest={() => { setShowAuthPrompt(false); handleSubmit(); }}
+        onCreateAccount={() => {
+          sessionStorage.setItem(
+            BOOKING_DRAFT_KEY,
+            JSON.stringify({ step, selectedService, selectedDate, selectedTime, form })
+          );
+        }}
       />
       {/* Ambient background */}
       <div className="fixed inset-0 pointer-events-none" aria-hidden>
