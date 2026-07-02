@@ -1402,21 +1402,23 @@ function BookPageInner() {
                   Back
                 </button>
                 <motion.button
-                  onClick={() => (userId ? handleSubmit() : setShowAuthPrompt(true))}
-                  disabled={submitting || !form.name || !form.phone || !form.carMake || !form.carModel}
+                  onClick={() => {
+                    if (!form.name || !form.phone || !form.carMake || !form.carModel) {
+                      setToastError("Please fill in your name, phone, car make and model to continue.");
+                      return;
+                    }
+                    userId ? handleSubmit() : setShowAuthPrompt(true);
+                  }}
+                  disabled={submitting}
                   whileHover={!submitting ? { y: -2 } : {}}
                   whileTap={!submitting ? { scale: 0.97 } : {}}
                   className="relative inline-flex items-center gap-3 px-8 py-3.5 rounded-xl font-bold text-sm overflow-hidden transition-all duration-300"
                   style={{
-                    background: (!submitting && form.name && form.phone && form.carMake && form.carModel)
+                    background: !submitting
                       ? `linear-gradient(135deg, ${CHROME} 0%, ${GOLD} 55%, #A8862E 100%)`
                       : "rgba(255,255,255,0.05)",
-                    color: (!submitting && form.name && form.phone && form.carMake && form.carModel)
-                      ? "#0a0a0a"
-                      : "rgba(232,232,232,0.2)",
-                    boxShadow: (!submitting && form.name && form.phone && form.carMake && form.carModel)
-                      ? `0 8px 28px -4px rgba(203,166,92,0.35)`
-                      : "none",
+                    color: !submitting ? "#0a0a0a" : "rgba(232,232,232,0.2)",
+                    boxShadow: !submitting ? `0 8px 28px -4px rgba(203,166,92,0.35)` : "none",
                     cursor: submitting ? "wait" : "pointer",
                   }}
                 >
