@@ -392,11 +392,19 @@ export function CinematicHero({
       // should stay visible through the whole Why Baser pin/scrub and only
       // hide once that section has fully scrolled past, reappearing if
       // scrolled back above it.
+      //
+      // NB: #services-end sits *inside* the pinned Why Baser section, so
+      // while pinned it's frozen at a constant on-screen position the whole
+      // time — "top 95%" would fire almost immediately, not at the true end.
+      // Triggering off the section itself with "bottom bottom" instead lets
+      // ScrollTrigger account for the pin's extra scroll distance, so it only
+      // fires once the pin fully releases and the section's bottom edge
+      // actually reaches the bottom of the viewport.
       gsap.to(".scroll-indicator", {
         autoAlpha: 0, duration: 0.4, ease: "power2.in",
         scrollTrigger: {
-          trigger: "#services-end",
-          start: "top 95%",
+          trigger: "#services",
+          start: "bottom bottom",
           toggleActions: "play none none reverse",
         },
       });
