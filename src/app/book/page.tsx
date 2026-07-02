@@ -853,6 +853,67 @@ function RewardsBar({
 
 // ─── Success screen ───────────────────────────────────────────────────────────
 
+function AuthPromptModal({ open, onClose, onGuest }: { open: boolean; onClose: () => void; onGuest: () => void }) {
+  return (
+    <AnimatePresence>
+      {open && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="fixed inset-0 z-[100] flex items-center justify-center px-5"
+          style={{ background: "rgba(0,0,0,0.6)" }}
+          onClick={onClose}
+        >
+          <motion.div
+            initial={{ opacity: 0, y: 16, scale: 0.97 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 16, scale: 0.97 }}
+            transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+            onClick={e => e.stopPropagation()}
+            className="relative w-full max-w-sm rounded-2xl p-7 sm:p-8"
+            style={{
+              background: "linear-gradient(145deg, rgba(26,24,20,0.98) 0%, rgba(14,13,11,0.98) 100%)",
+              border: "1px solid rgba(203,166,92,0.18)",
+              boxShadow: "0 0 0 1px rgba(255,255,255,0.04) inset, 0 24px 60px rgba(0,0,0,0.55)",
+            }}
+          >
+            <div
+              className="absolute top-0 inset-x-0 h-[2px] rounded-t-2xl"
+              style={{ background: `linear-gradient(90deg, transparent, ${GOLD}, transparent)` }}
+            />
+            <h3 className="text-white text-xl font-bold tracking-tight mb-2">
+              Want to earn rewards on this booking?
+            </h3>
+            <p className="text-[#E8E8E8]/50 text-sm leading-relaxed mb-7">
+              Create a free account to collect points toward your next detail — or continue without one.
+            </p>
+            <div className="flex flex-col gap-3">
+              <Link
+                href="/signup?from=booking"
+                className="w-full inline-flex items-center justify-center px-6 py-3.5 rounded-xl font-bold text-sm text-center"
+                style={{
+                  background: `linear-gradient(135deg, ${CHROME} 0%, ${GOLD} 55%, #A8862E 100%)`,
+                  color: "#0a0a0a",
+                }}
+              >
+                Create free account
+              </Link>
+              <button
+                onClick={onGuest}
+                className="w-full px-6 py-3.5 rounded-xl font-semibold text-sm transition-colors duration-200"
+                style={{ background: "rgba(255,255,255,0.04)", color: "rgba(232,232,232,0.65)", border: "1px solid rgba(255,255,255,0.08)" }}
+              >
+                Continue as guest
+              </button>
+            </div>
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
+}
+
 function SuccessScreen({ name, service }: { name: string; service: string }) {
   return (
     <motion.div
@@ -926,6 +987,7 @@ function BookPageInner() {
   const [submitted, setSubmitted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [toastError, setToastError] = useState<string | null>(null);
+  const [showAuthPrompt, setShowAuthPrompt] = useState(false);
   const [availability, setAvailability] = useState<Record<string, string>>({});
   const [bookingWindowWeeks, setBookingWindowWeeks] = useState(4);
 
@@ -1058,6 +1120,11 @@ function BookPageInner() {
   return (
     <div style={{ backgroundColor: BG, minHeight: "100vh" }} className="relative overflow-x-hidden">
       <ErrorToast message={toastError} onClose={() => setToastError(null)} />
+      <AuthPromptModal
+        open={showAuthPrompt}
+        onClose={() => setShowAuthPrompt(false)}
+        onGuest={() => { setShowAuthPrompt(false); handleSubmit(); }}
+      />
       {/* Ambient background */}
       <div className="fixed inset-0 pointer-events-none" aria-hidden>
         <div style={{ background: "radial-gradient(ellipse 70% 50% at 20% 20%, rgba(203,166,92,0.055) 0%, transparent 60%)" }} className="absolute inset-0" />
@@ -1335,7 +1402,7 @@ function BookPageInner() {
                   Back
                 </button>
                 <motion.button
-                  onClick={handleSubmit}
+                  onClick={() => (userId ? handleSubmit() : setShowAuthPrompt(true))}
                   disabled={submitting || !form.name || !form.phone || !form.carMake || !form.carModel}
                   whileHover={!submitting ? { y: -2 } : {}}
                   whileTap={!submitting ? { scale: 0.97 } : {}}

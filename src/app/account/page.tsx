@@ -1,9 +1,9 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { ShadowOverlay } from '@/components/ui/shadow-overlay';
 import { Home } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
@@ -140,8 +140,10 @@ const s = (i: number) => ({
 type Booking = { id: string; date: string; service: string; amount: number; status: string; pending_points?: number; time?: string; name?: string; phone?: string; suburb?: string; car_make?: string; car_model?: string; notes?: string };
 type Car = { make: string; model: string; year: number; colour: string };
 
-export default function AccountPage() {
+function AccountPageInner() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const cameFromBooking = searchParams.get('from') === 'booking';
   const [userId, setUserId] = useState('');
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -624,11 +626,19 @@ export default function AccountPage() {
           <motion.div whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.99 }}>
             <Link href="/book" className="block text-center rounded-2xl font-medium relative overflow-hidden" style={{ background: 'linear-gradient(120deg, #BF9A50, #CBA65C 35%, #E4C883 60%, #CBA65C)', color: '#0a0a0a', textDecoration: 'none', padding: '15px', letterSpacing: '0.12em', textTransform: 'uppercase', fontSize: 12, fontWeight: 500 }}>
               <motion.div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/25 to-transparent" animate={{ x: ['-100%', '100%'] }} transition={{ duration: 2.5, ease: 'easeInOut', repeat: Infinity, repeatDelay: 4 }} />
-              <span className="relative z-10">Book a detail →</span>
+              <span className="relative z-10">{cameFromBooking ? 'Return to booking →' : 'Book a detail →'}</span>
             </Link>
           </motion.div>
         </div>
       </div>
     </div>
+  );
+}
+
+export default function AccountPage() {
+  return (
+    <Suspense>
+      <AccountPageInner />
+    </Suspense>
   );
 }

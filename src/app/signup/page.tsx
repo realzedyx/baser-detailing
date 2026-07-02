@@ -28,6 +28,8 @@ function SignUpPageInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const refParam = (searchParams.get('ref') || '').trim().slice(0, 64);
+  const fromBooking = searchParams.get('from') === 'booking';
+  const accountHref = fromBooking ? '/account?from=booking' : '/account';
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [name, setName] = useState("");
@@ -53,7 +55,7 @@ function SignUpPageInner() {
       password,
       options: {
         data: { full_name: name, phone, suburb, ...(refParam ? { referrer_id: refParam } : {}) },
-        emailRedirectTo: `${window.location.origin}/account`,
+        emailRedirectTo: `${window.location.origin}${accountHref}`,
       },
     });
     if (error) {
@@ -62,7 +64,7 @@ function SignUpPageInner() {
     } else if (data.session) {
       // Email confirmation is disabled — we have a live session, go straight in.
       setSuccess(true);
-      setTimeout(() => router.push('/account'), 1500);
+      setTimeout(() => router.push(accountHref), 1500);
     } else {
       // Confirmation required: no session yet. Don't redirect to /account (it would
       // bounce to /signin). Tell the user to check their email instead.
@@ -75,7 +77,7 @@ function SignUpPageInner() {
     setError(null);
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
-      options: { redirectTo: `${window.location.origin}/account` },
+      options: { redirectTo: `${window.location.origin}${accountHref}` },
     });
     if (error) setError(error.message);
   };
