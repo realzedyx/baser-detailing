@@ -1446,7 +1446,7 @@ function BookPageInner() {
                       setToastError("Please fill in your name, phone, car make and model to continue.");
                       return;
                     }
-                    userId ? handleSubmit() : setShowAuthPrompt(true);
+                    if (userId) { handleSubmit(); } else { setShowAuthPrompt(true); }
                   }}
                   disabled={submitting}
                   whileHover={!submitting ? { y: -2 } : {}}
