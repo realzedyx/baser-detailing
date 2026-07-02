@@ -714,7 +714,7 @@ export function PricingSection() {
 
         {/* Guarantee — reduce purchase anxiety right where the decision happens */}
         <p className="text-center mt-3 text-xs tracking-wide" style={{ color: "rgba(203,166,92,0.7)" }}>
-          Not happy with a spot? Tell me before I leave and I&rsquo;ll fix it free.
+          Not happy with a spot in your car? Tell me before I leave and I&rsquo;ll fix it free.
         </p>
 
         {/* Rewards progress tracker */}
