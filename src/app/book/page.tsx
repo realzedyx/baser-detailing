@@ -854,6 +854,13 @@ function RewardsBar({
 // ─── Success screen ───────────────────────────────────────────────────────────
 
 function AuthPromptModal({ open, onClose, onGuest }: { open: boolean; onClose: () => void; onGuest: () => void }) {
+  const [confirming, setConfirming] = useState(false);
+
+  const handleClose = () => {
+    setConfirming(false);
+    onClose();
+  };
+
   return (
     <AnimatePresence>
       {open && (
@@ -863,7 +870,7 @@ function AuthPromptModal({ open, onClose, onGuest }: { open: boolean; onClose: (
           exit={{ opacity: 0 }}
           className="fixed inset-0 z-[100] flex items-center justify-center px-5"
           style={{ background: "rgba(0,0,0,0.6)" }}
-          onClick={onClose}
+          onClick={handleClose}
         >
           <motion.div
             initial={{ opacity: 0, y: 16, scale: 0.97 }}
@@ -882,31 +889,63 @@ function AuthPromptModal({ open, onClose, onGuest }: { open: boolean; onClose: (
               className="absolute top-0 inset-x-0 h-[2px] rounded-t-2xl"
               style={{ background: `linear-gradient(90deg, transparent, ${GOLD}, transparent)` }}
             />
-            <h3 className="text-white text-xl font-bold tracking-tight mb-2">
-              Want to earn rewards on this booking?
-            </h3>
-            <p className="text-[#E8E8E8]/50 text-sm leading-relaxed mb-7">
-              Create a free account to collect points toward your next detail — or continue without one.
-            </p>
-            <div className="flex flex-col gap-3">
-              <Link
-                href="/signup?from=booking"
-                className="w-full inline-flex items-center justify-center px-6 py-3.5 rounded-xl font-bold text-sm text-center"
-                style={{
-                  background: `linear-gradient(135deg, ${CHROME} 0%, ${GOLD} 55%, #A8862E 100%)`,
-                  color: "#0a0a0a",
-                }}
-              >
-                Create free account
-              </Link>
-              <button
-                onClick={onGuest}
-                className="w-full px-6 py-3.5 rounded-xl font-semibold text-sm transition-colors duration-200"
-                style={{ background: "rgba(255,255,255,0.04)", color: "rgba(232,232,232,0.65)", border: "1px solid rgba(255,255,255,0.08)" }}
-              >
-                Continue as guest
-              </button>
-            </div>
+            {!confirming ? (
+              <>
+                <h3 className="text-white text-xl font-bold tracking-tight mb-2">
+                  Want to earn rewards on this booking?
+                </h3>
+                <p className="text-[#E8E8E8]/50 text-sm leading-relaxed mb-7">
+                  Create a free account to collect points toward your next detail — or continue without one.
+                </p>
+                <div className="flex flex-col gap-3">
+                  <Link
+                    href="/signup?from=booking"
+                    className="w-full inline-flex items-center justify-center px-6 py-3.5 rounded-xl font-bold text-sm text-center"
+                    style={{
+                      background: `linear-gradient(135deg, ${CHROME} 0%, ${GOLD} 55%, #A8862E 100%)`,
+                      color: "#0a0a0a",
+                    }}
+                  >
+                    Create free account
+                  </Link>
+                  <button
+                    onClick={() => setConfirming(true)}
+                    className="w-full px-6 py-3.5 rounded-xl font-semibold text-sm transition-colors duration-200"
+                    style={{ background: "rgba(239,68,68,0.08)", color: "rgba(239,68,68,0.75)", border: "1px solid rgba(239,68,68,0.25)" }}
+                  >
+                    Continue as guest
+                  </button>
+                </div>
+              </>
+            ) : (
+              <>
+                <h3 className="text-white text-xl font-bold tracking-tight mb-2">
+                  Are you sure you want to give up free discounts?
+                </h3>
+                <p className="text-[#E8E8E8]/50 text-sm leading-relaxed mb-7">
+                  Without an account, you won&rsquo;t earn any points on this booking — no discounts on your next detail.
+                </p>
+                <div className="flex flex-col gap-3">
+                  <Link
+                    href="/signup?from=booking"
+                    className="w-full inline-flex items-center justify-center px-6 py-3.5 rounded-xl font-bold text-sm text-center"
+                    style={{
+                      background: `linear-gradient(135deg, ${CHROME} 0%, ${GOLD} 55%, #A8862E 100%)`,
+                      color: "#0a0a0a",
+                    }}
+                  >
+                    Create free account
+                  </Link>
+                  <button
+                    onClick={() => { setConfirming(false); onGuest(); }}
+                    className="w-full px-6 py-3.5 rounded-xl font-semibold text-sm transition-colors duration-200"
+                    style={{ background: "rgba(239,68,68,0.12)", color: "rgba(239,68,68,0.85)", border: "1px solid rgba(239,68,68,0.35)" }}
+                  >
+                    Yes, continue without rewards
+                  </button>
+                </div>
+              </>
+            )}
           </motion.div>
         </motion.div>
       )}
