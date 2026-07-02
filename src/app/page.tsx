@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { Home as HomeIcon, Sparkles, Wrench, Phone } from "lucide-react";
 import { NavBar } from "@/components/ui/tubelight-navbar";
+import { BookNowButton } from "@/components/ui/book-now-button";
 import { CinematicHero } from "@/components/ui/cinematic-hero";
 import { supabase } from "@/lib/supabase";
 import { WhyBaserSection } from "@/components/ui/why-baser";
@@ -34,6 +35,7 @@ export default function Home() {
   return (
     <main className="min-h-screen bg-background">
       <NavBar items={navItems} />
+      <BookNowButton />
 
       {/* PLACEHOLDER COPY — swap in real Baser Detailing wording later */}
       <CinematicHero

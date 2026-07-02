@@ -100,6 +100,10 @@
   .bottom-safe {
     bottom: calc(env(safe-area-inset-bottom, 0px));
   }
+  /* Safe-area aware spacing for fixed top UI (clears iPhone notch / Dynamic Island). */
+  .top-safe {
+    top: calc(env(safe-area-inset-top, 0px) + 1rem);
+  }
 }
 
 @layer utilities {
