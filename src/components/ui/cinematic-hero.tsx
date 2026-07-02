@@ -252,6 +252,7 @@ export function CinematicHero({
       gsap.set(".text-track", { autoAlpha: 0, y: 60, scale: 0.85, filter: "blur(20px)", rotationX: -20 });
       gsap.set(".text-days", { autoAlpha: 1, clipPath: "inset(-10px 100% -10px 0)" });
       gsap.set(".brand-intro-letter", { autoAlpha: 0, y: 18, filter: "blur(6px)" });
+      gsap.set(".scroll-indicator", { autoAlpha: 0 });
 
       // Intro plays once, purely on a timer — it is never linked to scroll
       // position (no ScrollTrigger here) on either mobile or desktop, so it
@@ -263,11 +264,14 @@ export function CinematicHero({
           autoAlpha: 1, y: 0, filter: "blur(0px)",
           duration: 0.45, stagger: 0.038, ease: "power3.out",
         })
-        // Hold briefly, then dissolve
-        .to(".brand-intro", { autoAlpha: 0, duration: 0.4, ease: "power2.in" }, "+=0.35")
+        // Hold briefly, then swoop up to sit as a small header at the top of
+        // the section (instead of dissolving away)
+        .to(".brand-intro", { y: "-38vh", duration: 0.7, ease: "power3.inOut" }, "+=0.35")
         // Taglines roll in
-        .to(".text-track", { duration: 1.8, autoAlpha: 1, y: 0, scale: 1, filter: "blur(0px)", rotationX: 0, ease: "expo.out" }, "-=0.05")
-        .to(".text-days", { duration: 1.4, clipPath: "inset(-10px 0% -10px 0)", ease: "power4.inOut" }, "-=1.0");
+        .to(".text-track", { duration: 1.8, autoAlpha: 1, y: 0, scale: 1, filter: "blur(0px)", rotationX: 0, ease: "expo.out" }, "-=0.3")
+        .to(".text-days", { duration: 1.4, clipPath: "inset(-10px 0% -10px 0)", ease: "power4.inOut" }, "-=1.0")
+        // Scroll hint appears only once the whole intro has settled
+        .to(".scroll-indicator", { autoAlpha: 1, duration: 0.6, ease: "power2.out" });
 
       introEndRef.current = introTl.duration() + 0.15;
 
@@ -313,7 +317,6 @@ export function CinematicHero({
       });
 
       scrollTl
-        .to(".scroll-indicator", { autoAlpha: 0, y: 12, duration: 0.6, ease: "power2.in" }, 0)
         .to([".hero-text-wrapper", ".bg-grid-theme"], { scale: 1.15, filter: "blur(20px)", opacity: 0.2, ease: "power2.inOut", duration: 2 }, 0)
         .to(".main-card", { y: 0, ease: "power3.inOut", duration: 2 }, 0)
         .to(".main-card", { width: "100%", height: "100%", borderRadius: "0px", ease: "power3.inOut", duration: 1.5 })
@@ -348,32 +351,51 @@ export function CinematicHero({
     return () => ctx.revert();
   },[metricValue]);
 
-  // 3. Mobile scroll indicator — isolated from the main effect because the
-  //    indicator is portaled into <body> and only exists in the DOM after
-  //    `mounted` flips true (a render after effect #2 runs). gsap.context in
-  //    effect #2 is scoped to containerRef, so it can't reach into <body>;
-  //    driving it here (unscoped) guarantees the selector actually resolves.
+  // 3. Scroll-indicator lifecycle that reaches outside CinematicHero's own
+  //    DOM subtree — isolated from effect #2 because that gsap.context is
+  //    scoped to containerRef, so it can't target either the mobile
+  //    indicator (portaled into <body>, only exists once `mounted` is true)
+  //    or the Why Baser heading (a sibling section entirely). Driving both
+  //    here, unscoped, guarantees the selectors actually resolve.
   useEffect(() => {
-    if (!mounted || window.innerWidth >= 768) return;
+    if (!mounted) return;
+    const isMobile = window.innerWidth < 768;
 
     const ctx = gsap.context(() => {
-      gsap.set(".scroll-indicator-mobile", { autoAlpha: 0 });
+      if (isMobile) {
+        gsap.set(".scroll-indicator-mobile", { autoAlpha: 0 });
 
-      // Only appear once the intro timeline above has actually finished —
-      // and only if the user hasn't already scrolled past the hero.
-      gsap.delayedCall(introEndRef.current, () => {
-        if (window.scrollY < window.innerHeight * 0.5) {
-          gsap.to(".scroll-indicator-mobile", { autoAlpha: 1, duration: 0.6, ease: "power2.out" });
-        }
-      });
+        // Only appear once the intro timeline above has actually finished —
+        // and only if the user hasn't already scrolled past the hero.
+        gsap.delayedCall(introEndRef.current, () => {
+          if (window.scrollY < window.innerHeight * 0.5) {
+            gsap.to(".scroll-indicator-mobile", { autoAlpha: 1, duration: 0.6, ease: "power2.out" });
+          }
+        });
 
-      // Hide once the rewards card scrolls into view; reappear when
-      // scrolling back up into the hero. Tied to actual position, not a timer.
-      gsap.to(".scroll-indicator-mobile", {
+        // Hide once the rewards card scrolls into view; reappear when
+        // scrolling back up into the hero. Tied to actual position, not a timer.
+        gsap.to(".scroll-indicator-mobile", {
+          autoAlpha: 0, duration: 0.4, ease: "power2.in",
+          scrollTrigger: {
+            trigger: ".main-card",
+            start: "top 90%",
+            toggleActions: "play none none reverse",
+          },
+        });
+        return;
+      }
+
+      // Desktop: the hint's appear-after-intro fade lives on introTl inside
+      // effect #2 (it's within containerRef, so that scoped context can
+      // reach it directly). Only its disappearance needs to live here — it
+      // should hide once the Why Baser *heading* itself is visible, not just
+      // whenever that section starts, and reappear if scrolled back above it.
+      gsap.to(".scroll-indicator", {
         autoAlpha: 0, duration: 0.4, ease: "power2.in",
         scrollTrigger: {
-          trigger: ".main-card",
-          start: "top 90%",
+          trigger: ".why-heading",
+          start: "top 85%",
           toggleActions: "play none none reverse",
         },
       });
@@ -431,7 +453,7 @@ export function CinematicHero({
       {/* Scroll indicator (desktop) — visible on load, fades out via the
           scroll-scrubbed pin timeline above. Unchanged from the original;
           hidden on mobile, which gets its own fixed-position indicator below. */}
-      <div className="scroll-indicator hidden md:flex absolute bottom-10 left-1/2 -translate-x-1/2 z-30 flex-col items-center gap-2 pointer-events-none select-none">
+      <div className="scroll-indicator gsap-reveal hidden md:flex absolute bottom-10 left-1/2 -translate-x-1/2 z-30 flex-col items-center gap-2 pointer-events-none select-none">
         <span className="text-[#E4C883]/50 text-[10px] uppercase tracking-[0.22em] font-semibold">Scroll</span>
         <div className="flex flex-col items-center">
           <div className="scroll-chevron w-[18px] h-[18px] border-r-2 border-b-2 border-[#CBA65C]/65 rotate-45" />
@@ -447,7 +469,7 @@ export function CinematicHero({
           effect #3 — then hides again once the rewards card scrolls into
           view, and reappears if the user scrolls back up. */}
       {mounted && createPortal(
-        <div className="scroll-indicator-mobile md:hidden fixed left-1/2 -translate-x-1/2 z-[60] flex flex-col items-center gap-2 pointer-events-none select-none" style={{ bottom: "calc(env(safe-area-inset-bottom, 0px) + 6.5rem)" }}>
+        <div className="scroll-indicator-mobile gsap-reveal md:hidden fixed left-1/2 -translate-x-1/2 z-[60] flex flex-col items-center gap-2 pointer-events-none select-none" style={{ bottom: "calc(env(safe-area-inset-bottom, 0px) + 6.5rem)" }}>
           <span className="text-[#E4C883]/50 text-[10px] uppercase tracking-[0.22em] font-semibold">Scroll</span>
           <div className="flex flex-col items-center">
             <div className="scroll-chevron w-[18px] h-[18px] border-r-2 border-b-2 border-[#CBA65C]/65 rotate-45" />
