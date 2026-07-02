@@ -276,14 +276,18 @@ export function CinematicHero({
       // when the user scrolls it into view (same pattern as WhyBaser).
       if (isMobile) {
         gsap.set(".main-card", { autoAlpha: 0, y: 40 });
-        gsap.set([".card-left-text", ".card-right-text", ".mockup-scroll-wrapper", ".floating-badge", ".phone-widget"], { autoAlpha: 0, y: 16 });
+        gsap.set([".card-left-text", ".card-right-text", ".floating-badge", ".phone-widget"], { autoAlpha: 0, y: 16 });
+        // Own 3D starting state — same flip/tumble-in flourish as desktop's
+        // scroll-scrubbed entrance, just played as a fixed-duration tween
+        // instead of being tied to scroll position.
+        gsap.set(".mockup-scroll-wrapper", { y: 220, z: -400, rotationX: 40, rotationY: -24, autoAlpha: 0, scale: 0.7 });
 
         gsap.timeline({
           scrollTrigger: { trigger: ".main-card", start: "top 85%", once: true },
         })
           .to(".main-card", { autoAlpha: 1, y: 0, duration: 1, ease: "power3.out" })
           .to(".card-right-text", { autoAlpha: 1, y: 0, duration: 0.7, ease: "power3.out" }, "-=0.6")
-          .to(".mockup-scroll-wrapper", { autoAlpha: 1, y: 0, duration: 0.8, ease: "power3.out" }, "-=0.5")
+          .to(".mockup-scroll-wrapper", { y: 0, z: 0, rotationX: 0, rotationY: 0, autoAlpha: 1, scale: 1, duration: 1.1, ease: "expo.out" }, "-=0.5")
           .to(".phone-widget", { autoAlpha: 1, y: 0, stagger: 0.1, duration: 0.6, ease: "power3.out" }, "-=0.4")
           .to(".counter-val", { innerHTML: metricValue, snap: { innerHTML: 1 }, duration: 1.2, ease: "expo.out" }, "-=0.6")
           .to(".progress-ring", { strokeDashoffset: 60, duration: 1.2, ease: "power3.inOut" }, "<")
