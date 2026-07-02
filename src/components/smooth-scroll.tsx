@@ -11,6 +11,15 @@ if (typeof window !== "undefined") {
 
 export function SmoothScroll() {
   useEffect(() => {
+    // Stop the browser from restoring a remembered scroll position on
+    // load/refresh — with GSAP intro timelines that animate from a hidden
+    // state, landing anywhere but the top makes it look like the page
+    // "auto-scrolled" past the hero the moment the animation finishes.
+    if ("scrollRestoration" in window.history) {
+      window.history.scrollRestoration = "manual";
+    }
+    window.scrollTo(0, 0);
+
     const lenis = new Lenis({
       duration: 1.15,
       easing: (t: number) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),

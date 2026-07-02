@@ -1,7 +1,8 @@
 // src/components/ui/cinematic-hero.tsx
 "use client";
 
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { cn } from "@/lib/utils";
@@ -216,6 +217,13 @@ export function CinematicHero({
   const containerRef = useRef<HTMLDivElement>(null);
   const mainCardRef = useRef<HTMLDivElement>(null);
   const mockupRef = useRef<HTMLDivElement>(null);
+  // Seconds from mount at which the intro text animation finishes — read by the
+  // mobile scroll-indicator effect (#3) to time its fade-in. The indicator is
+  // portaled into <body>, which mounts a render after this effect runs, so it
+  // can't be driven from inside the same gsap.context — see effect #3 below.
+  const introEndRef = useRef(0);
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
   // 1. Mockup 3D tilt — reads from root CursorTracker via custom event
   useEffect(() => {
     const onCursor = (e: Event) => {
@@ -243,10 +251,11 @@ export function CinematicHero({
     const ctx = gsap.context(() => {
       gsap.set(".text-track", { autoAlpha: 0, y: 60, scale: 0.85, filter: "blur(20px)", rotationX: -20 });
       gsap.set(".text-days", { autoAlpha: 1, clipPath: "inset(-10px 100% -10px 0)" });
-      gsap.set(".main-card", { y: window.innerHeight + 200, autoAlpha: 1 });
-      gsap.set([".card-left-text", ".card-right-text", ".mockup-scroll-wrapper", ".floating-badge", ".phone-widget"], { autoAlpha: 0 });
       gsap.set(".brand-intro-letter", { autoAlpha: 0, y: 18, filter: "blur(6px)" });
 
+      // Intro plays once, purely on a timer — it is never linked to scroll
+      // position (no ScrollTrigger here) on either mobile or desktop, so it
+      // always runs the same way regardless of where the user scrolls to.
       const introTl = gsap.timeline({ delay: 0.15 });
       introTl
         // Brand name letters stagger in
@@ -259,6 +268,34 @@ export function CinematicHero({
         // Taglines roll in
         .to(".text-track", { duration: 1.8, autoAlpha: 1, y: 0, scale: 1, filter: "blur(0px)", rotationX: 0, ease: "expo.out" }, "-=0.05")
         .to(".text-days", { duration: 1.4, clipPath: "inset(-10px 0% -10px 0)", ease: "power4.inOut" }, "-=1.0");
+
+      introEndRef.current = introTl.duration() + 0.15;
+
+      // ── Mobile: intro and the rewards card are two fully separate blocks.
+      // No pin, no scroll-scrub — the card just reveals once, the normal way,
+      // when the user scrolls it into view (same pattern as WhyBaser).
+      if (isMobile) {
+        gsap.set(".main-card", { autoAlpha: 0, y: 40 });
+        gsap.set([".card-left-text", ".card-right-text", ".mockup-scroll-wrapper", ".floating-badge", ".phone-widget"], { autoAlpha: 0, y: 16 });
+
+        gsap.timeline({
+          scrollTrigger: { trigger: ".main-card", start: "top 85%", once: true },
+        })
+          .to(".main-card", { autoAlpha: 1, y: 0, duration: 1, ease: "power3.out" })
+          .to(".card-right-text", { autoAlpha: 1, y: 0, duration: 0.7, ease: "power3.out" }, "-=0.6")
+          .to(".mockup-scroll-wrapper", { autoAlpha: 1, y: 0, duration: 0.8, ease: "power3.out" }, "-=0.5")
+          .to(".phone-widget", { autoAlpha: 1, y: 0, stagger: 0.1, duration: 0.6, ease: "power3.out" }, "-=0.4")
+          .to(".counter-val", { innerHTML: metricValue, snap: { innerHTML: 1 }, duration: 1.2, ease: "expo.out" }, "-=0.6")
+          .to(".progress-ring", { strokeDashoffset: 60, duration: 1.2, ease: "power3.inOut" }, "<")
+          .to(".floating-badge", { autoAlpha: 1, y: 0, stagger: 0.15, duration: 0.6, ease: "back.out(1.4)" }, "-=0.8")
+          .to(".card-left-text", { autoAlpha: 1, y: 0, duration: 0.7, ease: "power3.out" }, "-=0.5");
+
+        return;
+      }
+
+      // ── Desktop: original cinematic pin/grow/pullback, untouched ──────
+      gsap.set(".main-card", { y: window.innerHeight + 200, autoAlpha: 1 });
+      gsap.set([".card-left-text", ".card-right-text", ".mockup-scroll-wrapper", ".floating-badge", ".phone-widget"], { autoAlpha: 0 });
 
       const scrollTl = gsap.timeline({
         scrollTrigger: {
@@ -307,10 +344,44 @@ export function CinematicHero({
     return () => ctx.revert();
   },[metricValue]);
 
+  // 3. Mobile scroll indicator — isolated from the main effect because the
+  //    indicator is portaled into <body> and only exists in the DOM after
+  //    `mounted` flips true (a render after effect #2 runs). gsap.context in
+  //    effect #2 is scoped to containerRef, so it can't reach into <body>;
+  //    driving it here (unscoped) guarantees the selector actually resolves.
+  useEffect(() => {
+    if (!mounted || window.innerWidth >= 768) return;
+
+    const ctx = gsap.context(() => {
+      gsap.set(".scroll-indicator-mobile", { autoAlpha: 0 });
+
+      // Only appear once the intro timeline above has actually finished —
+      // and only if the user hasn't already scrolled past the hero.
+      gsap.delayedCall(introEndRef.current, () => {
+        if (window.scrollY < window.innerHeight * 0.5) {
+          gsap.to(".scroll-indicator-mobile", { autoAlpha: 1, duration: 0.6, ease: "power2.out" });
+        }
+      });
+
+      // Hide once the rewards card scrolls into view; reappear when
+      // scrolling back up into the hero. Tied to actual position, not a timer.
+      gsap.to(".scroll-indicator-mobile", {
+        autoAlpha: 0, duration: 0.4, ease: "power2.in",
+        scrollTrigger: {
+          trigger: ".main-card",
+          start: "top 90%",
+          toggleActions: "play none none reverse",
+        },
+      });
+    });
+
+    return () => ctx.revert();
+  }, [mounted]);
+
   return (
     <div
       ref={containerRef}
-      className={cn("relative w-screen h-screen overflow-hidden flex items-center justify-center bg-background text-foreground font-sans antialiased", className)}
+      className={cn("relative w-screen overflow-visible md:h-screen md:overflow-hidden flex flex-col items-center justify-center bg-background text-foreground font-sans antialiased", className)}
       style={{ perspective: "1500px", zIndex: 20 }}
       {...props}
     >
@@ -319,10 +390,11 @@ export function CinematicHero({
       <div className="film-grain" aria-hidden="true" />
       <div className="bg-grid-theme absolute inset-0 z-0 pointer-events-none opacity-50" aria-hidden="true" />
 
-      {/* Brand name cinematic entrance — letter by letter, dissolves before taglines */}
+      {/* Brand name cinematic entrance — letter by letter, dissolves before taglines.
+          Mobile: pinned to the first viewport only (the section below it is a
+          separate, normal-flow block). Desktop: full-bleed overlay, unchanged. */}
       <div
-        className="brand-intro absolute z-20 flex items-center justify-center pointer-events-none"
-        style={{ inset: 0 }}
+        className="brand-intro absolute top-0 left-0 right-0 h-screen md:h-auto md:inset-0 z-20 flex items-center justify-center pointer-events-none"
       >
         <p
           className="text-[11px] uppercase font-bold"
@@ -340,8 +412,10 @@ export function CinematicHero({
         </p>
       </div>
 
-      {/* BACKGROUND LAYER: Hero Texts */}
-      <div className="hero-text-wrapper absolute z-10 flex flex-col items-center justify-center text-center w-screen px-4 will-change-transform transform-style-3d">
+      {/* BACKGROUND LAYER: Hero Texts. Mobile: own full-height section, in
+          normal flow. Desktop: absolute overlay, static-positioned by the
+          parent's flex centering (unchanged from original). */}
+      <div className="hero-text-wrapper relative md:absolute z-10 flex flex-col items-center justify-center text-center w-screen min-h-screen md:min-h-0 px-4 will-change-transform transform-style-3d">
         <h1 className="text-track gsap-reveal text-3d-matte text-5xl md:text-7xl lg:text-[6rem] font-bold tracking-tight mb-2 pb-4">
           {tagline1}
         </h1>
@@ -350,8 +424,10 @@ export function CinematicHero({
         </h1>
       </div>
 
-      {/* Scroll indicator — visible on load, fades out as scroll begins */}
-      <div className="scroll-indicator absolute bottom-10 left-1/2 -translate-x-1/2 z-30 flex flex-col items-center gap-2 pointer-events-none select-none">
+      {/* Scroll indicator (desktop) — visible on load, fades out via the
+          scroll-scrubbed pin timeline above. Unchanged from the original;
+          hidden on mobile, which gets its own fixed-position indicator below. */}
+      <div className="scroll-indicator hidden md:flex absolute bottom-10 left-1/2 -translate-x-1/2 z-30 flex-col items-center gap-2 pointer-events-none select-none">
         <span className="text-[#E4C883]/50 text-[10px] uppercase tracking-[0.22em] font-semibold">Scroll</span>
         <div className="flex flex-col items-center">
           <div className="scroll-chevron w-[18px] h-[18px] border-r-2 border-b-2 border-[#CBA65C]/65 rotate-45" />
@@ -359,8 +435,28 @@ export function CinematicHero({
         </div>
       </div>
 
-      {/* FOREGROUND LAYER: The Physical Deep Blue Card */}
-      <div className="absolute inset-0 z-20 flex items-center justify-center pointer-events-none" style={{ perspective: "1500px" }}>
+      {/* Scroll indicator (mobile) — portaled to <body> so it's genuinely
+          `position: fixed` to the viewport, not to this component's
+          `perspective`-transformed container (which would otherwise become
+          its containing block and make it scroll with the page). Stays
+          hidden until the intro timeline above actually finishes — see
+          effect #3 — then hides again once the rewards card scrolls into
+          view, and reappears if the user scrolls back up. */}
+      {mounted && createPortal(
+        <div className="scroll-indicator-mobile md:hidden fixed left-1/2 -translate-x-1/2 z-[60] flex flex-col items-center gap-2 pointer-events-none select-none" style={{ bottom: "calc(env(safe-area-inset-bottom, 0px) + 6.5rem)" }}>
+          <span className="text-[#E4C883]/50 text-[10px] uppercase tracking-[0.22em] font-semibold">Scroll</span>
+          <div className="flex flex-col items-center">
+            <div className="scroll-chevron w-[18px] h-[18px] border-r-2 border-b-2 border-[#CBA65C]/65 rotate-45" />
+            <div className="scroll-chevron w-[18px] h-[18px] border-r-2 border-b-2 border-[#CBA65C]/35 rotate-45 -mt-[9px]" />
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* FOREGROUND LAYER: The Physical Deep Blue Card. Mobile: own section
+          below the intro, in normal flow. Desktop: absolute full-bleed
+          overlay (unchanged). */}
+      <div className="relative md:absolute md:inset-0 z-20 flex items-center justify-center pointer-events-none w-full min-h-screen md:min-h-0 py-16 md:py-0" style={{ perspective: "1500px" }}>
         <div
           ref={mainCardRef}
           className="main-card premium-depth-card relative overflow-hidden gsap-reveal flex items-center justify-center pointer-events-auto w-[92vw] md:w-[85vw] h-[92vh] md:h-[85vh] rounded-[32px] md:rounded-[40px]"
