@@ -389,13 +389,14 @@ export function CinematicHero({
       // Desktop: the hint's appear-after-intro fade lives on introTl inside
       // effect #2 (it's within containerRef, so that scoped context can
       // reach it directly). Only its disappearance needs to live here — it
-      // should hide once the Why Baser *heading* itself is visible, not just
-      // whenever that section starts, and reappear if scrolled back above it.
+      // should stay visible through the whole Why Baser pin/scrub and only
+      // hide once that section has fully scrolled past, reappearing if
+      // scrolled back above it.
       gsap.to(".scroll-indicator", {
         autoAlpha: 0, duration: 0.4, ease: "power2.in",
         scrollTrigger: {
-          trigger: ".why-heading",
-          start: "top 85%",
+          trigger: "#services-end",
+          start: "top 95%",
           toggleActions: "play none none reverse",
         },
       });
