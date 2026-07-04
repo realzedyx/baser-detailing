@@ -175,7 +175,7 @@ export async function POST(req: NextRequest) {
 
   const ntfyTopic = process.env.NTFY_TOPIC ?? "baserdetailing";
   try {
-    await fetch(`https://ntfy.sh/${ntfyTopic}`, {
+    const ntfyRes = await fetch(`https://ntfy.sh/${ntfyTopic}`, {
       method: "POST",
       body: `New booking request from ${name}\nService: ${serviceLabel}${addOnsSummary ? `\nAdd-ons: ${addOnsSummary}` : ""}\nDate: ${date}${time ? ` at ${time}` : ""}\nCar: ${carMake} ${carModel}\nPhone: ${phone}\nSuburb: ${suburb ?? "-"}`,
       headers: {
@@ -184,8 +184,12 @@ export async function POST(req: NextRequest) {
         Tags: "car,calendar",
       },
     });
-  } catch {
-    // ntfy notification is best-effort
+    if (!ntfyRes.ok) {
+      console.error("ntfy notification rejected:", ntfyRes.status, await ntfyRes.text());
+    }
+  } catch (err) {
+    // ntfy notification is best-effort, but log so failures are visible in Cloudflare logs
+    console.error("ntfy notification failed:", err);
   }
 
   return NextResponse.json({ success: true });
