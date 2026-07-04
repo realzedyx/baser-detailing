@@ -174,11 +174,6 @@ export async function POST(req: NextRequest) {
   }
 
   const ntfyTopic = process.env.NTFY_TOPIC ?? "baserdetailing";
-  console.log("ntfy env check:", {
-    hasToken: !!process.env.NTFY_TOKEN,
-    tokenLen: process.env.NTFY_TOKEN?.length ?? 0,
-    topic: ntfyTopic,
-  });
   try {
     const ntfyRes = await fetch(`https://ntfy.sh/${ntfyTopic}`, {
       method: "POST",
