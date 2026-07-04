@@ -194,7 +194,7 @@ function ServiceCard({
             color: "#0a0a0a",
           }}
         >
-          Most Popular
+          Most Booked
         </div>
       )}
 
