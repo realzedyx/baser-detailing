@@ -390,7 +390,9 @@ function Calendar({
           const sel = selectedDate === ds;
           const tod = isToday(d);
           const status = availability[ds];
-          const isOpen = status === 'open';
+          // A date only reads as "open" (green) if it's actually bookable —
+          // marked open in the DB AND not inside the minimum lead-time window.
+          const isOpen = status === 'open' && !past;
           const isUnavailable = status === 'booked' || status === 'blocked';
           const disabled = past || beyond || isUnavailable || !isOpen;
 

@@ -180,7 +180,7 @@ export default function TermsPage() {
             Terms, Policies &amp; Consumer Rights
           </h1>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px 16px', marginBottom: 24 }}>
-            {['Baser Detailing (sole trader)', 'ABN: 29 765 538 947', 'Last updated: June 2026'].map(t => (
+            {['Baser Detailing (sole trader)', 'ABN: 29 765 538 947', 'Last updated: July 2026'].map(t => (
               <span key={t} style={{ fontSize: 11, color: 'rgba(255,255,255,0.28)', letterSpacing: '0.04em' }}>{t}</span>
             ))}
           </div>
@@ -239,6 +239,7 @@ export default function TermsPage() {
         <Section id="s02" n="02" title="Bookings & deposits">
           <Sub>How bookings work</Sub>
           <P>All bookings are made by appointment. A booking is confirmed only when both parties have agreed on a date, time, location and service, and the deposit has been received. Until then, no time slot is held.</P>
+          <P>Bookings must be made at least 2 days in advance. Same-day and next-day slots are not available online, as this does not provide enough notice to schedule a detailer.</P>
 
           <Sub>Deposit requirement</Sub>
           <P>A deposit of 20% of the quoted service price is required to secure every booking. This deposit:</P>
@@ -292,11 +293,18 @@ export default function TermsPage() {
           ]} />
           <P>The final price will be confirmed in writing (by text or email) before the booking is secured. No additional charges will be added on the day without your prior agreement.</P>
 
+          <Sub>Optional add-ons</Sub>
+          <P>Some services offer optional add-ons that you can select at the time of booking, at a fixed additional price shown before you confirm:</P>
+          <UL items={[
+            'Pet hair removal (Interior Detail) — +$25',
+            'Ceramic sealant, up to 3 months of protection (Exterior Detail) — +$35',
+          ]} />
+          <P>Add-ons are chosen by you at booking, not applied without your agreement, and are shown as a separate line item in your price breakdown.</P>
+
           <Sub>Additional charges</Sub>
-          <P>In some circumstances an additional charge may apply. These will always be disclosed before work begins, never after. Circumstances that may attract a surcharge include:</P>
+          <P>In some circumstances an additional charge may apply beyond the selected service and add-ons. These will always be disclosed before work begins, never after. Circumstances that may attract a surcharge include:</P>
           <UL items={[
             'Heavily soiled interiors requiring significantly more time',
-            'Excessive pet hair requiring specialist removal',
             'Vehicles substantially larger than a standard SUV',
           ]} />
           <P>You are under no obligation to proceed if you do not agree with any additional quoted amount. If you decline, Baser Detailing will complete only the originally agreed scope and charge the originally agreed price.</P>
@@ -305,7 +313,7 @@ export default function TermsPage() {
           <P>Payment is by PayID, card or cash. Payment is due on the day of service, upon your satisfaction with the work completed.</P>
 
           <Sub>What is not currently offered</Sub>
-          <P>Baser Detailing does not currently offer paint correction or ceramic coating. These services will not be provided and are not included in any quoted price.</P>
+          <P>Baser Detailing does not currently offer paint correction or professional multi-year ceramic coating. These services will not be provided and are not included in any quoted price. The optional ceramic sealant add-on above is a separate, shorter-term protective product and is not a substitute for professional ceramic coating.</P>
         </Section>
 
         <Section id="s05" n="05" title="Service delivery">
