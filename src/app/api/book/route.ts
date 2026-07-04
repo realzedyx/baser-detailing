@@ -182,6 +182,10 @@ export async function POST(req: NextRequest) {
         Title: "New Booking Request",
         Priority: "high",
         Tags: "car,calendar",
+        // Authenticated publishes get your account's quota instead of sharing
+        // Cloudflare's shared egress-IP anonymous quota (which gets exhausted
+        // by other Cloudflare customers' traffic, not just this app's).
+        ...(process.env.NTFY_TOKEN ? { Authorization: `Bearer ${process.env.NTFY_TOKEN}` } : {}),
       },
     });
     if (!ntfyRes.ok) {
