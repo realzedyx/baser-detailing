@@ -823,8 +823,8 @@ function RewardsBar({
             })}
           </div>
 
-          {/* Price breakdown — shows when a reward is applied and/or add-ons are selected */}
-          {selectedService && (applied || selectedAddOns.length > 0) && (
+          {/* Price breakdown — shows the running total once a service is picked */}
+          {selectedService && (
             <motion.div
               initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
@@ -857,6 +857,11 @@ function RewardsBar({
                   <span className="text-[11px]" style={{ color: "rgba(255,255,255,0.3)" }}>with {applied.label} reward</span>
                 )}
               </div>
+              {points !== null && (
+                <p className="text-[11px] mt-2" style={{ color: "rgba(255,255,255,0.35)" }}>
+                  This booking will contribute <span style={{ color: GOLD, fontWeight: 600 }}>{discountedPrice} points</span> toward your rewards balance.
+                </p>
+              )}
             </motion.div>
           )}
 
