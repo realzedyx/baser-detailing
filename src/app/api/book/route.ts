@@ -173,27 +173,32 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const ntfyTopic = process.env.NTFY_TOPIC ?? "baserdetailing";
-  try {
-    const ntfyRes = await fetch(`https://ntfy.sh/${ntfyTopic}`, {
-      method: "POST",
-      body: `New booking request from ${name}\nService: ${serviceLabel}${addOnsSummary ? `\nAdd-ons: ${addOnsSummary}` : ""}\nDate: ${date}${time ? ` at ${time}` : ""}\nCar: ${carMake} ${carModel}\nPhone: ${phone}\nSuburb: ${suburb ?? "-"}`,
-      headers: {
-        Title: "New Booking Request",
-        Priority: "high",
-        Tags: "car,calendar",
-        // Authenticated publishes get your account's quota instead of sharing
-        // Cloudflare's shared egress-IP anonymous quota (which gets exhausted
-        // by other Cloudflare customers' traffic, not just this app's).
-        ...(process.env.NTFY_TOKEN ? { Authorization: `Bearer ${process.env.NTFY_TOKEN}` } : {}),
-      },
-    });
-    if (!ntfyRes.ok) {
-      console.error("ntfy notification rejected:", ntfyRes.status, await ntfyRes.text());
+  // Booking alert via Telegram. Unlike ntfy's hosted free tier, Telegram isn't
+  // rate-limited by the shared Cloudflare egress IP, so alerts arrive reliably.
+  const tgToken = process.env.TELEGRAM_BOT_TOKEN;
+  const tgChatId = process.env.TELEGRAM_CHAT_ID;
+  if (tgToken && tgChatId) {
+    const message =
+      `🚗 New booking request\n\n` +
+      `Name: ${name}\n` +
+      `Service: ${serviceLabel}${addOnsSummary ? `\nAdd-ons: ${addOnsSummary}` : ""}\n` +
+      `Date: ${date}${time ? ` at ${time}` : ""}\n` +
+      `Car: ${carMake} ${carModel}\n` +
+      `Phone: ${phone}\n` +
+      `Suburb: ${suburb ?? "-"}`;
+    try {
+      const tgRes = await fetch(`https://api.telegram.org/bot${tgToken}/sendMessage`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ chat_id: tgChatId, text: message }),
+      });
+      if (!tgRes.ok) {
+        console.error("Telegram notification rejected:", tgRes.status, await tgRes.text());
+      }
+    } catch (err) {
+      // Best-effort, but log so failures are visible in Cloudflare logs.
+      console.error("Telegram notification failed:", err);
     }
-  } catch (err) {
-    // ntfy notification is best-effort, but log so failures are visible in Cloudflare logs
-    console.error("ntfy notification failed:", err);
   }
 
   return NextResponse.json({ success: true });
