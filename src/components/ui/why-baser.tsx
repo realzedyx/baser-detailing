@@ -116,79 +116,19 @@ export function WhyBaserSection() {
   const [mouse, setMouse] = useState<{ x: number | null; y: number | null }>({ x: null, y: null });
 
   useEffect(() => {
-    const isMobile = window.innerWidth < 768;
-
+    // No pin on any breakpoint — the section flows at its natural height and
+    // each block reveals as it scrolls into view. Same treatment as mobile
+    // previously used, now applied on desktop too.
     const ctx = gsap.context(() => {
-      // ── Mobile: no pin ─────────────────────────
-      // The 3 cards stack vertically and the content is taller than one
-      // viewport, so a pinned + centered h-screen layout clips the heading
-      // (top) and the last card (bottom). Instead let the section flow at its
-      // natural height and reveal each block as it scrolls into view.
-      if (isMobile) {
-        const reveal = (sel: string, y = 36) =>
-          gsap.from(sel, {
-            autoAlpha: 0, y, duration: 0.7, ease: "power3.out",
-            scrollTrigger: { trigger: sel, start: "top 88%" },
-          });
-        reveal(".why-eyebrow", 16);
-        reveal(".why-heading", 28);
-        reveal(".why-rule", 10);
-        [".why-card-1", ".why-card-2", ".why-card-3"].forEach((c) => reveal(c, 44));
-        return;
-      }
-
-      // ── Initial hidden states ──────────────────
-      gsap.set(".why-eyebrow",  { autoAlpha: 0, y: 28 });
-      gsap.set(".why-heading",  { autoAlpha: 0, y: 56, filter: "blur(14px)" });
-      gsap.set(".why-rule",     { autoAlpha: 0, scaleX: 0 });
-      gsap.set(".why-card-1",   { autoAlpha: 0, x: isMobile ? 0 : -100, rotationY: isMobile ? 0 : -20 });
-      gsap.set(".why-card-2",   { autoAlpha: 0, y: 100, scale: 0.82 });
-      gsap.set(".why-card-3",   { autoAlpha: 0, x: isMobile ? 0 : 100,  rotationY: isMobile ? 0 :  20 });
-
-      // ── Pinned scroll timeline ─────────────────
-      const tl = gsap.timeline({
-        scrollTrigger: {
-          trigger: containerRef.current,
-          start: "top top",
-          end: "+=1600",
-          pin: true,
-          scrub: 1,
-          anticipatePin: 1,
-        },
-      });
-
-      tl
-        // Eyebrow + heading fade in
-        .to(".why-eyebrow", { autoAlpha: 1, y: 0,  duration: 1.0, ease: "power3.out" }, 0)
-        .to(".why-heading",  { autoAlpha: 1, y: 0, filter: "blur(0px)", duration: 1.4, ease: "expo.out" }, 0.15)
-        .to(".why-rule",     { autoAlpha: 1, scaleX: 1, duration: 1.0, ease: "expo.out" }, 0.55)
-
-        // Card 1 — left sweep
-        .to(".why-card-1", {
-          autoAlpha: 1, x: 0, rotationY: 0,
-          duration: 1.8, ease: "expo.out",
-        }, 0.9)
-
-        // Card 2 — rises from below (highlighted)
-        .to(".why-card-2", {
-          autoAlpha: 1, y: isMobile ? 0 : -24, scale: 1,
-          duration: 1.8, ease: "expo.out",
-        }, 1.15)
-
-        // Card 3 — right sweep
-        .to(".why-card-3", {
-          autoAlpha: 1, x: 0, rotationY: 0,
-          duration: 1.8, ease: "expo.out",
-        }, 1.4)
-
-        // Icon pulse after cards land
-        .fromTo(".why-icon",
-          { scale: 0.7, autoAlpha: 0 },
-          { scale: 1, autoAlpha: 1, stagger: 0.15, duration: 0.8, ease: "back.out(2)" },
-          1.6
-        )
-
-
+      const reveal = (sel: string, y = 36) =>
+        gsap.from(sel, {
+          autoAlpha: 0, y, duration: 0.7, ease: "power3.out",
+          scrollTrigger: { trigger: sel, start: "top 88%", toggleActions: "play reverse play reverse" },
+        });
+      reveal(".why-eyebrow", 16);
+      reveal(".why-heading", 28);
+      reveal(".why-rule", 10);
+      [".why-card-1", ".why-card-2", ".why-card-3"].forEach((c) => reveal(c, 44));
     }, containerRef);
 
     return () => ctx.revert();
@@ -200,7 +140,7 @@ export function WhyBaserSection() {
       ref={containerRef}
       onMouseMove={(e) => setMouse({ x: e.clientX, y: e.clientY })}
       onMouseLeave={() => setMouse({ x: null, y: null })}
-      className="relative w-screen min-h-screen md:h-screen overflow-visible md:overflow-hidden flex flex-col items-center justify-center bg-[#0a0a0a] py-24 md:py-0"
+      className="relative w-screen min-h-screen overflow-visible flex flex-col items-center justify-center bg-[#0a0a0a] py-24"
       style={{ perspective: "1400px", zIndex: 10 }}
     >
       {/* Top divider */}

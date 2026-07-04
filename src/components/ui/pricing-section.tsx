@@ -3,11 +3,12 @@
 import { motion, AnimatePresence } from "framer-motion";
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { Check } from "lucide-react";
+import { Check, Plus } from "lucide-react";
 import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { supabase } from "@/lib/supabase";
 import { REWARDS } from "@/lib/rewards";
+import { ADD_ONS } from "@/lib/addons";
 
 if (typeof window !== "undefined") {
   gsap.registerPlugin(ScrollTrigger);
@@ -31,6 +32,7 @@ const PACKAGES = [
       "Cupholders & door pockets cleaned out",
       "Interior glass streak-free",
     ],
+    addOns: ADD_ONS.interior,
   },
   {
     id: "exterior",
@@ -41,11 +43,10 @@ const PACKAGES = [
     inclusions: [
       "Pre-wash foam & bug/grime removal",
       "Full wheel clean: faces, barrels & tyres dressed",
-      "Hand wash, two-bucket method",
       "Hand dried with zero water spots",
       "Exterior glass streak-free",
-      "Protective sealant up to 3 months",
     ],
+    addOns: ADD_ONS.exterior,
   },
   {
     id: "full",
@@ -56,8 +57,8 @@ const PACKAGES = [
     badge: "Most Booked",
     save: "Save $59 vs booking separately",
     inclusions: [
-      "Everything in the Interior package",
-      "Everything in the Exterior package",
+      "Everything included in Interior",
+      "Everything included in Exterior",
     ],
   },
 ] as const;
@@ -416,6 +417,7 @@ export function PricingSection() {
           {PACKAGES.map((pkg, i) => {
             const isOpen = open === pkg.id;
             const spot = cardSpots[pkg.id] ?? null;
+            const addOns = (pkg as { addOns?: { id: string; name: string; price: number }[] }).addOns;
 
             return (
               <div
@@ -642,11 +644,53 @@ export function PricingSection() {
                             ))}
                           </ul>
 
+                          {/* Add-ons — extras available on top of the included items */}
+                          {addOns && addOns.length > 0 && (
+                            <div className="mb-7">
+                              <p
+                                className="text-[10px] uppercase tracking-[0.2em] font-semibold mb-3"
+                                style={{ color: "rgba(203,166,92,0.55)" }}
+                              >
+                                Add-ons available
+                              </p>
+                              <ul className="space-y-3">
+                                {addOns.map((addon, j) => (
+                                  <motion.li
+                                    key={addon.id}
+                                    initial={{ opacity: 0, x: -12 }}
+                                    animate={{ opacity: 1, x: 0 }}
+                                    transition={{
+                                      duration: 0.3,
+                                      delay: (pkg.inclusions.length + j) * 0.06,
+                                      ease: [0.22, 1, 0.36, 1],
+                                    }}
+                                    className="flex items-center justify-between gap-3"
+                                  >
+                                    <span className="flex items-center gap-3">
+                                      <span
+                                        className="shrink-0 w-[18px] h-[18px] rounded-full flex items-center justify-center"
+                                        style={{ background: "rgba(255,255,255,0.06)", border: "1px dashed rgba(203,166,92,0.4)" }}
+                                      >
+                                        <Plus size={10} strokeWidth={2.5} style={{ color: "#CBA65C" }} />
+                                      </span>
+                                      <span className="text-sm leading-snug" style={{ color: "rgba(232,232,232,0.72)" }}>
+                                        {addon.name}
+                                      </span>
+                                    </span>
+                                    <span className="text-xs font-semibold shrink-0" style={{ color: "#CBA65C" }}>
+                                      +${addon.price}
+                                    </span>
+                                  </motion.li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
+
                           {/* Book button */}
                           <motion.button
                             initial={{ opacity: 0, y: 10 }}
                             animate={{ opacity: 1, y: 0 }}
-                            transition={{ duration: 0.3, delay: pkg.inclusions.length * 0.06 + 0.05 }}
+                            transition={{ duration: 0.3, delay: (pkg.inclusions.length + (addOns?.length ?? 0)) * 0.06 + 0.05 }}
                             onClick={(e) => { e.stopPropagation(); router.push(`/book?package=${pkg.id}`); }}
                             className="group relative inline-flex w-full items-center justify-center gap-2.5 rounded-xl py-3.5 font-semibold text-sm overflow-hidden transition-transform duration-300 hover:-translate-y-0.5 active:translate-y-0"
                             style={

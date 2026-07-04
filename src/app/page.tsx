@@ -50,12 +50,7 @@ export default function Home() {
         ctaLabel={isSignedIn ? "My Account" : "Create Account"}
       />
 
-      {/* -100vh overlap closes the GSAP pin-spacer gap on desktop. On mobile
-          WhyBaser isn't pinned (it flows at natural height), so the overlap is
-          dropped — otherwise its heading would sit under the still-pinned hero. */}
-      <div className="md:-mt-[100vh]">
-        <WhyBaserSection />
-      </div>
+      <WhyBaserSection />
       <HowItWorksSection />
       <PricingSection />
       <BeforeAfterSection />

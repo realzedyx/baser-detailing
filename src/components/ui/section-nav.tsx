@@ -30,9 +30,17 @@ export function SectionNav() {
 
   useEffect(() => {
     const resolve = () => {
-      const pinned    = ScrollTrigger.getAll().filter((t) => t.vars.pin);
-      const heroEnd   = pinned[0]?.end ?? 2200;
-      const whyEnd    = pinned[1]?.end ?? heroEnd + 1600;
+      // Neither Hero nor WhyBaser pin anymore — both sit in normal document
+      // flow, so their boundaries are measured directly from the DOM rather
+      // than guessed from ScrollTrigger pin ranges.
+      const servicesEl = document.getElementById("services");
+      const heroEnd = servicesEl
+        ? servicesEl.getBoundingClientRect().top + window.scrollY
+        : 900;
+      const servicesEndEl = document.getElementById("services-end");
+      const whyEnd = servicesEndEl
+        ? servicesEndEl.getBoundingClientRect().top + window.scrollY
+        : heroEnd + 900;
       const howEnd    = whyEnd + 900;
       const pricingEnd      = howEnd + 900;
       const beforeAfterEnd  = pricingEnd + 900;
@@ -60,16 +68,7 @@ export function SectionNav() {
 
   const goTo = (idx: number) => {
     if (idx < 0 || idx >= TOTAL) return;
-    let target = starts[idx] ?? 0;
-    // Pinned sections (Hero=0, WhyBaser=1) have long scroll ranges.
-    // WhyBaser's card/icon animations don't finish until the very end of its pin,
-    // so land near the end (95%) — just before it scrolls away — where everything
-    // is settled. This also avoids the scrub-lag empty state when arriving from above.
-    if (idx === 0 && starts[1] !== Infinity) {
-      target = starts[1] * 0.75;
-    } else if (idx === 1 && starts[2] !== Infinity) {
-      target = starts[1] + (starts[2] - starts[1]) * 0.95;
-    }
+    const target = starts[idx] ?? 0;
     window.scrollTo({ top: Math.max(0, target), behavior: "smooth" });
   };
 

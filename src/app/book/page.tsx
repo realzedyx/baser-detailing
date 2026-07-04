@@ -7,6 +7,7 @@ import { useSearchParams } from "next/navigation";
 import { ErrorToast } from "@/components/ui/error-toast";
 import { supabase } from "@/lib/supabase";
 import { REWARDS, SERVICE_PRICE, type Reward } from "@/lib/rewards";
+import { getAddOnsForService } from "@/lib/addons";
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
@@ -663,12 +664,14 @@ function Field({
 function RewardsBar({
   points,
   selectedService,
+  selectedAddOnIds,
   appliedReward,
   onApply,
   locked,
 }: {
   points: number | null;
   selectedService: string | null;
+  selectedAddOnIds: string[];
   appliedReward: string | null;
   onApply: (id: string | null) => void;
   locked: boolean;
@@ -677,8 +680,13 @@ function RewardsBar({
   const pts = points ?? 0;
   const MAX = 1000;
   const applied = appliedReward ? REWARDS.find(r => r.id === appliedReward) ?? null : null;
-  const originalPrice = selectedService ? (SERVICE_PRICE[selectedService] ?? 0) : 0;
-  const discountedPrice = applied ? Math.round(originalPrice * (1 - applied.discount)) : originalPrice;
+  const basePrice = selectedService ? (SERVICE_PRICE[selectedService] ?? 0) : 0;
+  const selectedAddOns = getAddOnsForService(selectedService ?? "").filter(a => selectedAddOnIds.includes(a.id));
+  const addOnsTotal = selectedAddOns.reduce((sum, a) => sum + a.price, 0);
+  // Reward discount applies to the base package price only, not add-ons.
+  const discountedBase = applied ? Math.round(basePrice * (1 - applied.discount)) : basePrice;
+  const originalPrice = basePrice + addOnsTotal;
+  const discountedPrice = discountedBase + addOnsTotal;
 
   const handleApply = (r: Reward) => {
     if (locked) return;
@@ -815,23 +823,39 @@ function RewardsBar({
             })}
           </div>
 
-          {/* Applied price breakdown */}
-          {applied && selectedService && (
+          {/* Price breakdown — shows when a reward is applied and/or add-ons are selected */}
+          {selectedService && (applied || selectedAddOns.length > 0) && (
             <motion.div
               initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
               className="rounded-xl p-4 mt-3"
               style={{ background: "rgba(203,166,92,0.05)", border: "1px solid rgba(203,166,92,0.2)" }}
             >
-              <p className="text-[10px] uppercase tracking-[0.18em]" style={{ color: "rgba(203,166,92,0.6)", margin: "0 0 8px" }}>
-                {applied.perk}
-              </p>
+              {applied && (
+                <p className="text-[10px] uppercase tracking-[0.18em]" style={{ color: "rgba(203,166,92,0.6)", margin: "0 0 8px" }}>
+                  {applied.perk}
+                </p>
+              )}
+              {selectedAddOns.length > 0 && (
+                <ul className="mb-3 space-y-1">
+                  {selectedAddOns.map(a => (
+                    <li key={a.id} className="flex items-center justify-between text-[11px]" style={{ color: "rgba(232,232,232,0.5)" }}>
+                      <span>{a.name}</span>
+                      <span>+${a.price}</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
               <div className="flex items-baseline gap-3">
-                <span className="text-xl" style={{ textDecoration: "line-through", color: "rgba(255,255,255,0.25)" }}>
-                  from ${originalPrice}
-                </span>
+                {applied && (
+                  <span className="text-xl" style={{ textDecoration: "line-through", color: "rgba(255,255,255,0.25)" }}>
+                    from ${originalPrice}
+                  </span>
+                )}
                 <span className="text-3xl font-black" style={{ color: GOLD }}>from ${discountedPrice}</span>
-                <span className="text-[11px]" style={{ color: "rgba(255,255,255,0.3)" }}>with {applied.label} reward</span>
+                {applied && (
+                  <span className="text-[11px]" style={{ color: "rgba(255,255,255,0.3)" }}>with {applied.label} reward</span>
+                )}
               </div>
             </motion.div>
           )}
@@ -855,13 +879,6 @@ function RewardsBar({
 // ─── Success screen ───────────────────────────────────────────────────────────
 
 function AuthPromptModal({ open, onClose, onGuest, onCreateAccount }: { open: boolean; onClose: () => void; onGuest: () => void; onCreateAccount: () => void }) {
-  const [confirming, setConfirming] = useState(false);
-
-  const handleClose = () => {
-    setConfirming(false);
-    onClose();
-  };
-
   return (
     <AnimatePresence>
       {open && (
@@ -871,7 +888,7 @@ function AuthPromptModal({ open, onClose, onGuest, onCreateAccount }: { open: bo
           exit={{ opacity: 0 }}
           className="fixed inset-0 z-[100] flex items-center justify-center px-5"
           style={{ background: "rgba(0,0,0,0.6)" }}
-          onClick={handleClose}
+          onClick={onClose}
         >
           <motion.div
             initial={{ opacity: 0, y: 16, scale: 0.97 }}
@@ -890,65 +907,32 @@ function AuthPromptModal({ open, onClose, onGuest, onCreateAccount }: { open: bo
               className="absolute top-0 inset-x-0 h-[2px] rounded-t-2xl"
               style={{ background: `linear-gradient(90deg, transparent, ${GOLD}, transparent)` }}
             />
-            {!confirming ? (
-              <>
-                <h3 className="text-white text-xl font-bold tracking-tight mb-2">
-                  Want to earn rewards on this booking?
-                </h3>
-                <p className="text-[#E8E8E8]/50 text-sm leading-relaxed mb-7">
-                  Create a free account to collect points toward your next detail — or continue without one.
-                </p>
-                <div className="flex flex-col gap-3">
-                  <Link
-                    href="/signup?from=booking"
-                    onClick={onCreateAccount}
-                    className="w-full inline-flex items-center justify-center px-6 py-3.5 rounded-xl font-bold text-sm text-center"
-                    style={{
-                      background: `linear-gradient(135deg, ${CHROME} 0%, ${GOLD} 55%, #A8862E 100%)`,
-                      color: "#0a0a0a",
-                    }}
-                  >
-                    Create free account
-                  </Link>
-                  <button
-                    onClick={() => setConfirming(true)}
-                    className="w-full px-6 py-3.5 rounded-xl font-semibold text-sm transition-colors duration-200"
-                    style={{ background: "rgba(239,68,68,0.08)", color: "rgba(239,68,68,0.75)", border: "1px solid rgba(239,68,68,0.25)" }}
-                  >
-                    Continue as guest
-                  </button>
-                </div>
-              </>
-            ) : (
-              <>
-                <h3 className="text-white text-xl font-bold tracking-tight mb-2">
-                  Are you sure you want to give up free discounts?
-                </h3>
-                <p className="text-[#E8E8E8]/50 text-sm leading-relaxed mb-7">
-                  Without an account, you won&rsquo;t earn any points on this booking — no discounts on your next detail.
-                </p>
-                <div className="flex flex-col gap-3">
-                  <Link
-                    href="/signup?from=booking"
-                    onClick={onCreateAccount}
-                    className="w-full inline-flex items-center justify-center px-6 py-3.5 rounded-xl font-bold text-sm text-center"
-                    style={{
-                      background: `linear-gradient(135deg, ${CHROME} 0%, ${GOLD} 55%, #A8862E 100%)`,
-                      color: "#0a0a0a",
-                    }}
-                  >
-                    Create free account
-                  </Link>
-                  <button
-                    onClick={() => { setConfirming(false); onGuest(); }}
-                    className="w-full px-6 py-3.5 rounded-xl font-semibold text-sm transition-colors duration-200"
-                    style={{ background: "rgba(239,68,68,0.12)", color: "rgba(239,68,68,0.85)", border: "1px solid rgba(239,68,68,0.35)" }}
-                  >
-                    Yes, continue without rewards
-                  </button>
-                </div>
-              </>
-            )}
+            <h3 className="text-white text-xl font-bold tracking-tight mb-2">
+              Want to earn rewards on this booking?
+            </h3>
+            <p className="text-[#E8E8E8]/50 text-sm leading-relaxed mb-7">
+              Create a free account to collect points toward your next detail — or continue without one.
+            </p>
+            <div className="flex flex-col gap-3">
+              <Link
+                href="/signup?from=booking"
+                onClick={onCreateAccount}
+                className="w-full inline-flex items-center justify-center px-6 py-3.5 rounded-xl font-bold text-sm text-center"
+                style={{
+                  background: `linear-gradient(135deg, ${CHROME} 0%, ${GOLD} 55%, #A8862E 100%)`,
+                  color: "#0a0a0a",
+                }}
+              >
+                Create free account
+              </Link>
+              <button
+                onClick={onGuest}
+                className="w-full px-6 py-3.5 rounded-xl font-semibold text-sm transition-colors duration-200"
+                style={{ background: "rgba(255,255,255,0.04)", color: "rgba(232,232,232,0.6)", border: "1px solid rgba(255,255,255,0.1)" }}
+              >
+                Continue as guest
+              </button>
+            </div>
           </motion.div>
         </motion.div>
       )}
@@ -1026,6 +1010,7 @@ function BookPageInner() {
   const [selectedService, setSelectedService] = useState<string | null>(preselected);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
+  const [selectedAddOns, setSelectedAddOns] = useState<string[]>([]);
   const [submitted, setSubmitted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [toastError, setToastError] = useState<string | null>(null);
@@ -1108,6 +1093,7 @@ function BookPageInner() {
         if (draft.selectedService) setSelectedService(draft.selectedService);
         if (draft.selectedDate) setSelectedDate(draft.selectedDate);
         if (draft.selectedTime) setSelectedTime(draft.selectedTime);
+        if (Array.isArray(draft.selectedAddOns)) setSelectedAddOns(draft.selectedAddOns);
         if (draft.form) setForm(f => ({ ...f, ...draft.form }));
         if (typeof draft.step === "number") setStep(draft.step);
       } catch {
@@ -1126,13 +1112,23 @@ function BookPageInner() {
     if (slot && cutoff && slot.hour > cutoff.maxHour) setSelectedTime(null);
   }, [selectedService, selectedTime]);
 
+  // Add-ons are scoped per service — drop any selection that no longer applies.
+  useEffect(() => {
+    const validIds = new Set(getAddOnsForService(selectedService ?? "").map(a => a.id));
+    setSelectedAddOns(prev => prev.filter(id => validIds.has(id)));
+  }, [selectedService]);
+
   const handleSubmit = async () => {
     if (!form.name || !form.phone || !form.carMake || !form.carModel) return;
     setSubmitting(true);
     setToastError(null);
-    const originalPrice = selectedService ? (SERVICE_PRICE[selectedService] ?? 0) : 0;
+    const basePrice = selectedService ? (SERVICE_PRICE[selectedService] ?? 0) : 0;
+    const addOnsTotal = getAddOnsForService(selectedService ?? "")
+      .filter(a => selectedAddOns.includes(a.id))
+      .reduce((sum, a) => sum + a.price, 0);
     const appliedR = appliedReward ? REWARDS.find(r => r.id === appliedReward) ?? null : null;
-    const finalAmount = appliedR ? Math.round(originalPrice * (1 - appliedR.discount)) : originalPrice;
+    const discountedBase = appliedR ? Math.round(basePrice * (1 - appliedR.discount)) : basePrice;
+    const finalAmount = discountedBase + addOnsTotal;
     // Estimate only — the real points are awarded from the actual amount entered when the job is logged
     const pendingPts = userId && selectedService ? finalAmount : 0;
     const { data: { session: authSession } } = await supabase.auth.getSession();
@@ -1153,6 +1149,7 @@ function BookPageInner() {
           rewardApplied: appliedReward,
           pendingPoints: pendingPts,
           amount: finalAmount,
+          addOnIds: selectedAddOns,
         }),
       });
       if (!res.ok) {
@@ -1185,7 +1182,7 @@ function BookPageInner() {
         onCreateAccount={() => {
           sessionStorage.setItem(
             BOOKING_DRAFT_KEY,
-            JSON.stringify({ step, selectedService, selectedDate, selectedTime, form })
+            JSON.stringify({ step, selectedService, selectedDate, selectedTime, selectedAddOns, form })
           );
         }}
       />
@@ -1262,6 +1259,57 @@ function BookPageInner() {
                   />
                 ))}
               </div>
+
+              {selectedService && getAddOnsForService(selectedService).length > 0 && (
+                <div className="mb-10">
+                  <p className="text-[11px] uppercase tracking-[0.2em] font-semibold mb-3" style={{ color: "rgba(203,166,92,0.6)" }}>
+                    Add-ons available
+                  </p>
+                  <div className="flex flex-col gap-2">
+                    {getAddOnsForService(selectedService).map(addon => {
+                      const isSelected = selectedAddOns.includes(addon.id);
+                      return (
+                        <motion.button
+                          key={addon.id}
+                          type="button"
+                          onClick={() =>
+                            setSelectedAddOns(prev =>
+                              prev.includes(addon.id) ? prev.filter(id => id !== addon.id) : [...prev, addon.id]
+                            )
+                          }
+                          whileHover={{ x: 2 }}
+                          whileTap={{ scale: 0.98 }}
+                          className="w-full flex items-center justify-between p-3 rounded-xl text-left focus:outline-none"
+                          style={{
+                            background: isSelected ? "rgba(203,166,92,0.1)" : "rgba(255,255,255,0.03)",
+                            border: isSelected ? `1px solid rgba(203,166,92,0.4)` : "1px solid rgba(203,166,92,0.18)",
+                            boxShadow: !isSelected ? "0 0 20px rgba(203,166,92,0.07)" : "none",
+                          }}
+                        >
+                          <span className="text-[13px]" style={{ color: "rgba(232,232,232,0.75)" }}>
+                            {addon.name}
+                          </span>
+                          <div className="flex items-center gap-2 shrink-0 ml-4">
+                            <span className="text-[11px]" style={{ color: "rgba(203,166,92,0.6)" }}>
+                              +${addon.price}
+                            </span>
+                            {isSelected ? (
+                              <span className="text-[9px] font-bold uppercase tracking-[0.1em] px-2 py-0.5 rounded-md" style={{ color: "#0a0a0a", background: GOLD }}>
+                                ✓ Added
+                              </span>
+                            ) : (
+                              <span className="text-[9px] font-bold uppercase tracking-[0.1em] px-2 py-0.5 rounded-md" style={{ color: GOLD, background: "rgba(203,166,92,0.1)", border: "1px solid rgba(203,166,92,0.25)" }}>
+                                Add
+                              </span>
+                            )}
+                          </div>
+                        </motion.button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
               <div className="flex justify-end">
                 <motion.button
                   disabled={!selectedService}
@@ -1414,10 +1462,6 @@ function BookPageInner() {
                   <Field label="Car make" name="carMake" value={form.carMake} onChange={setField("carMake")} required placeholder="Toyota" />
                   <Field label="Car model" name="carModel" value={form.carModel} onChange={setField("carModel")} required placeholder="Corolla" />
                 </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 mb-5">
-                  <Field label="Year" name="carYear" value={form.carYear} onChange={setField("carYear")} placeholder="2021" inputMode="numeric" />
-                  <Field label="Colour" name="carColour" value={form.carColour} onChange={setField("carColour")} placeholder="Black" />
-                </div>
                 <div className="flex flex-col gap-1.5">
                   <label className="text-[10px] uppercase tracking-[0.22em] font-semibold" style={{ color: "rgba(203,166,92,0.65)" }}>
                     Anything I should know?
@@ -1449,6 +1493,7 @@ function BookPageInner() {
               <RewardsBar
                 points={userPoints}
                 selectedService={selectedService}
+                selectedAddOnIds={selectedAddOns}
                 appliedReward={appliedReward}
                 onApply={setAppliedReward}
                 locked={rewardLocked}

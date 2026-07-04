@@ -3,6 +3,7 @@ export const runtime = 'edge';
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { REWARDS, SERVICE_PRICE } from "@/lib/rewards";
+import { getAddOnsForService } from "@/lib/addons";
 
 // The client may send either the service id ("full") or its display label
 // ("Full Detail"). Normalise both to the canonical id so pricing is server-trusted.
@@ -85,12 +86,20 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  // Recompute price, reward and points from server-trusted values. The client's
-  // amount / pending_points / reward are ignored entirely.
+  // Recompute price, reward, add-ons and points from server-trusted values.
+  // The client's amount / pending_points / reward / add-on prices are ignored entirely.
   const basePrice = SERVICE_PRICE[serviceId];
-  let finalAmount = basePrice;
+
+  // Add-ons are validated against the service's own list so a tampered id/price
+  // can't be smuggled in — only known add-ons for this service are counted.
+  const requestedAddOnIds = Array.isArray(body.addOnIds)
+    ? body.addOnIds.filter((v): v is string => typeof v === "string")
+    : [];
+  const matchedAddOns = getAddOnsForService(serviceId).filter((a) => requestedAddOnIds.includes(a.id));
+  const addOnsTotal = matchedAddOns.reduce((sum, a) => sum + a.price, 0);
+
+  let discountedBase = basePrice;
   let rewardId: string | null = null;
-  let pendingPoints = 0;
 
   if (userId) {
     const requestedReward = typeof body.rewardApplied === "string" ? body.rewardApplied : null;
@@ -113,14 +122,22 @@ export async function POST(req: NextRequest) {
           .not("reward_applied", "is", null)
           .limit(1);
         if (!active || active.length === 0) {
-          finalAmount = Math.round(basePrice * (1 - reward.discount));
+          // Reward discount applies to the base package price only, not add-ons.
+          discountedBase = Math.round(basePrice * (1 - reward.discount));
           rewardId = reward.id;
         }
       }
     }
-    // Estimate only — real points are awarded from the actual amount when the job is logged.
-    pendingPoints = finalAmount;
   }
+
+  const finalAmount = discountedBase + addOnsTotal;
+  // Estimate only — real points are awarded from the actual amount when the job is logged.
+  const pendingPoints = userId ? finalAmount : 0;
+
+  const addOnsSummary = matchedAddOns.length > 0
+    ? matchedAddOns.map((a) => `${a.name} (+$${a.price})`).join(", ")
+    : null;
+  const finalNotes = [notes, addOnsSummary ? `Add-ons: ${addOnsSummary}` : null].filter(Boolean).join("\n\n") || null;
 
   const { error } = await supabase.from("bookings").insert([
     {
@@ -134,7 +151,7 @@ export async function POST(req: NextRequest) {
       car_model: carModel,
       car_year: carYear,
       car_colour: carColour,
-      notes,
+      notes: finalNotes,
       amount: finalAmount,
       status: "pending",
       created_at: new Date().toISOString(),
@@ -160,7 +177,7 @@ export async function POST(req: NextRequest) {
   try {
     await fetch(`https://ntfy.sh/${ntfyTopic}`, {
       method: "POST",
-      body: `New booking request from ${name}\nService: ${serviceLabel}\nDate: ${date}${time ? ` at ${time}` : ""}\nCar: ${carMake} ${carModel}\nPhone: ${phone}\nSuburb: ${suburb ?? "-"}`,
+      body: `New booking request from ${name}\nService: ${serviceLabel}${addOnsSummary ? `\nAdd-ons: ${addOnsSummary}` : ""}\nDate: ${date}${time ? ` at ${time}` : ""}\nCar: ${carMake} ${carModel}\nPhone: ${phone}\nSuburb: ${suburb ?? "-"}`,
       headers: {
         Title: "New Booking Request",
         Priority: "high",
