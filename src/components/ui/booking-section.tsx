@@ -9,28 +9,34 @@ import { supabase } from "@/lib/supabase";
 const GOLD = "#CBA65C";
 const CHROME = "#E4C883";
 
+// Bookings require at least this many days' notice — matches the calendar in /book.
+const MIN_LEAD_DAYS = 2;
+
 export function BookingSection() {
   const ref = useRef<HTMLDivElement>(null);
   const inView = useInView(ref, { once: true, margin: "-60px" });
-  const [spotsLeft, setSpotsLeft] = useState<number | null>(null);
+  // undefined = still loading, null = no open date found, string = the next open date (ISO)
+  const [nextAvailable, setNextAvailable] = useState<string | null | undefined>(undefined);
 
   useEffect(() => {
-    const today = new Date();
-    const day = today.getDay();
-    const monday = new Date(today);
-    monday.setDate(today.getDate() - ((day + 6) % 7));
-    const sunday = new Date(monday);
-    sunday.setDate(monday.getDate() + 6);
+    const minDate = new Date();
+    minDate.setDate(minDate.getDate() + MIN_LEAD_DAYS);
     const fmt = (d: Date) => d.toISOString().slice(0, 10);
 
     supabase
       .from("availability")
-      .select("date", { count: "exact", head: false })
+      .select("date")
       .eq("status", "open")
-      .gte("date", fmt(monday))
-      .lte("date", fmt(sunday))
-      .then(({ count, error }) => setSpotsLeft(error ? null : count ?? 0));
+      .gte("date", fmt(minDate))
+      .order("date", { ascending: true })
+      .limit(1)
+      .maybeSingle()
+      .then(({ data, error }) => setNextAvailable(error ? null : data?.date ?? null));
   }, []);
+
+  const nextAvailableLabel = nextAvailable
+    ? new Date(`${nextAvailable}T00:00:00`).toLocaleDateString("en-AU", { weekday: "short", day: "numeric", month: "short" })
+    : null;
 
   const anim = (delay = 0) => ({
     initial: { opacity: 0, y: 28 },
@@ -197,24 +203,24 @@ export function BookingSection() {
                   <div className="relative flex-shrink-0">
                     <div
                       className="w-2 h-2 rounded-full"
-                      style={{ background: spotsLeft === null ? "#888" : spotsLeft > 0 ? "#4ade80" : "#E4C883" }}
+                      style={{ background: nextAvailable === undefined ? "#888" : nextAvailableLabel ? "#4ade80" : "#E4C883" }}
                     />
-                    {(spotsLeft === null || spotsLeft > 0) && (
+                    {(nextAvailable === undefined || nextAvailableLabel) && (
                       <motion.div
                         className="absolute inset-0 rounded-full"
                         animate={{ scale: [1, 2.2, 1], opacity: [0.7, 0, 0.7] }}
                         transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
-                        style={{ background: spotsLeft === null ? "#888" : "#4ade80" }}
+                        style={{ background: nextAvailable === undefined ? "#888" : "#4ade80" }}
                       />
                     )}
                   </div>
                   <p className="text-[12px] font-semibold" style={{ color: "rgba(232,232,232,0.55)" }}>
-                    {spotsLeft === null ? (
+                    {nextAvailable === undefined ? (
                       <span style={{ color: "rgba(232,232,232,0.3)" }}>Checking availability…</span>
-                    ) : spotsLeft > 0 ? (
-                      <><span style={{ color: "#E4C883" }}>{spotsLeft} {spotsLeft === 1 ? "spot" : "spots"}</span> left this week</>
+                    ) : nextAvailableLabel ? (
+                      <>Next available: <span style={{ color: "#E4C883" }}>{nextAvailableLabel}</span></>
                     ) : (
-                      // Neutral fallback — a 0 count often just means days aren't seeded yet,
+                      // Neutral fallback — no open date found often just means days aren't seeded yet,
                       // so never show a "closed for business" red message.
                       <><span style={{ color: "#E4C883" }}>Booking by request</span> — get in touch to lock a day</>
                     )}
