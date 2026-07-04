@@ -15,6 +15,7 @@ const GOLD = "#CBA65C";
 const CHROME = "#E4C883";
 const BG = "#0a0a0a";
 const BOOKING_DRAFT_KEY = "baser-booking-draft";
+const MIN_LEAD_DAYS = 2;
 
 const SERVICES = [
   {
@@ -319,8 +320,10 @@ function Calendar({
 
   const isToday = (d: number) =>
     d === today.getDate() && viewMonth === today.getMonth() && viewYear === today.getFullYear();
+  // Bookings must be made at least MIN_LEAD_DAYS ahead — same-day and next-day
+  // slots don't give enough notice to schedule a detailer.
   const isPast = (d: number) =>
-    new Date(viewYear, viewMonth, d) < new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    new Date(viewYear, viewMonth, d) < new Date(today.getFullYear(), today.getMonth(), today.getDate() + MIN_LEAD_DAYS);
   const isBeyondWindow = (d: number) =>
     new Date(viewYear, viewMonth, d) > maxDate;
   const dateStr = (d: number) =>

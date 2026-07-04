@@ -56,6 +56,21 @@ export async function POST(req: NextRequest) {
   const serviceLabel =
     Object.keys(SERVICE_BY_LABEL).find((l) => SERVICE_BY_LABEL[l] === serviceId) ?? SERVICE_LABEL;
 
+  // Bookings must be made at least MIN_LEAD_DAYS ahead (matches the calendar's
+  // client-side restriction, re-checked here since the client can't be trusted).
+  const MIN_LEAD_DAYS = 2;
+  if (date && date !== "TBD") {
+    const today = new Date();
+    const minDate = new Date(today.getFullYear(), today.getMonth(), today.getDate() + MIN_LEAD_DAYS);
+    const requested = new Date(`${date}T00:00:00`);
+    if (isNaN(requested.getTime()) || requested < minDate) {
+      return NextResponse.json(
+        { error: `Bookings must be made at least ${MIN_LEAD_DAYS} days in advance.` },
+        { status: 400 }
+      );
+    }
+  }
+
   const authHeader = req.headers.get("Authorization");
   const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
