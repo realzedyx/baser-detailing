@@ -232,6 +232,9 @@ function RewardsTracker() {
           `${MAX - current} pts to VIP`
         )}
       </p>
+      <p className="text-center mt-2 text-[11px]" style={{ color: "rgba(255,255,255,0.15)" }}>
+        Refer a friend — you both earn 50 bonus points once they sign up.
+      </p>
     </div>
   );
 }

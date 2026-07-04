@@ -43,7 +43,7 @@ export default function Home() {
         tagline1="Showroom finish,"
         tagline2="in your driveway"
         cardHeading="Earn rewards with our loyalty program"
-        cardDescription="Every detail earns you points. Redeem them for discounts on your next booking."
+        cardDescription="Every detail earns you points. Redeem them for discounts on your next booking — plus 50 bonus points each time you refer a friend."
         metricValue={357}
         metricLabel="Your Rewards"
         ctaHref={isSignedIn ? "/account" : "/signup"}
