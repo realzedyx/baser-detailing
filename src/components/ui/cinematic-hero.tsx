@@ -365,21 +365,22 @@ export function CinematicHero({
           the per-frame canvas redraw + blur filter is too heavy for mobile
           GPUs (same cliff as the SVG overlay used on signin/account).
           `.hero-beams` fades in alongside the taglines — see intro timeline. */}
-      {isMobile ? (
-        <div
-          className="hero-beams gsap-reveal absolute inset-0 pointer-events-none"
-          style={{ background: "radial-gradient(ellipse 90% 50% at 50% 0%, rgba(203,166,92,0.06) 0%, transparent 60%)" }}
-        />
-      ) : (
-        <BeamsBackground className="hero-beams gsap-reveal z-0" intensity="subtle" />
-      )}
+      {/* This wrapper is the node GSAP's intro timeline fades in — it must stay
+          mounted across the mobile/desktop breakpoint so resizing the window
+          doesn't swap it out for a fresh node stuck at the .gsap-reveal
+          default (visibility: hidden), which GSAP would never re-animate.
+          Mobile gets the same beam visuals as a single static frame — no
+          per-frame canvas redraw, so no scroll jank on phone GPUs. */}
+      <div className="hero-beams gsap-reveal absolute inset-0 z-0 pointer-events-none">
+        <BeamsBackground className="absolute inset-0" intensity="subtle" animated={!isMobile} />
+      </div>
 
       {/* Scroll indicator — fixed to the viewport (not the section), shown
           only during the hero. Appears once the intro settles, disappears
           once the user scrolls past the hero, reappears if they scroll back
           up. See effect #3. */}
       {mounted && createPortal(
-        <div className="scroll-indicator-fixed gsap-reveal fixed left-1/2 -translate-x-1/2 z-[60] flex flex-col items-center gap-2 pointer-events-none select-none" style={{ bottom: "calc(env(safe-area-inset-bottom, 0px) + 2.5rem)" }}>
+        <div className="scroll-indicator-fixed gsap-reveal fixed left-1/2 -translate-x-1/2 z-[60] flex flex-col items-center gap-2 pointer-events-none select-none bottom-[calc(env(safe-area-inset-bottom,0px)+6rem)] sm:bottom-[calc(env(safe-area-inset-bottom,0px)+2.5rem)]">
           <span className="text-[#E4C883]/50 text-[10px] uppercase tracking-[0.22em] font-semibold">Scroll</span>
           <div className="flex flex-col items-center">
             <div className="scroll-chevron w-[18px] h-[18px] border-r-2 border-b-2 border-[#CBA65C]/65 rotate-45" />

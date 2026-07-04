@@ -7,6 +7,10 @@ import { cn } from "@/lib/utils";
 interface BeamsBackgroundProps {
   className?: string;
   intensity?: "subtle" | "medium" | "strong";
+  // Renders one static frame instead of looping requestAnimationFrame — used
+  // on mobile to get the same beam visuals without the per-frame canvas
+  // redraw + blur cost that jankes up scrolling on phone GPUs.
+  animated?: boolean;
 }
 
 interface Beam {
@@ -45,7 +49,7 @@ function createBeam(width: number, height: number): Beam {
 
 const MINIMUM_BEAMS = 14;
 
-export function BeamsBackground({ className, intensity = "subtle" }: BeamsBackgroundProps) {
+export function BeamsBackground({ className, intensity = "subtle", animated = true }: BeamsBackgroundProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const beamsRef = useRef<Beam[]>([]);
   const animationFrameRef = useRef<number>(0);
@@ -136,7 +140,7 @@ export function BeamsBackground({ className, intensity = "subtle" }: BeamsBackgr
       animationFrameRef.current = requestAnimationFrame(animate);
     }
 
-    if (reduceMotion) {
+    if (reduceMotion || !animated) {
       renderStaticFrame();
     } else {
       animate();
@@ -146,17 +150,19 @@ export function BeamsBackground({ className, intensity = "subtle" }: BeamsBackgr
       window.removeEventListener("resize", updateCanvasSize);
       if (animationFrameRef.current) cancelAnimationFrame(animationFrameRef.current);
     };
-  }, [intensity]);
+  }, [intensity, animated]);
 
   return (
     <div className={cn("absolute inset-0 overflow-hidden pointer-events-none", className)}>
       <canvas ref={canvasRef} className="absolute inset-0" style={{ filter: "blur(15px)" }} />
-      <motion.div
-        className="absolute inset-0 bg-[#0a0a0a]/5"
-        animate={{ opacity: [0.05, 0.15, 0.05] }}
-        transition={{ duration: 10, ease: "easeInOut", repeat: Infinity }}
-        style={{ backdropFilter: "blur(50px)" }}
-      />
+      {animated && (
+        <motion.div
+          className="absolute inset-0 bg-[#0a0a0a]/5"
+          animate={{ opacity: [0.05, 0.15, 0.05] }}
+          transition={{ duration: 10, ease: "easeInOut", repeat: Infinity }}
+          style={{ backdropFilter: "blur(50px)" }}
+        />
+      )}
     </div>
   );
 }
