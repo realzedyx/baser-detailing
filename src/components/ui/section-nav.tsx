@@ -17,7 +17,7 @@ const SECTION_NAMES = [
   "Why Baser",
   "How It Works",
   "Pricing",
-  "Results",
+  "Gallery",
   "Good to Know",
   "Testimonials",
   "Book",
@@ -43,10 +43,10 @@ export function SectionNav() {
         : heroEnd + 900;
       const howEnd    = whyEnd + 900;
       const pricingEnd      = howEnd + 900;
-      const beforeAfterEnd  = pricingEnd + 900;
-      const goodToKnowEnd   = beforeAfterEnd + 900;
+      const galleryEnd      = pricingEnd + 900;
+      const goodToKnowEnd   = galleryEnd + 900;
       const testimonialsEnd = goodToKnowEnd + 900;
-      setStarts([0, heroEnd, whyEnd, howEnd, pricingEnd, beforeAfterEnd, goodToKnowEnd, testimonialsEnd]);
+      setStarts([0, heroEnd, whyEnd, howEnd, pricingEnd, galleryEnd, goodToKnowEnd, testimonialsEnd]);
     };
     const id = window.setTimeout(resolve, 600);
     return () => window.clearTimeout(id);

@@ -1,18 +1,12 @@
 "use client";
 
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, useInView } from "framer-motion";
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { Check, Plus } from "lucide-react";
-import { gsap } from "gsap";
-import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { supabase } from "@/lib/supabase";
 import { REWARDS } from "@/lib/rewards";
 import { ADD_ONS } from "@/lib/addons";
-
-if (typeof window !== "undefined") {
-  gsap.registerPlugin(ScrollTrigger);
-}
 
 // ─────────────────────────────────────────────
 // Data
@@ -53,6 +47,7 @@ const PACKAGES = [
     title: "The Full Detail",
     tagline: "Inside out, front to back. Done right.",
     price: "$219",
+    regularPrice: "$299",
     featured: true,
     badge: "Most Booked",
     save: "Save $59 vs booking separately",
@@ -66,45 +61,6 @@ const PACKAGES = [
 // ─────────────────────────────────────────────
 // Section
 // ─────────────────────────────────────────────
-
-function useScrollVelocityTilt(maxTilt = 3.5) {
-  const [tilt, setTilt] = useState(0);
-
-  useEffect(() => {
-    let lastY = typeof window !== "undefined" ? window.scrollY : 0;
-    let lastTime = Date.now();
-    let velocity = 0;
-    let rafId: number;
-
-    const onScroll = () => {
-      const now = Date.now();
-      const dt = Math.max(now - lastTime, 1);
-      velocity = ((window.scrollY - lastY) / dt) * 14;
-      lastY = window.scrollY;
-      lastTime = now;
-    };
-
-    const tick = () => {
-      velocity *= 0.84;
-      const target = Math.max(-maxTilt, Math.min(maxTilt, velocity));
-      setTilt((prev) => {
-        const next = prev + (target - prev) * 0.14;
-        return Math.abs(next) < 0.005 ? 0 : next;
-      });
-      rafId = requestAnimationFrame(tick);
-    };
-
-    window.addEventListener("scroll", onScroll, { passive: true });
-    rafId = requestAnimationFrame(tick);
-
-    return () => {
-      window.removeEventListener("scroll", onScroll);
-      cancelAnimationFrame(rafId);
-    };
-  }, [maxTilt]);
-
-  return tilt;
-}
 
 // ─────────────────────────────────────────────
 // Rewards Progress Tracker
@@ -245,11 +201,7 @@ export function PricingSection() {
   const [hoveredCard, setHoveredCard] = useState<string | null>(null);
   const [cardSpots, setCardSpots] = useState<Record<string, { x: number; y: number } | null>>({});
   const sectionRef = useRef<HTMLElement>(null);
-  const headerRef = useRef<HTMLDivElement>(null);
-  const bannerRef = useRef<HTMLDivElement>(null);
-  const cardRefs = useRef<(HTMLDivElement | null)[]>([]);
-  const footerRef = useRef<HTMLParagraphElement>(null);
-  const scrollTilt = useScrollVelocityTilt(3.5);
+  const inView = useInView(sectionRef, { once: false, margin: "-15%" });
 
   const toggle = (id: string) => setOpen((prev) => (prev === id ? null : id));
 
@@ -267,36 +219,6 @@ export function PricingSection() {
   const handleCardMouseLeave = useCallback((pkgId: string) => {
     setHoveredCard(null);
     setCardSpots((prev) => ({ ...prev, [pkgId]: null }));
-  }, []);
-
-  useEffect(() => {
-    const els = [
-      headerRef.current,
-      bannerRef.current,
-      ...cardRefs.current,
-      footerRef.current,
-    ].filter(Boolean) as HTMLElement[];
-
-    gsap.set(els, { autoAlpha: 0, y: 80, filter: "blur(16px)" });
-
-    const triggers: ScrollTrigger[] = [];
-
-    const reveal = (el: HTMLElement, delay = 0) => {
-      const st = ScrollTrigger.create({
-        trigger: el,
-        start: "top 68%",
-        onEnter: () => gsap.to(el, { autoAlpha: 1, y: 0, filter: "blur(0px)", duration: 0.85, delay, ease: "power3.out" }),
-        onLeaveBack: () => gsap.to(el, { autoAlpha: 0, y: 80, filter: "blur(16px)", duration: 0.5, ease: "power3.in" }),
-      });
-      triggers.push(st);
-    };
-
-    if (headerRef.current) reveal(headerRef.current);
-    if (bannerRef.current) reveal(bannerRef.current, 0.08);
-    cardRefs.current.forEach((el, i) => { if (el) reveal(el, i * 0.12); });
-    if (footerRef.current) reveal(footerRef.current);
-
-    return () => triggers.forEach((t) => t.kill());
   }, []);
 
   return (
@@ -338,8 +260,78 @@ export function PricingSection() {
 
       <div className="relative z-10 container mx-auto px-4 md:px-6">
 
+        {/* Introductory pricing banner — dark card with a refined gold
+            border/glow and a slow ambient shimmer, placed above the header
+            so it's the first thing read without resorting to a loud
+            coupon-style treatment */}
+        <motion.div
+          initial={{ opacity: 0, y: 32, scale: 0.97 }}
+          animate={
+            inView
+              ? { opacity: 1, y: 0, scale: 1 }
+              : { opacity: 0, y: 32, scale: 0.97 }
+          }
+          transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
+          className="relative max-w-2xl mx-auto mb-10 rounded-xl px-5 py-4 flex items-center gap-4 overflow-hidden"
+          style={{
+            background: "linear-gradient(135deg, rgba(203,166,92,0.1) 0%, rgba(10,10,10,0.75) 55%)",
+            border: "1px solid rgba(203,166,92,0.45)",
+            boxShadow: "0 0 24px rgba(203,166,92,0.12), inset 0 1px 0 rgba(203,166,92,0.15)",
+          }}
+        >
+          {/* Slow ambient shimmer sweep — a single pass, not a flashing loop */}
+          <motion.div
+            aria-hidden
+            className="absolute inset-y-0 pointer-events-none"
+            style={{
+              width: "40%",
+              background: "linear-gradient(105deg, transparent, rgba(228,200,131,0.08) 45%, transparent 90%)",
+            }}
+            animate={{ left: ["-40%", "120%"] }}
+            transition={{ duration: 3.5, repeat: Infinity, repeatDelay: 2.5, ease: "easeInOut" }}
+          />
+
+          {/* Icon */}
+          <div
+            className="shrink-0 w-10 h-10 rounded-full flex items-center justify-center"
+            style={{
+              background: "linear-gradient(135deg, rgba(228,200,131,0.16), rgba(203,166,92,0.06))",
+              border: "1px solid rgba(203,166,92,0.4)",
+            }}
+          >
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none">
+              <path
+                d="M12 2l2.4 7.2H22l-6 4.4 2.3 7.1L12 16.3 5.7 20.7 8 13.6 2 9.2h7.6L12 2z"
+                stroke="#E4C883"
+                strokeWidth="1.4"
+                strokeLinejoin="round"
+              />
+            </svg>
+          </div>
+
+          {/* Text */}
+          <div className="flex-1 min-w-0">
+            <p className="text-[#E4C883] text-sm font-bold tracking-tight leading-snug mb-1">
+              Introductory pricing for friends &amp; family
+            </p>
+            <p className="text-[#E8E8E8]/55 text-xs sm:text-[13px] leading-relaxed">
+              All current prices are discounted as an introductory offer for friends and family.
+              Lock it in now — these rates won&apos;t last once the books fill up.
+            </p>
+          </div>
+        </motion.div>
+
         {/* Header */}
-        <div ref={headerRef} className="text-center mb-14 md:mb-18">
+        <motion.div
+          initial={{ opacity: 0, y: 56, scale: 0.94, filter: "blur(16px)" }}
+          animate={
+            inView
+              ? { opacity: 1, y: 0, scale: 1, filter: "blur(0px)" }
+              : { opacity: 0, y: 56, scale: 0.94, filter: "blur(16px)" }
+          }
+          transition={{ duration: 0.85, delay: inView ? 0.1 : 0, ease: [0.16, 1, 0.3, 1] }}
+          className="text-center mb-14 md:mb-18"
+        >
           <p className="text-[#CBA65C] text-[10px] sm:text-xs uppercase tracking-[0.28em] font-semibold mb-4">
             Baser Detailing · Melbourne
           </p>
@@ -356,76 +348,26 @@ export function PricingSection() {
           <p className="mt-6 text-[#E8E8E8]/50 text-sm sm:text-base max-w-xs mx-auto leading-relaxed">
             Tap a card to see exactly what&apos;s included.
           </p>
-        </div>
+        </motion.div>
 
-        {/* Introductory pricing banner */}
-        <div
-          ref={bannerRef}
-          className="relative max-w-2xl mx-auto mb-8 rounded-xl px-5 py-4 flex items-start gap-4 overflow-hidden"
-          style={{
-            background: "linear-gradient(135deg, rgba(203,166,92,0.07) 0%, rgba(10,10,10,0.6) 100%)",
-            border: "1px solid rgba(203,166,92,0.28)",
-            boxShadow: "0 0 32px rgba(203,166,92,0.06), inset 0 1px 0 rgba(203,166,92,0.12)",
-          }}
-        >
-
-          {/* Left accent bar */}
-          <div
-            className="shrink-0 w-[3px] self-stretch rounded-full"
-            style={{ background: "linear-gradient(180deg, #E4C883, #CBA65C 60%, transparent)" }}
-          />
-
-          {/* Text */}
-          <div className="flex-1 min-w-0">
-            <p className="text-[#E4C883] text-sm font-bold tracking-tight leading-snug mb-1">
-              Introductory pricing for friends &amp; family
-            </p>
-            <p className="text-[#E8E8E8]/50 text-xs sm:text-[13px] leading-relaxed">
-              All current prices are discounted as an introductory offer for friends and family.
-              Lock it in now. These rates won&apos;t last once the books fill up.
-            </p>
-          </div>
-
-          {/* Limited offer pill */}
-          <div className="shrink-0 self-start">
-            <span
-              className="inline-block text-[#0a0a0a] text-[9px] font-black uppercase tracking-[0.18em] px-2.5 py-1 rounded-full whitespace-nowrap"
-              style={{
-                background: "linear-gradient(135deg, #E4C883 0%, #CBA65C 100%)",
-              }}
-            >
-              Limited offer
-            </span>
-          </div>
-
-          {/* Subtle shimmer overlay */}
-          <div
-            className="absolute inset-0 pointer-events-none rounded-xl"
-            style={{
-              background: "linear-gradient(105deg, transparent 40%, rgba(228,200,131,0.04) 50%, transparent 60%)",
-            }}
-          />
-        </div>
-
-        {/* Cards — perspective wrapper for scroll tilt */}
+        {/* Cards */}
         <div style={{ perspective: "1100px", perspectiveOrigin: "50% 40%" }}>
-          <div
-            className="flex flex-col gap-4 max-w-2xl mx-auto"
-            style={{
-              transform: `rotateX(${scrollTilt * -0.45}deg)`,
-              transformStyle: "preserve-3d",
-              willChange: "transform",
-            }}
-          >
+          <div className="flex flex-col gap-4 max-w-2xl mx-auto">
           {PACKAGES.map((pkg, i) => {
             const isOpen = open === pkg.id;
             const spot = cardSpots[pkg.id] ?? null;
             const addOns = (pkg as { addOns?: { id: string; name: string; price: number }[] }).addOns;
 
             return (
-              <div
+              <motion.div
                 key={pkg.id}
-                ref={(el) => { cardRefs.current[i] = el; }}
+                initial={{ opacity: 0, y: 48, scale: 0.95, filter: "blur(12px)" }}
+                animate={
+                  inView
+                    ? { opacity: 1, y: 0, scale: 1, filter: "blur(0px)" }
+                    : { opacity: 0, y: 48, scale: 0.95, filter: "blur(12px)" }
+                }
+                transition={{ duration: 0.7, delay: inView ? 0.18 + i * 0.12 : 0, ease: [0.16, 1, 0.3, 1] }}
               >
                 <div
                   className="relative rounded-2xl overflow-hidden cursor-pointer select-none"
@@ -539,14 +481,29 @@ export function PricingSection() {
                         <span className="text-[#E8E8E8]/40 text-[10px] uppercase tracking-widest block">
                           from
                         </span>
-                        <motion.span
-                          className="text-2xl sm:text-3xl font-black tracking-tight leading-none inline-block"
-                          animate={{ scale: hoveredCard === pkg.id ? 1.1 : 1 }}
-                          transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
-                          style={{ color: pkg.featured ? "#E4C883" : "#ffffff" }}
-                        >
-                          {pkg.price}
-                        </motion.span>
+                        <span className="inline-flex items-baseline gap-1.5">
+                          {(pkg as { regularPrice?: string }).regularPrice && (
+                            <span className="relative inline-block text-[#E8E8E8]/70 text-lg sm:text-xl font-bold">
+                              {(pkg as { regularPrice?: string }).regularPrice}
+                              <span
+                                aria-hidden
+                                className="absolute left-[-8%] right-[-8%] top-1/2 h-[2px] pointer-events-none"
+                                style={{
+                                  background: "#e11d1d",
+                                  transform: "translateY(-50%) rotate(-12deg)",
+                                }}
+                              />
+                            </span>
+                          )}
+                          <motion.span
+                            className="text-2xl sm:text-3xl font-black tracking-tight leading-none inline-block"
+                            animate={{ scale: hoveredCard === pkg.id ? 1.1 : 1 }}
+                            transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+                            style={{ color: pkg.featured ? "#E4C883" : "#ffffff" }}
+                          >
+                            {pkg.price}
+                          </motion.span>
+                        </span>
                         {(pkg as { save?: string }).save && (
                           <span className="block text-[10px] font-semibold mt-1 whitespace-nowrap" style={{ color: "#E4C883" }}>
                             {(pkg as { save?: string }).save}
@@ -745,19 +702,21 @@ export function PricingSection() {
                     )}
                   </AnimatePresence>
                 </div>
-              </div>
+              </motion.div>
             );
           })}
           </div>{/* end flex col */}
         </div>{/* end perspective */}
 
         {/* Footer note */}
-        <p
-          ref={footerRef}
+        <motion.p
+          initial={{ opacity: 0, y: 20 }}
+          animate={inView ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
+          transition={{ duration: 0.6, delay: inView ? 0.5 : 0, ease: [0.16, 1, 0.3, 1] }}
           className="text-center mt-10 text-[#E8E8E8]/45 text-xs tracking-wide"
         >
           Prices shown are for sedans &amp; small cars · SUVs, 4WDs &amp; vans a little more · Free quote anytime
-        </p>
+        </motion.p>
 
         {/* Guarantee — reduce purchase anxiety right where the decision happens */}
         <p className="text-center mt-3 text-xs tracking-wide" style={{ color: "rgba(203,166,92,0.7)" }}>

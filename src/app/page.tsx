@@ -10,7 +10,7 @@ import { WhyBaserSection } from "@/components/ui/why-baser";
 import { BookingSection } from "@/components/ui/booking-section";
 import { HowItWorksSection } from "@/components/ui/how-it-works";
 import { PricingSection } from "@/components/ui/pricing-section";
-import { BeforeAfterSection } from "@/components/ui/before-after-slider";
+import { BeforeAfterGallery } from "@/components/ui/before-after-gallery";
 import { GoodToKnowSection } from "@/components/ui/good-to-know";
 import { TestimonialsSection } from "@/components/ui/testimonials-section";
 
@@ -53,7 +53,7 @@ export default function Home() {
       <WhyBaserSection />
       <HowItWorksSection />
       <PricingSection />
-      <BeforeAfterSection />
+      <BeforeAfterGallery />
       <GoodToKnowSection />
       <TestimonialsSection />
       <BookingSection />
