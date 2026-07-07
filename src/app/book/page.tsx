@@ -64,6 +64,7 @@ const SERVICES = [
     id: "full",
     label: "Full Detail",
     price: "from $219",
+    regularPrice: "$299",
     duration: "4–6 hrs",
     highlights: ["Everything included in Interior", "Everything included in Exterior"],
     popular: true,
@@ -253,7 +254,17 @@ function ServiceCard({
         {service.label}
       </h3>
 
-      <div className="flex items-baseline gap-2 mb-4">
+      <div className="flex items-baseline gap-2 mb-4 flex-wrap">
+        {(service as { regularPrice?: string }).regularPrice && (
+          <span className="relative inline-block text-[rgba(232,232,232,0.6)] text-base font-bold">
+            {(service as { regularPrice?: string }).regularPrice}
+            <span
+              aria-hidden
+              className="absolute left-[-8%] right-[-8%] top-1/2 h-[2px] pointer-events-none"
+              style={{ background: "#e11d1d", transform: "translateY(-50%) rotate(-12deg)" }}
+            />
+          </span>
+        )}
         <span
           className="text-2xl font-black tracking-tight"
           style={{ color: selected ? GOLD : "rgba(232,232,232,0.7)" }}
