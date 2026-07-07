@@ -22,7 +22,12 @@ const SERVICES = [
     label: "Exterior Detail",
     price: "from $129",
     duration: "1–2 hrs",
-    highlights: ["Hand wash & dry", "Wheel & tyre clean", "Glass polish", "Trim dressed"],
+    highlights: [
+      "Pre-wash foam & bug/grime removal",
+      "Full wheel clean: faces, barrels & tyres dressed",
+      "Hand dried with zero water spots",
+      "Exterior glass streak-free",
+    ],
     icon: (
       <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
         <path d="M4 18l3-6h14l3 6" stroke={GOLD} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
@@ -38,7 +43,13 @@ const SERVICES = [
     label: "Interior Detail",
     price: "from $149",
     duration: "2–4 hrs",
-    highlights: ["Deep vacuum", "Steam clean seats", "Dashboard & console", "Glass inside"],
+    highlights: [
+      "Deep extraction: seats, carpets, mats & boot",
+      "Stain removal treatment",
+      "Dash, console & trims wiped and treated",
+      "Cupholders & door pockets cleaned out",
+      "Interior glass streak-free",
+    ],
     icon: (
       <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
         <rect x="3" y="8" width="22" height="14" rx="2" stroke={GOLD} strokeWidth="1.8"/>
@@ -54,7 +65,7 @@ const SERVICES = [
     label: "Full Detail",
     price: "from $219",
     duration: "4–6 hrs",
-    highlights: ["Everything in both", "Deep interior extraction", "Full exterior wash & shine", "One car a day — never rushed"],
+    highlights: ["Everything included in Interior", "Everything included in Exterior"],
     popular: true,
     icon: (
       <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
@@ -172,7 +183,7 @@ function ServiceCard({
       onClick={onSelect}
       whileHover={{ y: -3 }}
       whileTap={{ scale: 0.985 }}
-      className="relative w-full text-left rounded-2xl p-6 transition-all duration-300 focus:outline-none"
+      className="relative w-full h-full flex flex-col items-stretch justify-start text-left rounded-2xl p-6 transition-all duration-300 focus:outline-none"
       style={{
         background: selected
           ? "linear-gradient(145deg, rgba(203,166,92,0.12) 0%, rgba(14,13,11,0.95) 100%)"
