@@ -54,7 +54,7 @@ const SERVICES = [
     label: "Full Detail",
     price: "from $219",
     duration: "4–6 hrs",
-    highlights: ["Everything in both", "Paint decontamination", "Leather conditioning", "Engine bay"],
+    highlights: ["Everything in both", "Deep interior extraction", "Full exterior wash & shine", "One car a day — never rushed"],
     popular: true,
     icon: (
       <svg width="28" height="28" viewBox="0 0 28 28" fill="none">

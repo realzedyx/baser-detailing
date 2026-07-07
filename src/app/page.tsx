@@ -37,7 +37,6 @@ export default function Home() {
       <NavBar items={navItems} />
       <BookNowButton />
 
-      {/* PLACEHOLDER COPY — swap in real Baser Detailing wording later */}
       <CinematicHero
         brandName="Baser Detailing"
         tagline1="Showroom finish,"

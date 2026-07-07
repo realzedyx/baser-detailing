@@ -331,7 +331,7 @@ export default function TermsPage() {
           <P>Services are delivered in the following order: interior first, then wheels and tyres, then the exterior wash and dry. This is the operator&apos;s established workflow and will not be varied.</P>
 
           <Sub>Time</Sub>
-          <P>A full detail typically takes 4–5 hours. One booking per day is taken, so your job will never be rushed. Arrival time will be agreed at booking. If the operator is delayed, you will be contacted as early as possible.</P>
+          <P>A full detail typically takes 4–6 hours. One booking per day is taken, so your job will never be rushed. Arrival time will be agreed at booking. If the operator is delayed, you will be contacted as early as possible.</P>
 
           <Sub>Vehicle access</Sub>
           <P>You agree to ensure the vehicle is accessible at the agreed time and location. Baser Detailing is not responsible for delays caused by the vehicle being locked, inaccessible, or in a different location to the one agreed.</P>
