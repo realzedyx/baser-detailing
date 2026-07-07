@@ -205,7 +205,7 @@ function GalleryCard({
 
 export function BeforeAfterGallery() {
   const sectionRef = useRef<HTMLElement>(null);
-  const inView = useInView(sectionRef, { once: false, margin: "-25%" });
+  const inView = useInView(sectionRef, { once: true, margin: "-25%" });
   const [activeFilter, setActiveFilter] = useState<Category | "all">("all");
   const [showAll, setShowAll] = useState(false);
   const [activeId, setActiveId] = useState<string | null>(null);

@@ -298,7 +298,7 @@ export function CinematicHero({
       gsap.set(".mockup-scroll-wrapper", { y: 220, z: -400, rotationX: 40, rotationY: -24, autoAlpha: 0, scale: 0.7 });
 
       gsap.timeline({
-        scrollTrigger: { trigger: ".main-card", start: "top 85%", toggleActions: "play reverse play reverse" },
+        scrollTrigger: { trigger: ".main-card", start: "top 85%", toggleActions: "play none none none" },
       })
         .to(".main-card", { autoAlpha: 1, y: 0, duration: 1, ease: "power3.out" })
         .to(".card-right-text", { autoAlpha: 1, y: 0, duration: 0.7, ease: "power3.out" }, "-=0.6")
@@ -334,14 +334,13 @@ export function CinematicHero({
         }
       });
 
-      // Disappear once the rewards card scrolls into view; reappear if the
-      // user scrolls back up into the hero.
+      // Disappear once the rewards card scrolls into view, and stay gone.
       gsap.to(".scroll-indicator-fixed", {
         autoAlpha: 0, duration: 0.4, ease: "power2.in",
         scrollTrigger: {
           trigger: ".main-card",
           start: "top 90%",
-          toggleActions: "play none none reverse",
+          once: true,
         },
       });
     });

@@ -371,7 +371,7 @@ function TestimonialStack() {
 
 export function TestimonialsSection() {
   const sectionRef = useRef<HTMLElement>(null);
-  const inView = useInView(sectionRef, { once: false, margin: "-38%" });
+  const inView = useInView(sectionRef, { once: true, margin: "-38%" });
 
   return (
     <section

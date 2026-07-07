@@ -123,7 +123,7 @@ export function WhyBaserSection() {
       const reveal = (sel: string, y = 36) =>
         gsap.from(sel, {
           autoAlpha: 0, y, duration: 0.7, ease: "power3.out",
-          scrollTrigger: { trigger: sel, start: "top 88%", toggleActions: "play reverse play reverse" },
+          scrollTrigger: { trigger: sel, start: "top 88%", toggleActions: "play none none none" },
         });
       reveal(".why-eyebrow", 16);
       reveal(".why-heading", 28);

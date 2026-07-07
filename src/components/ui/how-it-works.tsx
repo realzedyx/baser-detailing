@@ -211,7 +211,7 @@ function StepRow({
       ScrollTrigger.create({
         trigger: ref.current,
         start: "top 82%",
-        // No once:true — reverses when scrolling back up
+        once: true,
         onEnter: () => {
           gsap.to(numRef.current,  { autoAlpha: 1, y: 0, duration: 0.7, ease: "power3.out" });
           gsap.to(dotRef.current,  { scale: 1, autoAlpha: 1, duration: 0.45, delay: 0.18, ease: "back.out(2)" });
@@ -219,16 +219,6 @@ function StepRow({
           gsap.to(iconRef.current, {
             autoAlpha: 1, y: 0, duration: 0.65, delay: 0.38, ease: "power3.out",
             onStart: () => setGlyphActive(true),
-          });
-        },
-        onLeaveBack: () => {
-          // Step disappears again when user scrolls back above it
-          gsap.to(numRef.current,  { autoAlpha: 0, y: 52, duration: 0.45, ease: "power3.in" });
-          gsap.to(dotRef.current,  { scale: 0, autoAlpha: 0, duration: 0.3, ease: "power3.in" });
-          gsap.to(bodyRef.current, { autoAlpha: 0, y: 52, duration: 0.45, ease: "power3.in" });
-          gsap.to(iconRef.current, {
-            autoAlpha: 0, y: 52, duration: 0.35, ease: "power3.in",
-            onComplete: () => setGlyphActive(false),
           });
         },
       });

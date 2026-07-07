@@ -201,7 +201,7 @@ export function PricingSection() {
   const [hoveredCard, setHoveredCard] = useState<string | null>(null);
   const [cardSpots, setCardSpots] = useState<Record<string, { x: number; y: number } | null>>({});
   const sectionRef = useRef<HTMLElement>(null);
-  const inView = useInView(sectionRef, { once: false, margin: "-15%" });
+  const inView = useInView(sectionRef, { once: true, margin: "-15%" });
 
   const toggle = (id: string) => setOpen((prev) => (prev === id ? null : id));
 

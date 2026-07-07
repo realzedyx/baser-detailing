@@ -131,7 +131,7 @@ function FaqItem({
 
 export function GoodToKnowSection() {
   const sectionRef = useRef<HTMLElement>(null);
-  const inView = useInView(sectionRef, { once: false, margin: "-38%" });
+  const inView = useInView(sectionRef, { once: true, margin: "-38%" });
   const [openIdx, setOpenIdx] = useState<number | null>(null);
 
   const toggle = (i: number) => setOpenIdx((prev) => (prev === i ? null : i));
