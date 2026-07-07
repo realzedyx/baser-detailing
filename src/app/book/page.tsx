@@ -393,8 +393,12 @@ function Calendar({
           // A date only reads as "open" (green) if it's actually bookable —
           // marked open in the DB AND not inside the minimum lead-time window.
           const isOpen = status === 'open' && !past;
-          const isUnavailable = status === 'booked' || status === 'blocked';
+          const isBooked = status === 'booked';
+          const isUnavailable = isBooked || status === 'blocked';
           const disabled = past || beyond || isUnavailable || !isOpen;
+          // Booked days get their own red pill instead of the gold "today"
+          // ring, so a booked-and-today date doesn't read as available/gold.
+          const showTodRing = tod && !isUnavailable;
 
           return (
             <button
@@ -409,14 +413,14 @@ function Calendar({
                   ? "#0a0a0a"
                   : isOpen
                   ? "rgba(74,222,128,0.9)"
-                  : tod
+                  : showTodRing
                   ? CHROME
                   : "rgba(232,232,232,0.45)",
                 background: sel
                   ? `linear-gradient(135deg, ${CHROME} 0%, ${GOLD} 100%)`
                   : isOpen && !sel
                   ? "rgba(34,197,94,0.1)"
-                  : tod
+                  : showTodRing
                   ? "rgba(203,166,92,0.08)"
                   : "transparent",
                 border: sel
@@ -425,13 +429,21 @@ function Calendar({
                   ? "1px solid rgba(34,197,94,0.3)"
                   : isUnavailable
                   ? "1px solid rgba(239,68,68,0.12)"
-                  : tod
+                  : showTodRing
                   ? `1px solid rgba(203,166,92,0.3)`
                   : "1px solid transparent",
                 cursor: disabled ? "not-allowed" : "pointer",
                 opacity: isUnavailable ? 0.35 : 1,
               }}
             >
+              {isBooked && (
+                <span
+                  className="absolute top-0.5 left-1/2 -translate-x-1/2 px-1 py-[1px] rounded-full text-[6px] font-bold uppercase tracking-wide whitespace-nowrap leading-none"
+                  style={{ background: "rgba(239,68,68,0.85)", color: "#fff" }}
+                >
+                  Booked
+                </span>
+              )}
               {d}
               {sel && (
                 <motion.div
@@ -450,6 +462,10 @@ function Calendar({
         <div className="flex items-center gap-1.5">
           <div className="w-2 h-2 rounded-full" style={{ background: "rgba(34,197,94,0.7)" }} />
           <span className="text-[10px] uppercase tracking-[0.12em]" style={{ color: "rgba(232,232,232,0.3)" }}>Available</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <div className="w-2 h-2 rounded-full" style={{ background: "rgba(239,68,68,0.85)" }} />
+          <span className="text-[10px] uppercase tracking-[0.12em]" style={{ color: "rgba(232,232,232,0.3)" }}>Booked</span>
         </div>
         <div className="flex items-center gap-1.5">
           <div className="w-2 h-2 rounded-full" style={{ background: "rgba(232,232,232,0.15)" }} />
