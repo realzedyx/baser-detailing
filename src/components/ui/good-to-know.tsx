@@ -25,10 +25,6 @@ const bullets = [
 
 const faqs = [
   {
-    q: "How long does it take?",
-    a: "Around 4–6 hours for a full detail. I only take one car a day so yours is never rushed.",
-  },
-  {
     q: "Do you come to me?",
     a: "Always. Pick a time and I'll bring everything to your place. You don't need to go anywhere — I just need access to power and water.",
   },

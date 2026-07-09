@@ -151,19 +151,16 @@ const GLYPHS = [InteriorGlyph, WheelGlyph, ExteriorGlyph];
 const STEPS = [
   {
     num: "01",
-    eyebrow: "~60 min",
     title: "Interior first",
     body: "The full cabin gets done while everything's dry: vacuum, surfaces, glass and mats. That way no overspray or runoff lands on fresh work.",
   },
   {
     num: "02",
-    eyebrow: "~45 min",
     title: "Then the wheels",
     body: "The dirtiest part of the car gets dealt with first: wheels, barrels, arches and tyres, all before any panel washing starts.",
   },
   {
     num: "03",
-    eyebrow: "~75 min",
     title: "Exterior to finish",
     body: "Thorough wash from top to bottom, then a careful hand dry. The paint is the last thing touched and the first thing you'll notice.",
   },
@@ -278,12 +275,6 @@ function StepRow({
       <div ref={bodyRef} className="flex-1 pl-6 pb-20">
         <div className="flex items-start justify-between gap-6">
           <div className="flex-1">
-            <div className="flex items-center gap-2 mb-4">
-              <div className="w-5 h-px bg-[#CBA65C]/60" />
-              <span className="text-[#CBA65C] text-[10px] uppercase tracking-[0.24em] font-semibold">
-                {step.eyebrow}
-              </span>
-            </div>
             <h3 className="text-3xl sm:text-4xl font-black tracking-tighter text-white leading-[1.1] mb-4">
               {step.title}
             </h3>
@@ -479,7 +470,7 @@ export function HowItWorksSection() {
           transition={{ duration: 0.6, delay: 0.2 }}
           className="text-[#E8E8E8]/45 text-xs tracking-wide mt-2"
         >
-          Total: 4–6 hours for a full detail · One detailer, start to finish
+          One detailer, start to finish
         </motion.p>
 
         {/* Soft CTA so a convinced reader can act without scrolling on */}

@@ -40,6 +40,9 @@ const testimonials = [
 
 const TOTAL = testimonials.length;
 
+// Flip to true once real client reviews are ready to display.
+const HAS_REVIEWS = false;
+
 // How far below the container top the active card sits,
 // leaving space for behind-card tops to peek out above it.
 const PEEK = 36;
@@ -366,6 +369,45 @@ function TestimonialStack() {
 }
 
 // ─────────────────────────────────────────────
+// Placeholder (no reviews yet)
+// ─────────────────────────────────────────────
+
+function TestimonialsComingSoon() {
+  return (
+    <div
+      className="relative w-full max-w-lg mx-auto rounded-2xl overflow-hidden"
+      style={{
+        background:
+          "linear-gradient(150deg, rgba(30,26,18,0.97) 0%, rgba(12,10,7,0.98) 100%)",
+        border: "1px solid rgba(203,166,92,0.30)",
+        backdropFilter: "blur(10px)",
+        WebkitBackdropFilter: "blur(10px)",
+        boxShadow: "0 20px 52px rgba(0,0,0,0.72), 0 0 0 1px rgba(203,166,92,0.05)",
+      }}
+    >
+      <div className="p-8 sm:p-10 text-center">
+        <span
+          className="inline-block text-[10px] uppercase tracking-[0.18em] font-semibold px-2.5 py-1 rounded-md mb-5"
+          style={{
+            background: "rgba(203,166,92,0.10)",
+            color: "#CBA65C",
+            border: "1px solid rgba(203,166,92,0.22)",
+          }}
+        >
+          Coming soon
+        </span>
+        <p
+          className="text-[14px] sm:text-[15px] leading-relaxed"
+          style={{ color: "rgba(232,232,232,0.74)" }}
+        >
+          We&rsquo;re still building our track record — check back soon for reviews from real clients.
+        </p>
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────
 // Section
 // ─────────────────────────────────────────────
 
@@ -398,11 +440,13 @@ export function TestimonialsSection() {
             transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
             className="text-[#CBA65C] text-[10px] uppercase tracking-[0.28em] font-semibold mb-5"
           >
-            What clients say
+            {HAS_REVIEWS ? "What clients say" : "Coming soon"}
           </motion.p>
           <h2 className="text-4xl sm:text-5xl font-black tracking-tighter text-white leading-[1.04]">
             <TextReveal inView={inView} delay={0.14}>
-              Don&rsquo;t just take our word for it.
+              {HAS_REVIEWS
+                ? "Don’t just take our word for it."
+                : "We’re just getting started."}
             </TextReveal>
           </h2>
         </div>
@@ -413,7 +457,7 @@ export function TestimonialsSection() {
           animate={inView ? { opacity: 1, y: 0, scale: 1, filter: "blur(0px)" } : { opacity: 0, y: 60, scale: 0.9, filter: "blur(14px)" }}
           transition={{ duration: 1.0, delay: 0.35, ease: [0.16, 1, 0.3, 1] }}
         >
-          <TestimonialStack />
+          {HAS_REVIEWS ? <TestimonialStack /> : <TestimonialsComingSoon />}
         </motion.div>
       </div>
 

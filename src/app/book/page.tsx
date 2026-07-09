@@ -21,7 +21,6 @@ const SERVICES = [
     id: "exterior",
     label: "Exterior Detail",
     price: "from $129",
-    duration: "1–2 hrs",
     highlights: [
       "Pre-wash foam & bug/grime removal",
       "Full wheel clean: faces, barrels & tyres dressed",
@@ -42,7 +41,6 @@ const SERVICES = [
     id: "interior",
     label: "Interior Detail",
     price: "from $149",
-    duration: "2–4 hrs",
     highlights: [
       "Deep extraction: seats, carpets, mats & boot",
       "Stain removal treatment",
@@ -65,7 +63,6 @@ const SERVICES = [
     label: "Full Detail",
     price: "from $219",
     regularPrice: "$299",
-    duration: "4–6 hrs",
     highlights: ["Everything included in Interior", "Everything included in Exterior"],
     popular: true,
     icon: (
@@ -270,9 +267,6 @@ function ServiceCard({
           style={{ color: selected ? GOLD : "rgba(232,232,232,0.7)" }}
         >
           {service.price}
-        </span>
-        <span className="text-xs" style={{ color: "rgba(232,232,232,0.3)" }}>
-          · {service.duration}
         </span>
       </div>
 

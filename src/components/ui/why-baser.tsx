@@ -95,7 +95,7 @@ const CARDS = [
     cls: "why-card-2",
     icon: "⏱",
     title: "Thorough, not fast",
-    body: "A full detail takes 4–6 hours. That's what it takes to do proper stain removal, get into every surface, and hand dry the paint without swirl marks.",
+    body: "That's what it takes to do proper stain removal, get into every surface, and hand dry the paint without swirl marks.",
     highlight: true,
   },
   {
