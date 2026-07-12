@@ -20,7 +20,7 @@ const SERVICES = [
   {
     id: "exterior",
     label: "Exterior Detail",
-    price: "from $129",
+    price: "$129",
     highlights: [
       "Pre-wash foam & bug/grime removal",
       "Full wheel clean: faces, barrels & tyres dressed",
@@ -40,7 +40,7 @@ const SERVICES = [
   {
     id: "interior",
     label: "Interior Detail",
-    price: "from $149",
+    price: "$149",
     highlights: [
       "Deep extraction: seats, carpets, mats & boot",
       "Stain removal treatment",
@@ -61,7 +61,7 @@ const SERVICES = [
   {
     id: "full",
     label: "Full Detail",
-    price: "from $219",
+    price: "$219",
     regularPrice: "$299",
     highlights: ["Everything included in Interior", "Everything included in Exterior"],
     popular: true,
@@ -885,10 +885,10 @@ function RewardsBar({
               <div className="flex items-baseline gap-3">
                 {applied && (
                   <span className="text-xl" style={{ textDecoration: "line-through", color: "rgba(255,255,255,0.25)" }}>
-                    from ${originalPrice}
+                    ${originalPrice}
                   </span>
                 )}
-                <span className="text-3xl font-black" style={{ color: GOLD }}>from ${discountedPrice}</span>
+                <span className="text-3xl font-black" style={{ color: GOLD }}>${discountedPrice}</span>
                 {applied && (
                   <span className="text-[11px]" style={{ color: "rgba(255,255,255,0.3)" }}>with {applied.label} reward</span>
                 )}
