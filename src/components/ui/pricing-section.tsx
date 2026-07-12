@@ -478,9 +478,6 @@ export function PricingSection() {
                     {/* Right: price + chevron */}
                     <div className="flex items-center gap-4 ml-4 shrink-0">
                       <div className="text-right">
-                        <span className="text-[#E8E8E8]/40 text-[10px] uppercase tracking-widest block">
-                          from
-                        </span>
                         <span className="inline-flex items-baseline gap-1.5">
                           {(pkg as { regularPrice?: string }).regularPrice && (
                             <span className="relative inline-block text-[#E8E8E8]/70 text-lg sm:text-xl font-bold">
