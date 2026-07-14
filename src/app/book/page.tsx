@@ -62,7 +62,7 @@ const SERVICES = [
     id: "full",
     label: "Full Detail",
     price: "$219",
-    regularPrice: "$299",
+    regularPrice: "$278",
     highlights: ["Everything included in Interior", "Everything included in Exterior"],
     popular: true,
     icon: (

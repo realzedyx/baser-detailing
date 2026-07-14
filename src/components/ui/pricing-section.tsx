@@ -47,7 +47,7 @@ const PACKAGES = [
     title: "The Full Detail",
     tagline: "Inside out, front to back. Done right.",
     price: "$219",
-    regularPrice: "$299",
+    regularPrice: "$278",
     featured: true,
     badge: "Most Booked",
     save: "Save $59 vs booking separately",
